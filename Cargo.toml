@@ -1,0 +1,22 @@
+[package]
+name = "fanta"
+version = "0.1.0"
+authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
+
+[dependencies]
+bytes = "0.4"
+futures = "0.1.11"
+httparse = "1.1.2"
+log = "0.3.6"
+net2 = "0.2"
+time = "0.1"
+tokio-core = "0.1.0"
+tokio-io = "0.1"
+tokio-proto = "0.1"
+tokio-service = "0.1"
+
+[dev-dependencies]
+rustc-serialize = "0.3"
+num_cpus = "1.0"
+env_logger = { version = "0.3.4", default-features = false }
+serde_json = "0.8"
