@@ -36,7 +36,7 @@ fn process_route(route: String) -> Option<ProcessedRoute> {
   }
 }
 
-struct RouteNode {
+pub struct RouteNode {
   pub value: String,
   pub children: HashMap<String, RouteNode>
 }
@@ -48,6 +48,16 @@ trait FromStatic {
 impl FromStatic for RouteNode {
   fn new(value: &'static str) -> RouteNode {
     RouteNode::new(value.to_owned())
+  }
+}
+
+pub trait RootNode {
+  fn new() -> RouteNode;
+}
+
+impl RootNode for RouteNode {
+  fn new() -> RouteNode {
+    RouteNode::new("__root__".to_owned())
   }
 }
 
@@ -69,7 +79,7 @@ impl RouteNode {
     route_node
   }
 
-  fn add_route(&mut self, route: String) -> &mut RouteNode {
+  pub fn add_route(&mut self, route: String) -> &mut RouteNode {
     if route.len() == 0 {
       return self
     }
