@@ -132,6 +132,7 @@ impl RouteParser {
 mod tests {
   use super::RouteParser;
   use context::Context;
+  use middleware::Middleware;
 
   #[test]
   fn it_should_should_be_able_to_generate_a_simple_parsed_route() {
@@ -201,6 +202,6 @@ mod tests {
     assert!(matched.middleware.len() == 1);
 
     // Disabled until I figure out how to properly compare function pointers
-    // assert!(matched.middleware.get(0).unwrap() == &test_function);
+    assert!(matched.middleware.get(0).unwrap() == &(test_function as Middleware));
   }
 }
