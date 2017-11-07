@@ -45,7 +45,7 @@ pub struct RouteParser {
 }
 
 impl RouteParser {
-  fn new() -> RouteParser {
+  pub fn new() -> RouteParser {
     let mut parser = RouteParser {
       _route_root_node: RouteNode::new(),
       middleware: HashMap::new()
@@ -54,12 +54,12 @@ impl RouteParser {
     parser
   }
 
-  fn add_route(&mut self, route: String, middleware: Vec<Middleware>) -> &RouteNode {
+  pub fn add_route(&mut self, route: String, middleware: Vec<Middleware>) -> &RouteNode {
     self.middleware.insert(route.clone(), middleware);
     self._route_root_node.add_route(route)
   }
 
-  fn match_route(&self, route: String) -> MatchedRoute {
+  pub fn match_route(&self, route: String) -> MatchedRoute {
     let mut matched = self._match_route(route.clone(), &self._route_root_node, &MatchedRoute::new("".to_owned()))
       .expect(&format!("Could not match route {}", route));
 
@@ -132,7 +132,10 @@ impl RouteParser {
 mod tests {
   use super::RouteParser;
   use context::Context;
+  use fanta_error::FantaError;
   use middleware::Middleware;
+  use futures::future;
+  use futures::future::FutureResult;
 
   #[test]
   fn it_should_should_be_able_to_generate_a_simple_parsed_route() {
@@ -191,8 +194,8 @@ mod tests {
 
   #[test]
   fn when_adding_a_route_it_should_return_a_struct_with_all_appropriate_middleware() {
-    fn test_function(context: Context, next: fn() -> ()) {
-      // Do nothing
+    fn test_function(context: Context) -> Context {
+      context
     }
 
     let mut route_parser = RouteParser::new();
@@ -200,8 +203,6 @@ mod tests {
 
     let matched = route_parser.match_route("1/2/3".to_owned());
     assert!(matched.middleware.len() == 1);
-
-    // Disabled until I figure out how to properly compare function pointers
     assert!(matched.middleware.get(0).unwrap() == &(test_function as Middleware));
   }
 }

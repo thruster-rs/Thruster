@@ -1,3 +1,3 @@
 use context::Context;
 
-pub type Middleware = fn(Context, fn() -> ()) -> ();
+pub type Middleware = fn(Context) -> Context;

@@ -12,8 +12,10 @@ extern crate tokio_service;
 #[macro_use]
 extern crate lazy_static;
 
+mod app;
 mod context;
 mod date;
+mod fanta_error;
 mod middleware;
 mod request;
 mod response;
@@ -23,6 +25,9 @@ mod processed_route;
 
 use std::io;
 
+pub use app::App;
+pub use context::Context;
+pub use middleware::Middleware;
 pub use request::Request;
 pub use response::Response;
 
