@@ -33,8 +33,6 @@ impl RootNode for RouteNode {
 
 impl RouteNode {
   fn new(value: String) -> RouteNode {
-    println!("Making a route node for {}", value);
-
     let processed_route = process_route(value)
       .expect("Incorrect route passed to RouteNode -- No head");
 

@@ -10,6 +10,19 @@ lazy_static! {
   static ref PARAM_REGEX: Regex = Regex::new(r"^:(\w+)$").unwrap();
 }
 
+fn _strip_leading_slash(route: String) -> String {
+  match route.chars().nth(0) {
+    Some(val) => {
+      if val == '/' {
+        (route[1..]).to_owned()
+      } else {
+        route
+      }
+    },
+    None => route
+  }
+}
+
 struct ParsedRoute {
   pub params: HashMap<String, String>,
   pub search: HashMap<String, String>
@@ -55,15 +68,19 @@ impl RouteParser {
   }
 
   pub fn add_route(&mut self, route: String, middleware: Vec<Middleware>) -> &RouteNode {
-    self.middleware.insert(route.clone(), middleware);
-    self._route_root_node.add_route(route)
+    let _route = _strip_leading_slash(route);
+
+    self.middleware.insert(_route.clone(), middleware);
+    self._route_root_node.add_route(_route)
   }
 
   pub fn match_route(&self, route: String) -> MatchedRoute {
-    let mut matched = self._match_route(route.clone(), &self._route_root_node, &MatchedRoute::new("".to_owned()))
-      .expect(&format!("Could not match route {}", route));
+    let _route = _strip_leading_slash(route);
 
-    match self.middleware.get(&route) {
+    let mut matched = self._match_route(_route.clone(), &self._route_root_node, &MatchedRoute::new("".to_owned()))
+      .expect(&format!("Could not match route {}", _route));
+
+    match self.middleware.get(&_route) {
       Some(middleware) => matched.middleware = middleware.clone(),
       None => ()
     };

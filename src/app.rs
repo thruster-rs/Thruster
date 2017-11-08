@@ -39,15 +39,11 @@ impl App {
     {
       let matched_route = self._route_parser.match_route(path.to_owned());
 
-
       let middleware = matched_route.middleware;
       let len = middleware.len();
-      for i in 0..(len * 2) {
-        if i >= len {
-          context = middleware.get(len - (i % len)).unwrap()(context);
-        } else {
-          context = middleware.get(i).unwrap()(context);
-        }
+
+      for i in 0..len {
+        context = middleware.get(i).unwrap()(context);
       }
     }
 
@@ -82,10 +78,8 @@ mod tests {
   #[test]
   fn it_execute_all_middlware_with_a_given_request() {
     let mut app = App::new();
-    // let mut test_fn_1_was_called: bool = false;
 
     fn test_fn_1(context: Context) -> Context {
-      // test_fn_1_was_called = true;
       Context {
         response: context.response,
         _identifier: 1
@@ -94,12 +88,12 @@ mod tests {
 
     app.get("test", vec![test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(40);
-    bytes.put(&b"GET /ping HTTP/1.1\nHost: localhost:8080\n"[..]);
+    let mut bytes = BytesMut::with_capacity(41);
+    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    // let request = decode(&mut bytes).unwrap().unwrap();
-    // let ctx = app.resolve(request);
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let ctx = app.resolve(request);
 
-    // assert!(ctx._identifier == 1);
+    assert!(ctx._identifier == 1);
   }
 }

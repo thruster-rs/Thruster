@@ -19,6 +19,10 @@ pub fn process_route(route: String) -> Option<ProcessedRoute> {
             joined = format!("{}/{}", joined, part);
           }
 
+          if head == "" {
+            return process_route(joined)
+          }
+
           Some(ProcessedRoute {
             head: head.to_owned(),
             tail: Some(joined)

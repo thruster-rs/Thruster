@@ -64,7 +64,9 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
 
         let amt = match status {
             httparse::Status::Complete(amt) => amt,
-            httparse::Status::Partial => return Ok(None),
+            httparse::Status::Partial => {
+                return Ok(None)
+            },
         };
 
         let toslice = |a: &[u8]| {
