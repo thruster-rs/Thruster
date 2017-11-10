@@ -11,7 +11,7 @@ use fanta_error::FantaError;
 use request::Request;
 use response::Response;
 use route_parser::RouteParser;
-use middleware::Middleware;
+use middleware::{Middleware, MiddlewareChain};
 
 type ServerFuture = future::Ok<Response, io::Error>;
 
@@ -36,16 +36,11 @@ impl App {
     let path = request.path();
     let mut context = Context::new(Response::new());
 
-    {
-      let matched_route = self._route_parser.match_route(path.to_owned());
+    let matched_route = self._route_parser.match_route(path.to_owned());
+    let middleware = matched_route.middleware;
+    let mut middleware_chain = MiddlewareChain::new(middleware);
 
-      let middleware = matched_route.middleware;
-      let len = middleware.len();
-
-      for i in 0..len {
-        context = middleware.get(i).unwrap()(context);
-      }
-    }
+    context = middleware_chain.next(context);
 
     context
   }
@@ -72,14 +67,14 @@ mod tests {
   use context::Context;
   use request::{decode, Request};
   use fanta_error::FantaError;
-  use middleware::Middleware;
+  use middleware::{Middleware, MiddlewareChain};
   use futures::future::{self, FutureResult};
 
   #[test]
   fn it_execute_all_middlware_with_a_given_request() {
     let mut app = App::new();
 
-    fn test_fn_1(context: Context) -> Context {
+    fn test_fn_1(context: Context, chain: &MiddlewareChain) -> Context {
       Context {
         response: context.response,
         _identifier: 1
@@ -95,5 +90,40 @@ mod tests {
     let ctx = app.resolve(request);
 
     assert!(ctx._identifier == 1);
+  }
+
+  #[test]
+  fn it_execute_all_middlware_with_a_given_request_up_and_down() {
+    let mut app = App::new();
+
+    fn test_fn_1(context: Context, chain: &MiddlewareChain) -> Context {
+      Context {
+        response: context.response,
+        _identifier: context._identifier + 20
+      }
+    };
+
+    fn test_fn_2(context: Context, chain: &MiddlewareChain) -> Context {
+      let mut _context = Context {
+        response: context.response,
+        _identifier: context._identifier + 1
+      };
+
+      _context = chain.next(_context);
+
+      _context._identifier = _context._identifier * 2;
+
+      _context
+    };
+
+    app.get("test", vec![test_fn_2, test_fn_1]);
+
+    let mut bytes = BytesMut::with_capacity(41);
+    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let ctx = app.resolve(request);
+
+    assert!(ctx._identifier == 42);
   }
 }
