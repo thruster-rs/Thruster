@@ -1,44 +1,14 @@
 use std::collections::HashMap;
+use std::vec::Vec;
 
-struct ProcessedRoute {
-  pub head: String,
-  pub tail: Option<String>
-}
-
-fn process_route(route: String) -> Option<ProcessedRoute> {
-  if route.len() == 0 {
-    return None
-  }
-
-  let mut split = route.split("/");
-  match split.next() {
-    Some(head) => {
-      match split.next() {
-        Some(tail) => {
-          let mut joined = tail.to_owned();
-
-          for part in split {
-            joined = format!("{}/{}", joined, part);
-          }
-
-          Some(ProcessedRoute {
-            head: head.to_owned(),
-            tail: Some(joined)
-          })
-        },
-        None => Some(ProcessedRoute {
-          head: head.to_owned(),
-          tail: None
-        })
-      }
-    },
-    None => None
-  }
-}
+use processed_route::{process_route};
+use context::Context;
 
 pub struct RouteNode {
   pub value: String,
-  pub children: HashMap<String, RouteNode>
+  pub children: HashMap<String, RouteNode>,
+  pub is_terminal: bool,
+  pub middleware: Vec<fn(Context, fn() -> ()) -> ()>
 }
 
 trait FromStatic {
@@ -68,7 +38,9 @@ impl RouteNode {
 
     let mut route_node = RouteNode {
       value: processed_route.head,
-      children: HashMap::new()
+      children: HashMap::new(),
+      is_terminal: false,
+      middleware: Vec::new()
     };
 
     match processed_route.tail {
@@ -81,6 +53,7 @@ impl RouteNode {
 
   pub fn add_route(&mut self, route: String) -> &mut RouteNode {
     if route.len() == 0 {
+      self.is_terminal = true;
       return self
     }
 
