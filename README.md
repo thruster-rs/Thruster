@@ -1,6 +1,8 @@
 # Fanta
 ## An opinionated framework for web development in rust.
 
+[![Build Status](https://travis-ci.org/trezm/Fanta.svg?branch=master)](https://travis-ci.org/trezm/Fanta)
+
 Fanta is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:
 - Opinionated
 - Fast
