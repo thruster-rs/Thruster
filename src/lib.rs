@@ -15,7 +15,6 @@ extern crate lazy_static;
 mod app;
 mod context;
 mod date;
-mod fanta_error;
 mod middleware;
 mod request;
 mod response;
@@ -27,7 +26,7 @@ use std::io;
 
 pub use app::App;
 pub use context::Context;
-pub use middleware::Middleware;
+pub use middleware::{Middleware, MiddlewareChain};
 pub use request::Request;
 pub use response::Response;
 

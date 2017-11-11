@@ -4,7 +4,7 @@ use regex::Regex;
 
 use route_search_tree::{RouteNode, RootNode};
 use processed_route::{process_route};
-use middleware::{Middleware, MiddlewareChain};
+use middleware::Middleware;
 
 lazy_static! {
   static ref PARAM_REGEX: Regex = Regex::new(r"^:(\w+)$").unwrap();
@@ -21,11 +21,6 @@ fn _strip_leading_slash(route: String) -> String {
     },
     None => route
   }
-}
-
-struct ParsedRoute {
-  pub params: HashMap<String, String>,
-  pub search: HashMap<String, String>
 }
 
 pub struct MatchedRoute {
@@ -59,7 +54,7 @@ pub struct RouteParser {
 
 impl RouteParser {
   pub fn new() -> RouteParser {
-    let mut parser = RouteParser {
+    let parser = RouteParser {
       _route_root_node: RouteNode::new(),
       middleware: HashMap::new()
     };
@@ -89,11 +84,6 @@ impl RouteParser {
   }
 
   fn _match_route<'a>(&self, route: String, node: &'a RouteNode, match_in_progress: &MatchedRoute) -> Option<MatchedRoute> {
-    let mut parsed_route = ParsedRoute {
-      params: HashMap::new(),
-      search: HashMap::new()
-    };
-
     let processed_route = process_route(route);
     match processed_route {
       Some(mut route) => {
@@ -149,10 +139,7 @@ impl RouteParser {
 mod tests {
   use super::RouteParser;
   use context::Context;
-  use fanta_error::FantaError;
-  use middleware::{Middleware, MiddlewareChain};
-  use futures::future;
-  use futures::future::FutureResult;
+  use middleware::MiddlewareChain;
 
   #[test]
   fn it_should_should_be_able_to_generate_a_simple_parsed_route() {
@@ -211,7 +198,7 @@ mod tests {
 
   #[test]
   fn when_adding_a_route_it_should_return_a_struct_with_all_appropriate_middleware() {
-    fn test_function(context: Context, chain: &MiddlewareChain) -> Context {
+    fn test_function(context: Context, _chain: &MiddlewareChain) -> Context {
       context
     }
 

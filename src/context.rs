@@ -1,7 +1,7 @@
 use response::Response;
-use request::Request;
 
 pub struct Context {
+  pub body: String,
   pub response: Response,
   pub _identifier: u32
 }
@@ -9,6 +9,7 @@ pub struct Context {
 impl Context {
   pub fn new(response: Response) -> Context {
     Context {
+      body: "".to_owned(),
       response: response,
       _identifier: 0
     }
