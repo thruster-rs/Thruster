@@ -2,13 +2,13 @@ use std::collections::HashMap;
 use std::vec::Vec;
 
 use processed_route::{process_route};
-use context::Context;
+use context::BasicContext;
 
 pub struct RouteNode {
   pub value: String,
   pub children: HashMap<String, RouteNode>,
   pub is_terminal: bool,
-  pub middleware: Vec<fn(Context, fn() -> ()) -> ()>
+  pub middleware: Vec<fn(BasicContext, fn() -> ()) -> ()>
 }
 
 trait FromStatic {
