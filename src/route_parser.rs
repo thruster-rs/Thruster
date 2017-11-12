@@ -5,6 +5,7 @@ use regex::Regex;
 use route_search_tree::{RouteNode, RootNode};
 use processed_route::{process_route};
 use middleware::Middleware;
+use context::Context;
 
 lazy_static! {
   static ref PARAM_REGEX: Regex = Regex::new(r"^:(\w+)$").unwrap();
@@ -23,14 +24,14 @@ fn _strip_leading_slash(route: String) -> String {
   }
 }
 
-pub struct MatchedRoute {
+pub struct MatchedRoute<T: Context> {
   pub value: String,
   pub params: HashMap<String, String>,
-  pub middleware: Vec<Middleware>
+  pub middleware: Vec<Middleware<T>>
 }
 
-impl MatchedRoute {
-  fn new(value: String) -> MatchedRoute {
+impl<T: Context> MatchedRoute<T> {
+  fn new(value: String) -> MatchedRoute<T> {
     MatchedRoute {
       value: value,
       params: HashMap::new(),
@@ -38,7 +39,7 @@ impl MatchedRoute {
     }
   }
 
-  fn from_matched_route(value: String, old_matched_route: MatchedRoute) -> MatchedRoute {
+  fn from_matched_route(value: String, old_matched_route: MatchedRoute<T>) -> MatchedRoute<T> {
     let mut matched_route = MatchedRoute::new(value);
 
     matched_route.params = old_matched_route.params.clone();
@@ -47,13 +48,13 @@ impl MatchedRoute {
   }
 }
 
-pub struct RouteParser {
+pub struct RouteParser<T: Context> {
   pub _route_root_node: RouteNode,
-  pub middleware: HashMap<String, Vec<Middleware>>
+  pub middleware: HashMap<String, Vec<Middleware<T>>>
 }
 
-impl RouteParser {
-  pub fn new() -> RouteParser {
+impl<T: Context> RouteParser<T> {
+  pub fn new() -> RouteParser<T> {
     let parser = RouteParser {
       _route_root_node: RouteNode::new(),
       middleware: HashMap::new()
@@ -62,14 +63,14 @@ impl RouteParser {
     parser
   }
 
-  pub fn add_route(&mut self, route: String, middleware: Vec<Middleware>) -> &RouteNode {
+  pub fn add_route(&mut self, route: String, middleware: Vec<Middleware<T>>) -> &RouteNode {
     let _route = _strip_leading_slash(route);
 
     self.middleware.insert(_route.clone(), middleware);
     self._route_root_node.add_route(_route)
   }
 
-  pub fn match_route(&self, route: String) -> MatchedRoute {
+  pub fn match_route(&self, route: String) -> MatchedRoute<T> {
     let _route = _strip_leading_slash(route);
 
     let mut matched = self._match_route(_route.clone(), &self._route_root_node, &MatchedRoute::new("".to_owned()))
@@ -83,11 +84,11 @@ impl RouteParser {
     matched
   }
 
-  fn _match_route<'a>(&self, route: String, node: &'a RouteNode, match_in_progress: &MatchedRoute) -> Option<MatchedRoute> {
+  fn _match_route<'a>(&self, route: String, node: &'a RouteNode, match_in_progress: &MatchedRoute<T>) -> Option<MatchedRoute<T>> {
     let processed_route = process_route(route);
     match processed_route {
       Some(mut route) => {
-        let mut result: Option<MatchedRoute> = None;
+        let mut result: Option<MatchedRoute<T>> = None;
         for val in node.children.values() {
           if val.value == route.head ||
             PARAM_REGEX.is_match(&val.value) {
@@ -126,7 +127,7 @@ impl RouteParser {
     }
   }
 
-  fn _check_for_terminal_node(&self, node: &RouteNode) -> Option<MatchedRoute> {
+  fn _check_for_terminal_node(&self, node: &RouteNode) -> Option<MatchedRoute<T>> {
     if node.is_terminal {
       Some(MatchedRoute::new(node.value.clone()))
     } else {
@@ -138,12 +139,12 @@ impl RouteParser {
 #[cfg(test)]
 mod tests {
   use super::RouteParser;
-  use context::Context;
+  use context::BasicContext;
   use middleware::MiddlewareChain;
 
   #[test]
   fn it_should_should_be_able_to_generate_a_simple_parsed_route() {
-    let mut route_parser = RouteParser::new();
+    let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_route("1/2/3".to_owned(), Vec::new());
 
     let route_node = route_parser._route_root_node.children.get(&"1".to_owned()).unwrap();
@@ -162,7 +163,7 @@ mod tests {
 
   #[test]
   fn it_should_return_a_matched_path_for_a_good_route() {
-    let mut route_parser = RouteParser::new();
+    let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_route("1/2/3/4".to_owned(), Vec::new());
 
     assert!(route_parser.match_route("1/2/3/4".to_owned()).value == "1/2/3/4");
@@ -170,7 +171,7 @@ mod tests {
 
   #[test]
   fn it_should_return_a_matched_path_for_a_good_route_with_multiple_similar_routes() {
-    let mut route_parser = RouteParser::new();
+    let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_route("1/2/3/6".to_owned(), Vec::new());
     route_parser.add_route("1/2/3/4/5".to_owned(), Vec::new());
     route_parser.add_route("1/2/3/4".to_owned(), Vec::new());
@@ -181,14 +182,14 @@ mod tests {
   #[test]
   #[should_panic]
   fn it_should_panic_for_a_bad_route() {
-    let mut route_parser = RouteParser::new();
+    let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_route("1/2/3/4".to_owned(), Vec::new());
     route_parser.match_route("1/2/3".to_owned());
   }
 
   #[test]
   fn it_should_appropriately_define_route_params() {
-    let mut route_parser = RouteParser::new();
+    let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_route("1/:param/2".to_owned(), Vec::new());
 
     let matched = route_parser.match_route("1/somevar/2".to_owned());
@@ -198,11 +199,11 @@ mod tests {
 
   #[test]
   fn when_adding_a_route_it_should_return_a_struct_with_all_appropriate_middleware() {
-    fn test_function(context: Context, _chain: &MiddlewareChain) -> Context {
+    fn test_function(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       context
     }
 
-    let mut route_parser = RouteParser::new();
+    let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_route("1/2/3".to_owned(), vec![test_function]);
 
     let matched = route_parser.match_route("1/2/3".to_owned());

@@ -25,7 +25,7 @@ mod processed_route;
 use std::io;
 
 pub use app::App;
-pub use context::Context;
+pub use context::BasicContext;
 pub use middleware::{Middleware, MiddlewareChain};
 pub use request::Request;
 pub use response::Response;

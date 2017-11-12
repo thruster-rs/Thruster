@@ -4,22 +4,12 @@ extern crate fanta;
 extern crate tokio_proto;
 extern crate tokio_service;
 
-use fanta::{App, Context, MiddlewareChain, Http};
+use fanta::{App, BasicContext, MiddlewareChain, Http};
 use tokio_proto::TcpServer;
 
-/// `HelloWorld` is the *service* that we're going to be implementing to service
-/// the HTTP requests we receive.
-///
-/// The tokio-minihttp crate, and much of Tokio itself, are centered around the
-/// concept of a service for interoperability between crates. Our service here
-/// carries no data with it.
-///
-/// Note that a new instance of `HelloWorld` is created for each TCP connection
-/// we service, created below in the closure passed to `serve`.
-fn index(context: Context, _chain: &MiddlewareChain) -> Context {
-  Context {
+fn index(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+  BasicContext {
     body: "Hello world".to_string(),
-    response: context.response,
     _identifier: 0
   }
 }
@@ -32,7 +22,7 @@ fn main() {
 
   TcpServer::new(Http, addr)
       .serve(|| {
-        let mut app = App::new();
+        let mut app = App::<BasicContext>::new();
 
         app.get("/index.html", vec![index]);
 
