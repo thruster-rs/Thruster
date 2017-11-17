@@ -25,6 +25,9 @@ impl Context for BasicContext {
   }
 
   fn get_response(&self) -> Response {
-    Response::new()
+    let mut response = Response::new();
+    response.body(&self.body);
+
+    response
   }
 }

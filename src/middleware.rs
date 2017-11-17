@@ -2,7 +2,8 @@ use context::{Context};
 use std::vec::Vec;
 use std::cell::Cell;
 
-pub type Middleware<T: Context> = fn(T, chain: &MiddlewareChain<T>) -> T;
+// pub type Middleware<T: Context> = fn(T, chain: &MiddlewareChain<T>) -> T;
+pub type Middleware<T> = fn(T, chain: &MiddlewareChain<T>) -> T;
 
 pub struct MiddlewareChain<T: Context> {
   _chain_index: Cell<usize>,

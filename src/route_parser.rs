@@ -49,6 +49,7 @@ impl<T: Context> MatchedRoute<T> {
 }
 
 pub struct RouteParser<T: Context> {
+  pub _method_agnostic_middleware: HashMap<String, Vec<Middleware<T>>>,
   pub _route_root_node: RouteNode,
   pub middleware: HashMap<String, Vec<Middleware<T>>>
 }
@@ -56,11 +57,31 @@ pub struct RouteParser<T: Context> {
 impl<T: Context> RouteParser<T> {
   pub fn new() -> RouteParser<T> {
     let parser = RouteParser {
+      _method_agnostic_middleware: HashMap::new(),
       _route_root_node: RouteNode::new(),
       middleware: HashMap::new()
     };
 
     parser
+  }
+
+  pub fn add_method_agnostic_middleware(&mut self, route: String, middleware: Middleware<T>) {
+    let _route = _strip_leading_slash(route).clone();
+
+    let updated_vector: Vec<Middleware<T>> = match self._method_agnostic_middleware.get(&_route) {
+      Some(val) => {
+        let mut _in_progress: Vec<Middleware<T>> = Vec::new();
+        for func in val {
+          _in_progress.push(func.clone());
+        }
+
+        _in_progress.push(middleware);
+        _in_progress
+      },
+      None => vec![middleware]
+    };
+
+    self._method_agnostic_middleware.insert(_route, updated_vector);
   }
 
   pub fn add_route(&mut self, route: String, middleware: Vec<Middleware<T>>) -> &RouteNode {
@@ -77,7 +98,32 @@ impl<T: Context> RouteParser<T> {
       .expect(&format!("Could not match route {}", _route));
 
     match self.middleware.get(&_route) {
-      Some(middleware) => matched.middleware = middleware.clone(),
+      Some(middleware) => {
+        let mut accumulating_middleware = middleware.clone();
+
+        let mut accumulator = Vec::new();
+
+        let mut accumulator_index = 0;
+        let mut part_iterator = _route.split("/");
+        // Drop the method
+        part_iterator.next();
+        for part in part_iterator {
+
+          match self._method_agnostic_middleware.get(&accumulator.join("/")) {
+            Some(val) => {
+              for func in val {
+                accumulating_middleware.insert(accumulator_index, func.clone());
+                accumulator_index = accumulator_index + 1;
+              }
+            },
+            None => ()
+          };
+
+          accumulator.push(part);
+        }
+
+        matched.middleware = accumulating_middleware;
+      },
       None => ()
     };
 
@@ -209,5 +255,25 @@ mod tests {
     let matched = route_parser.match_route("1/2/3".to_owned());
     assert!(matched.middleware.len() == 1);
     // assert!(matched.middleware.get(0).unwrap() == &(test_function as Middleware));
+  }
+
+  #[test]
+  fn when_adding_a_route_with_method_agnostic_middleware() {
+    fn method_agnostic(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+      context
+    }
+
+    fn test_function(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+      context
+    }
+
+    let mut route_parser = RouteParser::<BasicContext>::new();
+    route_parser.add_method_agnostic_middleware("/".to_owned(), method_agnostic);
+    route_parser.add_route("1/2/3".to_owned(), vec![test_function]);
+
+    let matched = route_parser.match_route("1/2/3".to_owned());
+    assert!(matched.middleware.len() == 2);
+    // assert!(matched.middleware.get(0).unwrap() == method_agnostic);
+    // assert!(matched.middleware.get(1).unwrap() == &(test_function as Middleware));
   }
 }
