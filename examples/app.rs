@@ -28,10 +28,6 @@ impl CustomContext {
 }
 
 impl Context for CustomContext {
-  fn get_body(&self) -> String {
-    self.body.clone()
-  }
-
   fn get_response(&self) -> Response {
     let mut response = Response::new();
     response.body(&self.body);

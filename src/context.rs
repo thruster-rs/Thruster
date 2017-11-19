@@ -1,7 +1,6 @@
 use response::Response;
 
 pub trait Context {
-  fn get_body(&self) -> String;
   fn get_response(&self) -> Response;
 }
 
@@ -20,10 +19,6 @@ impl BasicContext {
 }
 
 impl Context for BasicContext {
-  fn get_body(&self) -> String {
-    self.body.clone()
-  }
-
   fn get_response(&self) -> Response {
     let mut response = Response::new();
     response.body(&self.body);
