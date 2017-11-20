@@ -4,6 +4,7 @@ use std::vec::Vec;
 use futures::future;
 use tokio_service::Service;
 use tokio_proto::TcpServer;
+use regex::Regex;
 
 use context::{BasicContext, Context};
 use request::Request;
@@ -11,6 +12,7 @@ use response::Response;
 use route_parser::RouteParser;
 use middleware::{Middleware, MiddlewareChain};
 use http::Http;
+use util::{strip_leading_slash};
 
 type ServerFuture = future::Ok<Response, io::Error>;
 enum Method {
@@ -31,6 +33,25 @@ fn _add_method_to_route(method: Method, path: String) -> String {
   };
 
   format!("/{}{}", prefix, path)
+}
+
+fn _insert_prefix_to_methodized_path(path: String, prefix: String) -> String {
+  let regex = Regex::new(r"^(__\w+__)/(.*)").unwrap();
+
+  let path_clone_just_in_case = path.clone();
+  match regex.captures(&path) {
+    Some(cap) => {
+      let mut stripped_prefix = strip_leading_slash(prefix);
+
+      if stripped_prefix.len() > 0 &&
+        (&cap[2]).len() > 0 {
+        stripped_prefix = format!("{}/", stripped_prefix);
+      }
+
+      format!("{}/{}{}", &cap[1], stripped_prefix, &cap[2])
+    },
+    None => path_clone_just_in_case
+  }
 }
 
 pub struct App<T: Context> {
@@ -74,6 +95,23 @@ impl<T: Context> App<T> {
     self
   }
 
+  pub fn use_sub_app(&mut self, prefix: &'static str, app: &App<T>) -> &mut App<T> {
+    let sub_app_middleware = &app.get_route_parser().middleware;
+
+    // This is incorrect right now, because we need to prefix the path.
+    for (path, middleware) in sub_app_middleware {
+      self._route_parser.add_route(
+        _insert_prefix_to_methodized_path(path.to_owned(), prefix.to_owned()),
+        middleware.clone());
+    }
+
+    self
+  }
+
+  pub fn get_route_parser(&self) -> &RouteParser<T> {
+    &self._route_parser
+  }
+
   pub fn get(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
       _add_method_to_route(Method::GET, path.to_owned()), middlewares);
@@ -88,7 +126,7 @@ impl<T: Context> App<T> {
     self
   }
 
-  fn resolve(&self, request: Request) -> T {
+  fn resolve(&self, request: Request) -> Response {
     let path = request.path();
     let method = match request.method() {
       "DELETE" => Method::DELETE,
@@ -98,16 +136,31 @@ impl<T: Context> App<T> {
       "UPDATE" => Method::UPDATE,
       _ => Method::GET
     };
-    let mut context = (self.context_generator)(&request);
 
     let matched_route = self._route_parser.match_route(
       _add_method_to_route(method, path.to_owned()));
-    let middleware = matched_route.middleware;
-    let middleware_chain = MiddlewareChain::new(middleware);
+    match matched_route.sub_app {
+      Some(sub_app) => {
+        let mut context = (sub_app.context_generator)(&request);
 
-    context = middleware_chain.next(context);
+        let middleware = matched_route.middleware;
+        let middleware_chain = MiddlewareChain::new(middleware);
 
-    context
+        context = middleware_chain.next(context);
+
+        context.get_response()
+      },
+      None => {
+        let mut context = (self.context_generator)(&request);
+
+        let middleware = matched_route.middleware;
+        let middleware_chain = MiddlewareChain::new(middleware);
+
+        context = middleware_chain.next(context);
+
+        context.get_response()
+      }
+    }
   }
 }
 
@@ -134,7 +187,7 @@ impl<'a, T: Context> Service for AppService<'a, T> {
 
     let result = self._app.resolve(_request);
 
-    future::ok(result.get_response())
+    future::ok(result)
   }
 }
 
@@ -153,8 +206,7 @@ mod tests {
 
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "".to_string(),
-        _identifier: 1
+        body: "1".to_string()
       }
     };
 
@@ -164,26 +216,24 @@ mod tests {
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let ctx = app.resolve(request);
+    let response = app.resolve(request);
 
-    assert!(ctx._identifier == 1);
+    assert!(response.get_response() == "1");
   }
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request_based_on_method() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "".to_string(),
-        _identifier: 1
+        body: format!("{}{}", context.body, "1")
       }
     };
 
-    fn test_fn_2(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+    fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "".to_string(),
-        _identifier: 2
+        body: format!("{}{}", context.body, "2")
       }
     };
 
@@ -194,9 +244,9 @@ mod tests {
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let ctx = app.resolve(request);
+    let response = app.resolve(request);
 
-    assert!(ctx._identifier == 1);
+    assert!(response.get_response() == "1");
   }
 
   #[test]
@@ -205,20 +255,18 @@ mod tests {
 
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "".to_string(),
-        _identifier: context._identifier + 20
+        body: format!("{}{}", context.body, "1")
       }
     };
 
     fn test_fn_2(context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       let mut _context = BasicContext {
-        body: "".to_string(),
-        _identifier: context._identifier + 1
+        body: format!("{}{}", context.body, "2")
       };
 
       _context = chain.next(_context);
 
-      _context._identifier = _context._identifier * 2;
+      _context.body = format!("{}{}", _context.body, "2");
 
       _context
     };
@@ -229,19 +277,18 @@ mod tests {
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let ctx = app.resolve(request);
+    let response = app.resolve(request);
 
-    assert!(ctx._identifier == 42);
+    assert!(response.get_response() == "212");
   }
 
   #[test]
   fn it_should_return_whatever_was_set_as_the_body_of_the_context() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "Hello world".to_string(),
-        _identifier: context._identifier + 20
+        body: "Hello world".to_string()
       }
     };
 
@@ -251,31 +298,28 @@ mod tests {
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let ctx = app.resolve(request);
+    let response = app.resolve(request);
 
-    assert!(ctx.body == "Hello world");
+    assert!(response.get_response() == "Hello world");
   }
 
   #[test]
   fn it_should_first_run_use_then_methods() {
     let mut app = App::<BasicContext>::new();
 
-    fn method_agnostic(context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+    fn method_agnostic(_context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       let updated_context = chain.next(BasicContext {
-        body: context.body,
-        _identifier: 4
+        body: "agnostic".to_owned(),
       });
 
       BasicContext {
-        body: updated_context.body,
-        _identifier: updated_context._identifier / 2
+        body: updated_context.body
       }
     }
 
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "Hello world".to_string(),
-        _identifier: context._identifier + 2
+        body: format!("{}-1", context.body)
       }
     };
 
@@ -286,8 +330,80 @@ mod tests {
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let ctx = app.resolve(request);
+    let response = app.resolve(request);
 
-    assert!(ctx._identifier == 3);
+    assert!(response.get_response() == "agnostic-1");
+  }
+
+  #[test]
+  fn it_should_be_able_to_correctly_route_sub_apps() {
+    let mut app1 = App::<BasicContext>::new();
+
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+      BasicContext {
+        body: "1".to_string()
+      }
+    };
+
+    app1.get("/test", vec![test_fn_1]);
+
+    let mut app2 = App::<BasicContext>::new();
+    app2.use_sub_app("/", &app1);
+
+    let mut bytes = BytesMut::with_capacity(41);
+    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request);
+
+    assert!(response.get_response() == "1");
+  }
+
+  #[test]
+  fn it_should_be_able_to_correctly_prefix_route_sub_apps() {
+    let mut app1 = App::<BasicContext>::new();
+
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+      BasicContext {
+        body: "1".to_string()
+      }
+    };
+
+    app1.get("/test", vec![test_fn_1]);
+
+    let mut app2 = App::<BasicContext>::new();
+    app2.use_sub_app("/sub", &app1);
+
+    let mut bytes = BytesMut::with_capacity(45);
+    bytes.put(&b"GET /sub/test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request);
+
+    assert!(response.get_response() == "1");
+  }
+
+  #[test]
+  fn it_should_be_able_to_correctly_prefix_the_root_of_sub_apps() {
+    let mut app1 = App::<BasicContext>::new();
+
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+      BasicContext {
+        body: "1".to_string()
+      }
+    };
+
+    app1.get("/", vec![test_fn_1]);
+
+    let mut app2 = App::<BasicContext>::new();
+    app2.use_sub_app("/sub", &app1);
+
+    let mut bytes = BytesMut::with_capacity(45);
+    bytes.put(&b"GET /sub HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request);
+
+    assert!(response.get_response() == "1");
   }
 }
