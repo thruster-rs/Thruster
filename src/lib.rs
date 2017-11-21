@@ -22,6 +22,7 @@ mod route_search_tree;
 mod route_parser;
 mod processed_route;
 mod http;
+mod util;
 
 pub use app::{App, AppService};
 pub use context::{BasicContext, Context};

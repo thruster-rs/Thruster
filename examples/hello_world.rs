@@ -83,6 +83,7 @@ lazy_static! {
      * then takes a vector of middleware to be run whenever
      * a request is made to that path.
      */
+
     _app.get("/", vec![index]);
 
     _app

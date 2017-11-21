@@ -4,30 +4,20 @@ use regex::Regex;
 
 use route_search_tree::{RouteNode, RootNode};
 use processed_route::{process_route};
+use util::{strip_leading_slash};
 use middleware::Middleware;
 use context::Context;
+use app::App;
 
 lazy_static! {
   static ref PARAM_REGEX: Regex = Regex::new(r"^:(\w+)$").unwrap();
 }
 
-fn _strip_leading_slash(route: String) -> String {
-  match route.chars().nth(0) {
-    Some(val) => {
-      if val == '/' {
-        (route[1..]).to_owned()
-      } else {
-        route
-      }
-    },
-    None => route
-  }
-}
-
 pub struct MatchedRoute<T: Context> {
   pub value: String,
   pub params: HashMap<String, String>,
-  pub middleware: Vec<Middleware<T>>
+  pub middleware: Vec<Middleware<T>>,
+  pub sub_app: Option<App<T>>
 }
 
 impl<T: Context> MatchedRoute<T> {
@@ -35,23 +25,45 @@ impl<T: Context> MatchedRoute<T> {
     MatchedRoute {
       value: value,
       params: HashMap::new(),
-      middleware: Vec::new()
+      middleware: Vec::new(),
+      sub_app: None
+    }
+  }
+
+  fn new_sub_app(value: String, sub_app: App<T>) -> MatchedRoute<T> {
+    MatchedRoute {
+      value: value,
+      params: HashMap::new(),
+      middleware: Vec::new(),
+      sub_app: Some(sub_app)
     }
   }
 
   fn from_matched_route(value: String, old_matched_route: MatchedRoute<T>) -> MatchedRoute<T> {
-    let mut matched_route = MatchedRoute::new(value);
+    match old_matched_route.sub_app {
+      Some(old_app) => {
+        let mut matched_route = MatchedRoute::new_sub_app(value, old_app);
 
-    matched_route.params = old_matched_route.params.clone();
+        matched_route.params = old_matched_route.params.clone();
 
-    matched_route
+        matched_route
+      },
+      None => {
+        let mut matched_route = MatchedRoute::new(value);
+
+        matched_route.params = old_matched_route.params.clone();
+
+        matched_route
+      }
+    }
   }
 }
 
 pub struct RouteParser<T: Context> {
   pub _method_agnostic_middleware: HashMap<String, Vec<Middleware<T>>>,
   pub _route_root_node: RouteNode,
-  pub middleware: HashMap<String, Vec<Middleware<T>>>
+  pub middleware: HashMap<String, Vec<Middleware<T>>>,
+  pub sub_apps: HashMap<String, App<T>>
 }
 
 impl<T: Context> RouteParser<T> {
@@ -59,14 +71,15 @@ impl<T: Context> RouteParser<T> {
     let parser = RouteParser {
       _method_agnostic_middleware: HashMap::new(),
       _route_root_node: RouteNode::new(),
-      middleware: HashMap::new()
+      middleware: HashMap::new(),
+      sub_apps: HashMap::new()
     };
 
     parser
   }
 
   pub fn add_method_agnostic_middleware(&mut self, route: String, middleware: Middleware<T>) {
-    let _route = _strip_leading_slash(route).clone();
+    let _route = strip_leading_slash(route).clone();
 
     let updated_vector: Vec<Middleware<T>> = match self._method_agnostic_middleware.get(&_route) {
       Some(val) => {
@@ -85,14 +98,14 @@ impl<T: Context> RouteParser<T> {
   }
 
   pub fn add_route(&mut self, route: String, middleware: Vec<Middleware<T>>) -> &RouteNode {
-    let _route = _strip_leading_slash(route);
+    let _route = strip_leading_slash(route);
 
     self.middleware.insert(_route.clone(), middleware);
     self._route_root_node.add_route(_route)
   }
 
-  pub fn match_route(&self, route: String) -> MatchedRoute<T> {
-    let _route = _strip_leading_slash(route);
+  pub fn match_route(&self, route: String, ) -> MatchedRoute<T> {
+    let _route = strip_leading_slash(route);
 
     let mut matched = self._match_route(_route.clone(), &self._route_root_node, &MatchedRoute::new("".to_owned()))
       .expect(&format!("Could not match route {}", _route));

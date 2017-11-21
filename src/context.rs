@@ -5,15 +5,13 @@ pub trait Context {
 }
 
 pub struct BasicContext {
-  pub body: String,
-  pub _identifier: u32
+  pub body: String
 }
 
 impl BasicContext {
   pub fn new() -> BasicContext {
     BasicContext {
-      body: "".to_owned(),
-      _identifier: 0
+      body: "".to_owned()
     }
   }
 }

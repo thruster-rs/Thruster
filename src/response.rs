@@ -36,6 +36,10 @@ impl Response {
         self.response = s.to_string();
         self
     }
+
+    pub fn get_response(&self) -> String {
+        self.response.clone()
+    }
 }
 
 pub fn encode(msg: Response, buf: &mut BytesMut) {
