@@ -13,6 +13,7 @@ extern crate tokio_service;
 extern crate lazy_static;
 
 mod app;
+mod builtins;
 mod context;
 mod date;
 mod middleware;
@@ -25,6 +26,7 @@ mod http;
 mod util;
 
 pub use app::{App, AppService};
+pub use builtins::send::file;
 pub use context::{BasicContext, Context};
 pub use middleware::{Middleware, MiddlewareChain};
 pub use request::Request;

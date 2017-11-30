@@ -34,6 +34,10 @@ impl Context for CustomContext {
 
     response
   }
+
+  fn set_body(&mut self, body: String) {
+    self.body = body;
+  }
 }
 
 fn generate_context(request: &Request) -> CustomContext {
