@@ -2,6 +2,7 @@ use response::Response;
 
 pub trait Context {
   fn get_response(&self) -> Response;
+  fn set_body(&mut self, String);
 }
 
 pub struct BasicContext {
@@ -22,5 +23,9 @@ impl Context for BasicContext {
     response.body(&self.body);
 
     response
+  }
+
+  fn set_body(&mut self, body: String) {
+    self.body = body;
   }
 }
