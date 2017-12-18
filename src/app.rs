@@ -196,8 +196,8 @@ impl<'a, T: Context> Service for AppService<'a, T> {
 mod tests {
   use super::App;
   use bytes::{BytesMut, BufMut};
-  use context::BasicContext;
-  use request::decode;
+  use context::{BasicContext, Context, TypedContext};
+  use request::{decode, Request};
   use middleware::MiddlewareChain;
 
   #[test]
@@ -219,6 +219,38 @@ mod tests {
     let response = app.resolve(request);
 
     assert!(response.get_response() == "1");
+  }
+
+  #[test]
+  fn it_should_be_able_to_parse_an_incoming_body() {
+    fn generate_context_with_body(request: &Request) -> TypedContext<TestStruct> {
+      TypedContext::<TestStruct>::new(request)
+    }
+
+    let mut app = App::create(generate_context_with_body);
+
+    #[derive(Deserialize, Serialize)]
+    struct TestStruct {
+      key: String
+    };
+
+    fn test_fn_1(mut context: TypedContext<TestStruct>, _chain: &MiddlewareChain<TypedContext<TestStruct>>) -> TypedContext<TestStruct> {
+      let value = context.request_body.key.clone();
+
+      context.set_body(value);
+
+      context
+    };
+
+    app.post("/test", vec![test_fn_1]);
+
+    let mut bytes = BytesMut::with_capacity(57);
+    bytes.put(&b"POST /test HTTP/1.1\nHost: localhost:8080\n\n{\"key\":\"value\"}"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request);
+
+    assert!(response.get_response() == "value");
   }
 
   #[test]
