@@ -1,10 +1,12 @@
 use std::{io, slice, str, fmt};
-
+use serde;
 use bytes::BytesMut;
+use serde_json;
 
 use httparse;
 
 pub struct Request {
+    body: Slice,
     method: Slice,
     path: Slice,
     version: u8,
@@ -21,6 +23,10 @@ pub struct RequestHeaders<'req> {
 }
 
 impl Request {
+    pub fn raw_body(&self) -> &str {
+        str::from_utf8(self.slice(&self.body)).unwrap()
+    }
+
     pub fn method(&self) -> &str {
         str::from_utf8(self.slice(&self.method)).unwrap()
     }
@@ -40,6 +46,12 @@ impl Request {
         }
     }
 
+    pub fn body_as<'a, T>(&self, body: &'a str) -> serde_json::Result<T>
+        where T: serde::de::Deserialize<'a>
+    {
+        serde_json::from_str(body)
+    }
+
     fn slice(&self, slice: &Slice) -> &[u8] {
         &self.data[slice.0..slice.1]
     }
@@ -54,7 +66,7 @@ impl fmt::Debug for Request {
 pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
     // TODO: we should grow this headers array if parsing fails and asks
     //       for more headers
-    let (method, path, version, headers, amt) = {
+    let (method, path, version, headers, body) = {
         let mut headers = [httparse::EMPTY_HEADER; 16];
         let mut r = httparse::Request::new(&mut headers);
         let status = try!(r.parse(buf).map_err(|e| {
@@ -82,7 +94,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
           .iter()
           .map(|h| (toslice(h.name.as_bytes()), toslice(h.value)))
           .collect(),
-         amt)
+         (amt, buf.len()))
     };
 
     Ok(Request {
@@ -90,7 +102,8 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         path: path,
         version: version,
         headers: headers,
-        data: buf.split_to(amt),
+        data: buf.clone(),
+        body: body
     }.into())
 }
 

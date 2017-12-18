@@ -3,14 +3,17 @@ extern crate futures;
 extern crate httparse;
 extern crate net2;
 extern crate regex;
+extern crate serde;
 extern crate time;
 extern crate tokio_core;
 extern crate tokio_io;
 extern crate tokio_proto;
 extern crate tokio_service;
 
-#[macro_use]
-extern crate lazy_static;
+#[macro_use] extern crate lazy_static;
+// For tests
+#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde_json;
 
 mod app;
 mod builtins;
