@@ -66,6 +66,7 @@ impl fmt::Debug for Request {
 pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
     // TODO: we should grow this headers array if parsing fails and asks
     //       for more headers
+    let len = buf.len();
     let (method, path, version, headers, body) = {
         let mut headers = [httparse::EMPTY_HEADER; 16];
         let mut r = httparse::Request::new(&mut headers);
@@ -102,7 +103,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         path: path,
         version: version,
         headers: headers,
-        data: buf.clone(),
+        data: buf.split_to(len),
         body: body
     }.into())
 }
