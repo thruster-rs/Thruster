@@ -9,7 +9,7 @@ use regex::Regex;
 use context::{BasicContext, Context};
 use request::Request;
 use response::Response;
-use route_parser::RouteParser;
+use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
 use http::Http;
 use util::{strip_leading_slash};
@@ -59,8 +59,11 @@ pub struct App<T: Context> {
   pub context_generator: fn(&Request) -> T
 }
 
-fn generate_context(_request: &Request) -> BasicContext {
-  BasicContext::new()
+fn generate_context(request: &Request) -> BasicContext {
+  BasicContext {
+    body: "".to_owned(),
+    params: request.params().clone()
+  }
 }
 
 impl<T: Context> App<T> {
@@ -126,7 +129,7 @@ impl<T: Context> App<T> {
     self
   }
 
-  fn resolve(&self, request: Request) -> Response {
+  fn _req_to_matched_route(&self, request: &Request) -> MatchedRoute<T> {
     let path = request.path();
     let method = match request.method() {
       "DELETE" => Method::DELETE,
@@ -137,8 +140,13 @@ impl<T: Context> App<T> {
       _ => Method::GET
     };
 
-    let matched_route = self._route_parser.match_route(
-      _add_method_to_route(method, path.to_owned()));
+    self._route_parser.match_route(
+      _add_method_to_route(method, path.to_owned()))
+  }
+
+  fn resolve(&self, mut request: Request) -> Response {
+    let matched_route = self._req_to_matched_route(&request);
+    request.set_params(matched_route.params);
     match matched_route.sub_app {
       Some(sub_app) => {
         let mut context = (sub_app.context_generator)(&request);
@@ -183,8 +191,6 @@ impl<'a, T: Context> Service for AppService<'a, T> {
   type Future = ServerFuture;
 
   fn call(&self, _request: Request) -> ServerFuture {
-    // println!("{}", _request.path());
-
     let result = self._app.resolve(_request);
 
     future::ok(result)
@@ -195,6 +201,7 @@ impl<'a, T: Context> Service for AppService<'a, T> {
 #[cfg(test)]
 mod tests {
   use super::App;
+  use std::collections::HashMap;
   use bytes::{BytesMut, BufMut};
   use context::{BasicContext, Context, TypedContext};
   use request::{decode, Request};
@@ -206,7 +213,8 @@ mod tests {
 
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "1".to_string()
+        body: "1".to_string(),
+        params: HashMap::new()
       }
     };
 
@@ -219,6 +227,53 @@ mod tests {
     let response = app.resolve(request);
 
     assert!(response.get_response() == "1");
+  }
+
+  #[test]
+  fn it_should_execute_all_middlware_with_a_given_request_with_params() {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+      BasicContext {
+        body: context.params.get("id").unwrap().to_owned(),
+        params: context.params
+      }
+    };
+
+    app.get("/test/:id", vec![test_fn_1]);
+
+    let mut bytes = BytesMut::with_capacity(45);
+    bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request);
+
+    assert!(response.get_response() == "123");
+  }
+
+  #[test]
+  fn it_should_execute_all_middlware_with_a_given_request_with_params_in_a_subapp() {
+    let mut app1 = App::<BasicContext>::new();
+
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+      BasicContext {
+        body: context.params.get("id").unwrap().to_owned(),
+        params: context.params
+      }
+    };
+
+    app1.get("/test/:id", vec![test_fn_1]);
+
+    let mut app2 = App::<BasicContext>::new();
+    app2.use_sub_app("/", &app1);
+
+    let mut bytes = BytesMut::with_capacity(45);
+    bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request);
+
+    assert!(response.get_response() == "123");
   }
 
   #[test]
@@ -259,13 +314,15 @@ mod tests {
 
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: format!("{}{}", context.body, "1")
+        body: format!("{}{}", context.body, "1"),
+        params: HashMap::new()
       }
     };
 
     fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: format!("{}{}", context.body, "2")
+        body: format!("{}{}", context.body, "2"),
+        params: HashMap::new()
       }
     };
 
@@ -287,13 +344,15 @@ mod tests {
 
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: format!("{}{}", context.body, "1")
+        body: format!("{}{}", context.body, "1"),
+        params: HashMap::new()
       }
     };
 
     fn test_fn_2(context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       let mut _context = BasicContext {
-        body: format!("{}{}", context.body, "2")
+        body: format!("{}{}", context.body, "2"),
+        params: HashMap::new()
       };
 
       _context = chain.next(_context);
@@ -320,7 +379,8 @@ mod tests {
 
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "Hello world".to_string()
+        body: "Hello world".to_string(),
+        params: HashMap::new()
       }
     };
 
@@ -342,16 +402,19 @@ mod tests {
     fn method_agnostic(_context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       let updated_context = chain.next(BasicContext {
         body: "agnostic".to_owned(),
+        params: HashMap::new()
       });
 
       BasicContext {
-        body: updated_context.body
+        body: updated_context.body,
+        params: HashMap::new()
       }
     }
 
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: format!("{}-1", context.body)
+        body: format!("{}-1", context.body),
+        params: HashMap::new()
       }
     };
 
@@ -373,7 +436,8 @@ mod tests {
 
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "1".to_string()
+        body: "1".to_string(),
+        params: HashMap::new()
       }
     };
 
@@ -397,7 +461,8 @@ mod tests {
 
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "1".to_string()
+        body: "1".to_string(),
+        params: HashMap::new()
       }
     };
 
@@ -421,7 +486,8 @@ mod tests {
 
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
       BasicContext {
-        body: "1".to_string()
+        body: "1".to_string(),
+        params: HashMap::new()
       }
     };
 

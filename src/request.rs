@@ -1,4 +1,5 @@
 use std::{io, slice, str, fmt};
+use std::collections::HashMap;
 use serde;
 use bytes::BytesMut;
 use serde_json;
@@ -13,6 +14,7 @@ pub struct Request {
     // TODO: use a small vec to avoid this unconditional allocation
     headers: Vec<(Slice, Slice)>,
     data: BytesMut,
+    params: HashMap<String, String>
 }
 
 type Slice = (usize, usize);
@@ -54,6 +56,14 @@ impl Request {
 
     fn slice(&self, slice: &Slice) -> &[u8] {
         &self.data[slice.0..slice.1]
+    }
+
+    pub fn params(&self) -> &HashMap<String, String> {
+        &self.params
+    }
+
+    pub fn set_params(&mut self, params: HashMap<String, String>) {
+        self.params = params;
     }
 }
 
@@ -104,7 +114,8 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         version: version,
         headers: headers,
         data: buf.split_to(len),
-        body: body
+        body: body,
+        params: HashMap::new()
     }.into())
 }
 
