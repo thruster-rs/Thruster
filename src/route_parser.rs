@@ -4,7 +4,7 @@ use regex::Regex;
 
 use route_search_tree::{RouteNode, RootNode};
 use processed_route::{process_route};
-use util::{strip_leading_slash};
+use util::{strip_leading_slash, wildcardify_params};
 use middleware::Middleware;
 use context::Context;
 use app::App;
@@ -61,8 +61,10 @@ impl<T: Context> MatchedRoute<T> {
 
 pub struct RouteParser<T: Context> {
   pub _method_agnostic_middleware: HashMap<String, Vec<Middleware<T>>>,
+  pub _wildcarded_method_agnostic_middleware: HashMap<String, Vec<Middleware<T>>>,
   pub _route_root_node: RouteNode,
   pub middleware: HashMap<String, Vec<Middleware<T>>>,
+  pub wildcarded_middleware: HashMap<String, Vec<Middleware<T>>>,
   pub sub_apps: HashMap<String, App<T>>
 }
 
@@ -70,8 +72,10 @@ impl<T: Context> RouteParser<T> {
   pub fn new() -> RouteParser<T> {
     let parser = RouteParser {
       _method_agnostic_middleware: HashMap::new(),
+      _wildcarded_method_agnostic_middleware: HashMap::new(),
       _route_root_node: RouteNode::new(),
       middleware: HashMap::new(),
+      wildcarded_middleware: HashMap::new(),
       sub_apps: HashMap::new()
     };
 
@@ -94,13 +98,15 @@ impl<T: Context> RouteParser<T> {
       None => vec![middleware]
     };
 
-    self._method_agnostic_middleware.insert(_route, updated_vector);
+    self._method_agnostic_middleware.insert(_route.clone(), updated_vector.clone());
+    self._wildcarded_method_agnostic_middleware.insert(wildcardify_params(&_route), updated_vector);
   }
 
   pub fn add_route(&mut self, route: String, middleware: Vec<Middleware<T>>) -> &RouteNode {
     let _route = strip_leading_slash(route);
 
-    self.middleware.insert(_route.clone(), middleware);
+    self.middleware.insert(_route.clone(), middleware.clone());
+    self.wildcarded_middleware.insert(wildcardify_params(&_route), middleware);
     self._route_root_node.add_route(_route)
   }
 
@@ -110,7 +116,9 @@ impl<T: Context> RouteParser<T> {
     let mut matched = self._match_route(_route.clone(), &self._route_root_node, &MatchedRoute::new("".to_owned()))
       .expect(&format!("Could not match route {}", _route));
 
-    match self.middleware.get(&_route) {
+    let wildcarded_route = wildcardify_params(&matched.value);
+
+    match self.wildcarded_middleware.get(&wildcarded_route) {
       Some(middleware) => {
         let mut accumulating_middleware = middleware.clone();
 
