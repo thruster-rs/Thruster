@@ -2,6 +2,12 @@
 name = "fanta"
 version = "0.1.0"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
+description = "A middleware based http async web server."
+readme = "README.md"
+license = "MIT"
+documentation = "https://github.com/trezm/fanta"
+homepage = "https://github.com/trezm/fanta"
+repository = "https://github.com/trezm/fanta"
 
 [dependencies]
 bytes = "0.4"

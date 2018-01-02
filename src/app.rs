@@ -129,6 +129,13 @@ impl<T: Context> App<T> {
     self
   }
 
+  pub fn put(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
+    self._route_parser.add_route(
+      _add_method_to_route(Method::PUT, path.to_owned()), middlewares);
+
+    self
+  }
+
   fn _req_to_matched_route(&self, request: &Request) -> MatchedRoute<T> {
     let path = request.path();
     let method = match request.method() {
