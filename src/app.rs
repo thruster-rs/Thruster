@@ -69,13 +69,10 @@ fn generate_context(request: &Request) -> BasicContext {
 impl<T: Context> App<T> {
   pub fn start(app: &'static App<T>, host: String, port: String) {
     let addr = format!("{}:{}", host, port).parse().unwrap();
-    println!("Port: {}", port);
 
     TcpServer::new(Http, addr)
       .serve(move || {
         let service = AppService::new(app);
-
-        println!("Starting service...");
 
         Ok(service)
       });
@@ -155,11 +152,9 @@ impl<T: Context> App<T> {
   }
 
   fn resolve(&self, mut request: Request) -> Response {
-    println!("Request: {}", request.path());
     let matched_route = self._req_to_matched_route(&request);
     request.set_params(matched_route.params);
 
-    println!("Matched_route: {}", matched_route.value);
     match matched_route.sub_app {
       Some(sub_app) => {
         let mut context = (sub_app.context_generator)(&request);
