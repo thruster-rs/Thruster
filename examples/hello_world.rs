@@ -82,6 +82,7 @@ lazy_static! {
   static ref APP: App<CustomContext> = {
     let mut _app = App::<CustomContext>::create(generate_context);
 
+    #[allow(unused_doc_comment)]
     /**
      * We have a single route with the root (/) path. It
      * then takes a vector of middleware to be run whenever

@@ -12,7 +12,9 @@ extern crate tokio_service;
 
 #[macro_use] extern crate lazy_static;
 // For tests
+#[allow(unused_imports)]
 #[macro_use] extern crate serde_derive;
+#[allow(unused_imports)]
 #[macro_use] extern crate serde_json;
 
 mod app;

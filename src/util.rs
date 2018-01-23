@@ -1,10 +1,6 @@
 use regex::Regex;
 
 lazy_static! {
-  static ref PARAM_REGEX: Regex = Regex::new(r"^:(\w+)$").unwrap();
-}
-
-lazy_static! {
   static ref WILDCARD_PARAM_REGEX: Regex = Regex::new(r":\w+").unwrap();
 }
 
