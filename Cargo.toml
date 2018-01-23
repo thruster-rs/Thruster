@@ -1,6 +1,6 @@
 [package]
 name = "fanta"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
