@@ -182,6 +182,6 @@ fn main() {
   println!("Starting server...");
 
   drop(env_logger::init());
-  App::start(&APP, "8080".to_string());
+  App::start(&APP, "0.0.0.0".to_string(), "8080".to_string());
 }
 ```
