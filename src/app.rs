@@ -136,6 +136,12 @@ impl<T: Context> App<T> {
     self
   }
 
+  pub fn set404(&mut self, middlewares:Vec<Middleware<T>>) -> &mut App<T> {
+    self._route_parser.set_not_found(middlewares);
+
+    self
+  }
+
   fn _req_to_matched_route(&self, request: &Request) -> MatchedRoute<T> {
     let path = request.path();
     let method = match request.method() {
@@ -544,5 +550,35 @@ mod tests {
     let response = app2.resolve(request);
 
     assert!(response.get_response() == "1");
+  }
+
+  #[test]
+  fn it_should_be_able_to_correctly_handle_not_found_routes() {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+      BasicContext {
+        body: "1".to_string(),
+        params: HashMap::new()
+      }
+    };
+
+    fn test_404(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> BasicContext {
+      BasicContext {
+        body: "not found".to_string(),
+        params: HashMap::new()
+      }
+    };
+
+    app.get("/", vec![test_fn_1]);
+    app.set404(vec![test_404]);
+
+    let mut bytes = BytesMut::with_capacity(51);
+    bytes.put(&b"GET /not_found HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request);
+
+    assert!(response.get_response() == "not found");
   }
 }

@@ -63,9 +63,10 @@ pub struct RouteParser<T: Context> {
   pub _method_agnostic_middleware: HashMap<String, Vec<Middleware<T>>>,
   pub _wildcarded_method_agnostic_middleware: HashMap<String, Vec<Middleware<T>>>,
   pub _route_root_node: RouteNode,
+  pub _not_found_route: Option<Vec<Middleware<T>>>,
   pub middleware: HashMap<String, Vec<Middleware<T>>>,
   pub wildcarded_middleware: HashMap<String, Vec<Middleware<T>>>,
-  pub sub_apps: HashMap<String, App<T>>
+  pub sub_apps: HashMap<String, App<T>>,
 }
 
 impl<T: Context> RouteParser<T> {
@@ -74,9 +75,10 @@ impl<T: Context> RouteParser<T> {
       _method_agnostic_middleware: HashMap::new(),
       _wildcarded_method_agnostic_middleware: HashMap::new(),
       _route_root_node: RouteNode::new(),
+      _not_found_route: None,
       middleware: HashMap::new(),
       wildcarded_middleware: HashMap::new(),
-      sub_apps: HashMap::new()
+      sub_apps: HashMap::new(),
     };
 
     parser
@@ -102,6 +104,10 @@ impl<T: Context> RouteParser<T> {
     self._wildcarded_method_agnostic_middleware.insert(wildcardify_params(&_route), updated_vector);
   }
 
+  pub fn set_not_found(&mut self, middleware: Vec<Middleware<T>>) {
+    self._not_found_route = Some(middleware);
+  }
+
   pub fn add_route(&mut self, route: String, middleware: Vec<Middleware<T>>) -> &RouteNode {
     let _route = strip_leading_slash(route);
 
@@ -113,8 +119,17 @@ impl<T: Context> RouteParser<T> {
   pub fn match_route(&self, route: String, ) -> MatchedRoute<T> {
     let _route = strip_leading_slash(route);
 
-    let mut matched = self._match_route(_route.clone(), &self._route_root_node, &MatchedRoute::new("".to_owned()))
-      .expect(&format!("Could not match route {}", _route));
+    let mut matched = match self._match_route(_route.clone(), &self._route_root_node, &MatchedRoute::new("".to_owned())) {
+      Some(_matched) => _matched,
+      None => match self._not_found_route.clone() {
+        Some(_404middleware) => {
+          let mut not_found = MatchedRoute::new(_route.clone());
+          not_found.middleware = _404middleware;
+          not_found
+        },
+        None => panic!(format!("Could not match route {}", _route))
+      }
+    };
 
     let wildcarded_route = wildcardify_params(&matched.value);
 
@@ -234,6 +249,15 @@ mod tests {
     route_parser.add_route("1/2/3/4".to_owned(), Vec::new());
 
     assert!(route_parser.match_route("1/2/3/4".to_owned()).value == "1/2/3/4");
+  }
+
+  #[test]
+  fn it_should_use_not_found_for_not_handled_routes() {
+    let mut route_parser = RouteParser::<BasicContext>::new();
+    route_parser.add_route("1/2/3/4".to_owned(), Vec::new());
+    route_parser.set_not_found(Vec::new());
+
+    assert!(route_parser.match_route("5".to_owned()).value == "5");
   }
 
   #[test]
