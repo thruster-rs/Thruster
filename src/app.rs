@@ -136,6 +136,20 @@ impl<T: Context> App<T> {
     self
   }
 
+  pub fn delete(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
+    self._route_parser.add_route(
+      _add_method_to_route(Method::DELETE, path.to_owned()), middlewares);
+
+    self
+  }
+
+  pub fn update(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
+    self._route_parser.add_route(
+      _add_method_to_route(Method::UPDATE, path.to_owned()), middlewares);
+
+    self
+  }
+
   pub fn set404(&mut self, middlewares:Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.set_not_found(middlewares);
 
