@@ -10,11 +10,9 @@ Fanta is a web framework that aims for developers to be productive and consisten
 
 Based heavily off of the work here: https://github.com/tokio-rs/tokio-minihttp
 
-## WARNING -- FANTA IS NOT READY, AND PROBABLY SHOULDN'T EVEN BE ON GITHUB YET
-
 ## Opinionated
 
-This is a work in progress
+Fanta and Fanta-cli strive to give a good way to do domain driven design. It's also designed to let set you on the right path, but not obfuscate certain hard parts behind libraries.
 
 ## Fast
 
@@ -53,7 +51,21 @@ Left to the developer to decide at this point!
 
 ## Getting Started
 
-To get started, check out the example app:
+The easiest way to get started is to install fanta-cli,
+
+```
+> cargo install fanta-cli
+```
+
+And then to run
+
+```
+> fanta-cli init MyAwesomeProject
+```
+
+Which will generate everything you need to get started! Check out [fanta-cli here](https://github.com/trezm/fanta-cli).
+
+## Example
 
 ``` Rust
 extern crate env_logger;
@@ -184,4 +196,3 @@ fn main() {
   drop(env_logger::init());
   App::start(&APP, "0.0.0.0".to_string(), "8080".to_string());
 }
-```
