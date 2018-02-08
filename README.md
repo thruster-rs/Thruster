@@ -55,7 +55,7 @@ Left to the developer to decide at this point!
 
 To get started, check out the example app:
 
-```
+``` Rust
 extern crate env_logger;
 extern crate futures;
 extern crate fanta;
