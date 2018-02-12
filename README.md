@@ -83,6 +83,7 @@ You could also run:
 
 ```
 > mkdir my_awesome_project
+> cd my_awesome_project
 > cargo init --bin
 > wget https://raw.githubusercontent.com/trezm/Fanta/master/examples/hello_world.rs
 > wget https://raw.githubusercontent.com/trezm/Fanta/master/examples/context.rs
