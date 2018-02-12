@@ -47,7 +47,7 @@ Transfer/sec:      3.84MB
 
 ## Intuitive
 
-Left to the developer to decide at this point!
+Based on frameworks like Koa, and Express, Fanta aims to be a pleasure to develop with.
 
 ## Getting Started
 
@@ -81,12 +81,12 @@ Head on over to our examples section and copy the `hello_world.rs` file, and the
 
 You could also run:
 
-```bash
+```
 > mkdir my_awesome_project
 > cd my_awesome_project
 > cargo init --bin
-> wget https://raw.githubusercontent.com/trezm/Fanta/master/examples/hello_world.rs
-> wget https://raw.githubusercontent.com/trezm/Fanta/master/examples/context.rs
+> wget https://raw.githubusercontent.com/trezm/Fanta/master/examples/hello_world/main.rs
+> wget https://raw.githubusercontent.com/trezm/Fanta/master/examples/hello_world/context.rs
 ```
 
 For basic functionality, you'll want to include: `fanta, tokio_proto, tokio_service, lazy_static`.
