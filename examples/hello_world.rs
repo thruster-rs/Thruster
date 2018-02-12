@@ -1,130 +1,72 @@
-extern crate env_logger;
-extern crate futures;
 extern crate fanta;
+extern crate serde;
+extern crate serde_json;
 extern crate tokio_proto;
 extern crate tokio_service;
-extern crate time;
 
-#[macro_use]
-extern crate lazy_static;
+#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate lazy_static;
 
-use fanta::{App, Context, MiddlewareChain, Request, Response};
+mod context;
 
-/**
- * Here we make a custom context. Contexts are the way that
- * Fanta passes data between middleware functions. Typically
- * this is where you'd add fields such as the currently
- * signed in user, or tracking sessions, etc.
- */
-
-struct CustomContext {
-  pub body: String,
-  pub method: String,
-  pub path: String
-}
-
-impl CustomContext {
-  fn new(context: CustomContext) -> CustomContext {
-    CustomContext {
-      body: context.body,
-      method: context.method,
-      path: context.path
-    }
-  }
-}
-
-/**
- * The only important part about Contexts is that they
- * implement the Context trait. The Context trait only
- * requires a single method, get_response.
- *
- * get_response should create a Response object from
- * the current context. This is where you would hydrate
- * headers, body, and anything else custom that belongs
- * on the response.
- */
-
-impl Context for CustomContext {
-  fn get_response(&self) -> Response {
-    let mut response = Response::new();
-    response.body(&self.body);
-    response.header("Content-Type", "text/plain");
-
-    response
-  }
-
-  fn set_body(&mut self, body: String) {
-    self.body = body;
-  }
-}
-
-/**
- * The generate_context function is pretty self explanatory.
- * It's the function that's passed in to the app that gets
- * called every time a new request into the app is made. It
- * takes the request and transforms it into Context.
- */
-
-fn generate_context(request: &Request) -> CustomContext {
-  CustomContext {
-    body: "".to_owned(),
-    method: request.method().to_owned(),
-    path: request.path().to_owned()
-  }
-}
-
-/**
- * The app object _must_ have a static lifetime. This is
- * just a way to generate static lifetime apps.
- */
+use fanta::{App, MiddlewareChain};
+use context::{generate_context, Ctx};
 
 lazy_static! {
-  static ref APP: App<CustomContext> = {
-    let mut _app = App::<CustomContext>::create(generate_context);
+  static ref APP: App<Ctx> = {
+    let mut _app = App::<Ctx>::create(generate_context);
 
-    #[allow(unused_doc_comment)]
-    /**
-     * We have a single route with the root (/) path. It
-     * then takes a vector of middleware to be run whenever
-     * a request is made to that path.
-     */
+    _app.get("/json", vec![json]);
+    _app.get("/plaintext", vec![plaintext]);
 
-    _app.get("/", vec![index]);
+    _app.set404(vec![not_found_404]);
 
     _app
   };
 }
 
-/**
- * From above, this is the single function that's executed
- * when the `/` path is hit. Middleware functions take a
- * a Context, a MiddlewareChain (explained below,) and return
- * a Context.
- *
- * A MiddlewareChain is Fanta's way of representing the call
- * stack of middleware functions. It has a single method,
- * `next` which calls the next function in the middleawre
- * chain, which returns a new context.
- *
- * If chain.next() is not called, the chain simply does not
- * continue any further and the call stack returns back up.
- */
+fn not_found_404(context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Ctx {
+  let mut context = Ctx::new(context);
 
-fn index(context: CustomContext, _chain: &MiddlewareChain<CustomContext>) -> CustomContext {
-  let mut context = CustomContext::new(context);
-
-  context.body = "Hello world".to_owned();
+  context.body = "<html>
+  ( ͡° ͜ʖ ͡°) What're you looking for here?
+</html>".to_owned();
+  context.set_header("Content-Type", "text/html");
+  context.status_code = 404;
 
   context
 }
 
-/**
- * Start the app!
- */
+#[derive(Serialize)]
+struct JsonStruct<'a> {
+  message: &'a str
+}
+fn json(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Ctx {
+  let json = JsonStruct {
+    message: "Hello, World!"
+  };
+
+  let val = serde_json::to_string(&json).unwrap();
+
+  context.body = val;
+  context.set_header("Server", "fanta");
+  context.set_header("Content-Type", "application/json");
+
+  context
+}
+
+fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Ctx {
+  let val = "Hello, World!".to_owned();
+
+  context.body = val;
+  context.set_header("Server", "fanta");
+  context.set_header("Content-Type", "text/plain");
+
+  context
+}
 
 fn main() {
   println!("Starting server...");
 
-  drop(env_logger::init());
   App::start(&APP, "0.0.0.0".to_string(), "8080".to_string());
 }
