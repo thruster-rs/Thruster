@@ -81,7 +81,7 @@ Head on over to our examples section and copy the `hello_world.rs` file, and the
 
 You could also run:
 
-```
+```bash
 > mkdir my_awesome_project
 > cd my_awesome_project
 > cargo init --bin
