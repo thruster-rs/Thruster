@@ -51,9 +51,21 @@ Based on frameworks like Koa, and Express, Fanta aims to be a pleasure to develo
 
 ## Getting Started
 
+### Quick setup without a DB
+
+The easiest way to get started is to just clone the [starter kit](https://github.com/trezm/fanta-starter-kit)
+
+```
+> git clone git@github.com:trezm/fanta-starter-kit.git
+> cd fanta-starter-kit
+> cargo run
+```
+
+The example provides a simple route plaintext route, a route with JSON serialization, and the preferred way to organize sub routes using sub apps.
+
 ### Quick setup with postgres
 
-The easiest way to get started is to install fanta-cli,
+The easiest way to get started with postgres is to install fanta-cli,
 
 ```
 > cargo install fanta-cli
@@ -74,23 +86,3 @@ postgres://postgres@localhost/<Your Project Name>
 ```
 
 This is all configurable and none of it is exposed to the developer. Check out the docs for [fanta-cli here](https://github.com/trezm/fanta-cli).
-
-### Quick setup without a DB
-
-Head on over to our examples section and copy the `hello_world.rs` file, and the `context.rs` file. These provide a good launching point for a basic app that _only_ provides the router (as well as a few examples of how to do things like serializing JSON.)
-
-You could also run:
-
-```
-> mkdir my_awesome_project
-> cd my_awesome_project
-> cargo init --bin
-> wget https://raw.githubusercontent.com/trezm/Fanta/master/examples/hello_world/main.rs
-> wget https://raw.githubusercontent.com/trezm/Fanta/master/examples/hello_world/context.rs
-```
-
-For basic functionality, you'll want to include: `fanta, tokio_proto, tokio_service, lazy_static`.
-
-For JSON serialization, you'll also want: `serde, serde_json, serde_derive`.
-
-[Simple Plaintext and JSON routes](https://github.com/trezm/Fanta/blob/master/examples/hello_world.rs)
