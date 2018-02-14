@@ -16,34 +16,7 @@ Fanta and Fanta-cli strive to give a good way to do domain driven design. It's a
 
 ## Fast
 
-Initial tests of plain-text requests yeilds the following resuts:
-
-```
-Framework: Cowboy
-  Requests/sec:  10982.93
-  Transfer/sec:      1.36MB
-Framework: Node (Koa)
-  Requests/sec:   9592.82
-  Transfer/sec:      1.39MB
-Framework: Node (Express)
-  Requests/sec:   5926.87
-  Transfer/sec:      1.22MB
-Framework: Phoenix/Elixir (prod mode)
-  Requests/sec:    538.02
-  Transfer/sec:    132.93KB
-Framework: Rocket (dev mode)
-  Requests/sec:   5537.87
-  Transfer/sec:    789.58KB
-Framework: Rocket (prod mode)
-  Requests/sec:  18555.74
-  Transfer/sec:      2.58MB
-Framework: Fanta (dev mode)
-  Requests/sec:   7362.82
-  Transfer/sec:    726.22KB
-Framework: Fanta (prod mode)
-  Requests/sec:  39865.62
-  Transfer/sec:      3.84MB
-```
+Initial tests of plain-text requests yields the results that are roughly a 400% improvement over Koa, and a 10% improvement over Rocket.
 
 ## Intuitive
 
