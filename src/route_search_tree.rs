@@ -8,6 +8,7 @@ pub struct RouteNode {
   pub value: String,
   pub children: HashMap<String, RouteNode>,
   pub is_terminal: bool,
+  pub has_params: bool,
   pub middleware: Vec<fn(BasicContext, fn() -> ()) -> ()>
 }
 
@@ -33,13 +34,16 @@ impl RootNode for RouteNode {
 
 impl RouteNode {
   fn new(value: String) -> RouteNode {
-    let processed_route = process_route(value)
+    let processed_route = process_route(&value)
       .expect("Incorrect route passed to RouteNode -- No head");
+
+    let has_params = value.contains(":");
 
     let mut route_node = RouteNode {
       value: processed_route.head,
       children: HashMap::new(),
       is_terminal: false,
+      has_params: has_params,
       middleware: Vec::new()
     };
 

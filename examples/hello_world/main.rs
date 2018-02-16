@@ -1,4 +1,5 @@
 extern crate fanta;
+extern crate futures;
 extern crate serde;
 extern crate serde_json;
 extern crate tokio_proto;
@@ -9,7 +10,9 @@ extern crate tokio_service;
 
 mod context;
 
-use fanta::{App, MiddlewareChain};
+use futures::future;
+
+use fanta::{App, MiddlewareChain, MiddlewareReturnValue};
 use context::{generate_context, Ctx};
 
 lazy_static! {
@@ -25,7 +28,7 @@ lazy_static! {
   };
 }
 
-fn not_found_404(context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Ctx {
+fn not_found_404(context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let mut context = Ctx::new(context);
 
   context.body = "<html>
@@ -34,14 +37,14 @@ fn not_found_404(context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Ctx {
   context.set_header("Content-Type", "text/html");
   context.status_code = 404;
 
-  context
+  Box::new(future::ok(context))
 }
 
 #[derive(Serialize)]
 struct JsonStruct<'a> {
   message: &'a str
 }
-fn json(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Ctx {
+fn json(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let json = JsonStruct {
     message: "Hello, World!"
   };
@@ -52,21 +55,21 @@ fn json(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Ctx {
   context.set_header("Server", "fanta");
   context.set_header("Content-Type", "application/json");
 
-  context
+  Box::new(future::ok(context))
 }
 
-fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Ctx {
+fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
 
   context.body = val;
   context.set_header("Server", "fanta");
   context.set_header("Content-Type", "text/plain");
 
-  context
+  Box::new(future::ok(context))
 }
 
 fn main() {
   println!("Starting server...");
 
-  App::start(&APP, "0.0.0.0".to_string(), "8080".to_string());
+  App::start(&APP, "0.0.0.0".to_string(), "4321".to_string());
 }
