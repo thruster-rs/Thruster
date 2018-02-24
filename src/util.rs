@@ -4,11 +4,11 @@ lazy_static! {
   static ref WILDCARD_PARAM_REGEX: Regex = Regex::new(r":\w+").unwrap();
 }
 
-pub fn strip_leading_slash(route: String) -> String {
+pub fn strip_leading_slash<'a>(route: &'a str) -> &'a str {
   match route.chars().nth(0) {
     Some(val) => {
       if val == '/' {
-        (route[1..]).to_owned()
+        &route[1..]
       } else {
         route
       }

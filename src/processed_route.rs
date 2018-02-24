@@ -3,7 +3,7 @@ pub struct ProcessedRoute {
   pub tail: Option<String>
 }
 
-pub fn process_route(route: String) -> Option<ProcessedRoute> {
+pub fn process_route(route: &str) -> Option<ProcessedRoute> {
   if route.len() == 0 {
     return None
   }
@@ -20,7 +20,7 @@ pub fn process_route(route: String) -> Option<ProcessedRoute> {
           }
 
           if head == "" {
-            return process_route(joined)
+            return process_route(&joined)
           }
 
           Some(ProcessedRoute {
