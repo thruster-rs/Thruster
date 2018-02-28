@@ -12,7 +12,7 @@ use context::{BasicContext, Context};
 use std::boxed::Box;
 use request::Request;
 use response::Response;
-use route_parser::{MatchedRoute, RouteParser};
+use route_parser_v2::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
 use http::Http;
 use util::{strip_leading_slash};

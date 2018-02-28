@@ -12,6 +12,7 @@ extern crate tokio_proto;
 extern crate tokio_service;
 
 #[macro_use] extern crate lazy_static;
+#[macro_use] extern crate templatify;
 // For tests
 #[allow(unused_imports)]
 #[macro_use] extern crate serde_derive;
@@ -27,6 +28,7 @@ mod request;
 mod response;
 mod route_search_tree;
 mod route_parser;
+mod route_parser_v2;
 mod processed_route;
 mod http;
 mod util;
