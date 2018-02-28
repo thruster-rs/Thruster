@@ -38,7 +38,7 @@ fn _add_method_to_route(method: Method, path: String) -> String {
 }
 
 fn _insert_prefix_to_methodized_path(path: String, prefix: String) -> String {
-  let regex = Regex::new(r"^(__\w+__)/(.*)").unwrap();
+  let regex = Regex::new(r"^(/?__\w+__)/(.*)").unwrap();
 
   let path_clone_just_in_case = path.clone();
   match regex.captures(&path) {
@@ -54,6 +54,29 @@ fn _insert_prefix_to_methodized_path(path: String, prefix: String) -> String {
     },
     None => path_clone_just_in_case
   }
+}
+
+fn _rehydrate_stars_for_app_with_route<T: 'static + Context>(app: &App<T>, route: &str) -> String {
+  let mut split_iterator = route.split("/");
+
+  let first_piece = split_iterator.next();
+
+  assert!(first_piece.is_some());
+
+  let mut accumulator = first_piece.unwrap_or("").to_owned();
+
+  for piece in split_iterator {
+    if piece == "*" {
+      match app._route_parser.middleware.get(&templatify! { ""; &accumulator ;"/*" }) {
+        Some(val) => accumulator = templatify! { ""; &accumulator ;"/:"; &val.param_name ;"" },
+        None => accumulator = templatify! { ""; &accumulator ;"/*" }
+      };
+    } else {
+      accumulator = templatify! { ""; &accumulator ;"/"; piece ;"" }; // Test vs. a join
+    }
+  }
+
+  accumulator
 }
 
 pub struct App<T: 'static + Context> {
@@ -105,10 +128,13 @@ impl<T: Context> App<T> {
     let sub_app_middleware = &app.get_route_parser().middleware;
 
     // This is incorrect right now, because we need to prefix the path.
-    for (path, middleware) in sub_app_middleware {
+    for (path, route_node) in sub_app_middleware {
+      let prefixed_path = &_insert_prefix_to_methodized_path(path.to_owned(), prefix.to_owned());
+      let prefixed_path = &_rehydrate_stars_for_app_with_route(app, prefixed_path);
+
       self._route_parser.add_route(
-        &_insert_prefix_to_methodized_path(path.to_owned(), prefix.to_owned()),
-        middleware.clone());
+        prefixed_path,
+        route_node.associated_middleware.clone());
     }
 
     self
