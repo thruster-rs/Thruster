@@ -28,7 +28,6 @@ mod request;
 mod response;
 mod route_search_tree;
 mod route_parser;
-mod route_parser_v2;
 mod processed_route;
 mod http;
 mod util;
