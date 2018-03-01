@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::vec::Vec;
 
 use route_search_tree::{RouteNode, RootNode};
-use processed_route::{process_route};
 use util::{strip_leading_slash, wildcardify_params};
 use middleware::{Middleware};
 use context::Context;
@@ -13,45 +12,6 @@ pub struct MatchedRoute<T: 'static + Context> {
   pub params: HashMap<String, String>,
   pub middleware: Vec<Middleware<T>>,
   pub sub_app: Option<App<T>>
-}
-
-impl<T: Context> MatchedRoute<T> {
-  fn new(value: String) -> MatchedRoute<T> {
-    MatchedRoute {
-      value: value,
-      params: HashMap::new(),
-      middleware: Vec::new(),
-      sub_app: None
-    }
-  }
-
-  fn new_sub_app(value: String, sub_app: App<T>) -> MatchedRoute<T> {
-    MatchedRoute {
-      value: value,
-      params: HashMap::new(),
-      middleware: Vec::new(),
-      sub_app: Some(sub_app)
-    }
-  }
-
-  fn from_matched_route(value: String, old_matched_route: MatchedRoute<T>) -> MatchedRoute<T> {
-    match old_matched_route.sub_app {
-      Some(old_app) => {
-        let mut matched_route = MatchedRoute::new_sub_app(value, old_app);
-
-        matched_route.params = old_matched_route.params.clone();
-
-        matched_route
-      },
-      None => {
-        let mut matched_route = MatchedRoute::new(value);
-
-        matched_route.params = old_matched_route.params.clone();
-
-        matched_route
-      }
-    }
-  }
 }
 
 pub struct RouteParser<T: 'static + Context> {
@@ -111,97 +71,73 @@ impl<T: Context> RouteParser<T> {
     self._route_root_node.add_route(_route.to_owned())
   }
 
-  pub fn match_route(&self, route: &str, ) -> MatchedRoute<T> {
-    let _route = strip_leading_slash(route);
+  pub fn match_route(&self, route: &str) -> MatchedRoute<T> {
+    let route = strip_leading_slash(route);
+    let route_iterator = route.split("/");
+    let mut accumulator = "".to_owned();
+    let mut current_node = &self._route_root_node;
+    let mut middleware = Vec::new();
+    let mut has_terminal_node = false;
+    let mut params = HashMap::new();
 
-    let mut matched = match self._match_route(&_route, &self._route_root_node, &MatchedRoute::new("".to_owned())) {
-      Some(_matched) => _matched,
-      None => {
-        let mut not_found = MatchedRoute::new(_route.to_owned());
-        not_found.middleware = self._not_found_route.clone();
-        not_found
-      }
-    };
+    for piece in route_iterator {
+      let wildcarded_params = wildcardify_params(&accumulator);
+      let wildcarded_route = strip_leading_slash(&wildcarded_params);
+      match self._method_agnostic_middleware.get(wildcarded_route) {
+        Some(_middleware) => {
+          for func in _middleware {
+            middleware.push(*func);
+          }
+        },
+        None => ()
+      };
 
-    let wildcarded_route = wildcardify_params(&matched.value);
+      for mut val in current_node.children.values() {
+        if val.value == piece || val.has_params {
+          if val.has_params {
+            params.insert(val.value[1..].to_owned(), piece.to_owned());
+          }
 
-    match self.wildcarded_middleware.get(&wildcarded_route) {
-      Some(middleware) => {
-        let mut accumulating_middleware = middleware.clone();
+          if val.is_terminal {
+            if val.has_params {
+              accumulator = templatify! { ""; &accumulator ;"/*" };
+            } else {
+              accumulator = templatify! { ""; &accumulator ;"/"; piece ;"" };
+            }
 
-        let mut accumulator = Vec::new();
-
-        let mut accumulator_index = 0;
-        let mut part_iterator = _route.split("/");
-        // Drop the method
-        part_iterator.next();
-        for part in part_iterator {
-
-          match self._method_agnostic_middleware.get(&accumulator.join("/")) {
-            Some(val) => {
-              for func in val {
-                accumulating_middleware.insert(accumulator_index, func.clone());
-                accumulator_index = accumulator_index + 1;
-              }
-            },
-            None => ()
-          };
-
-          accumulator.push(part);
-        }
-
-        matched.middleware = accumulating_middleware;
-      },
-      None => ()
-    };
-
-    matched
-  }
-
-  fn _match_route<'a>(&self, route: &str, node: &'a RouteNode, match_in_progress: &MatchedRoute<T>) -> Option<MatchedRoute<T>> {
-    let processed_route = process_route(&route);
-    match processed_route {
-      Some(mut route) => {
-        let mut result: Option<MatchedRoute<T>> = None;
-        for val in node.children.values() {
-          if val.value == route.head ||
-            val.has_params {
-
-            let recursive = match route.tail.take() {
-              Some(tail) => {
-                match self._match_route(&tail, val, &match_in_progress) {
-                  Some(child_match) => Some(MatchedRoute::from_matched_route(format!("{}/{}", val.value.clone(), child_match.value.clone()), child_match)),
-                  None => None
+            let wildcarded_params = wildcardify_params(&accumulator);
+            let wildcarded_route = strip_leading_slash(&wildcarded_params);
+            match self.wildcarded_middleware.get(wildcarded_route) {
+              Some(_middleware) => {
+                for func in _middleware {
+                  middleware.push(*func);
                 }
+                has_terminal_node = true;
+                break;
               },
-              None => self._check_for_terminal_node(val)
+              None => ()
             };
-
-            result = match recursive {
-              Some(mut _result) => {
-                if val.has_params {
-                  _result.params.insert(val.value[1..].to_owned(), route.head.clone());
-                }
-
-                Some(_result)
-              },
-              None => None
-            };
+          } else {
+            current_node = val;
             break;
           }
         }
+      }
 
-        result
-      },
-      None => self._check_for_terminal_node(node)
+      accumulator = templatify! { ""; &accumulator ;"/"; piece ;"" };
     }
-  }
 
-  fn _check_for_terminal_node(&self, node: &RouteNode) -> Option<MatchedRoute<T>> {
-    if node.is_terminal {
-      Some(MatchedRoute::new(node.value.clone()))
-    } else {
-      None
+    if !has_terminal_node {
+      for func in &self._not_found_route {
+        middleware.push(*func);
+      }
+    }
+
+    MatchedRoute {
+      value: route.to_owned(),
+      params: params,
+      middleware: middleware,
+      sub_app: None
     }
   }
 }
@@ -267,7 +203,7 @@ mod tests {
     route_parser.add_route("1/:param/2", Vec::new());
 
     let matched = route_parser.match_route("1/somevar/2");
-    assert!(matched.value == "1/:param/2");
+
     assert!(matched.params.get("param").unwrap() == "somevar");
   }
 
