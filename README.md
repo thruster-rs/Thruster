@@ -16,7 +16,37 @@ Fanta and Fanta-cli strive to give a good way to do domain driven design. It's a
 
 ## Fast
 
-Initial tests of plain-text requests yields the results that are roughly a 400% improvement over Koa, and a 10% improvement over Rocket.
+Using the following command, we get roughly 96% of the speed of pure `tokio-minihttp` running in release mode.
+
+```
+wrk -t12 -c400 -d30s http://127.0.0.1:4321/plaintext
+```
+
+Fanta results:
+```
+Running 30s test @ http://127.0.0.1:4321/plaintext
+  12 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     6.45ms    1.09ms  18.11ms   75.96%
+    Req/Sec     5.03k   502.49     7.75k    82.97%
+  1802773 requests in 30.05s, 244.13MB read
+  Socket errors: connect 0, read 238, write 0, timeout 0
+Requests/sec:  60000.61
+Transfer/sec:      8.13MB
+```
+
+tokio-minihttp
+```
+Running 30s test @ http://127.0.0.1:4321/plaintext
+  12 threads and 400 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     6.30ms    2.14ms  52.22ms   88.68%
+    Req/Sec     5.19k     1.03k   10.91k    77.92%
+  1861702 requests in 30.05s, 229.03MB read
+  Socket errors: connect 0, read 243, write 0, timeout 0
+Requests/sec:  61949.84
+Transfer/sec:      7.62MB
+```
 
 ## Intuitive
 
@@ -59,3 +89,12 @@ postgres://postgres@localhost/<Your Project Name>
 ```
 
 This is all configurable and none of it is exposed to the developer. Check out the docs for [fanta-cli here](https://github.com/trezm/fanta-cli).
+
+### Changelog
+
+#### 0.2.0
+* Breaking Changes
+  * Migrated to use Futures for all middleware callbacks
+* Highlights
+  * Dropped support for tree-based lookup of routes to remove potential branching
+  * Removed many regexes involved in lookup

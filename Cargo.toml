@@ -1,6 +1,6 @@
 [package]
 name = "fanta"
-version = "0.1.7"
+version = "0.2.0"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
@@ -21,6 +21,7 @@ regex = "0.2"
 serde = "1.0.24"
 serde_json = "1.0.8"
 serde_derive = "1.0.24"
+templatify = "0.1.0"
 time = "0.1"
 tokio-core = "0.1.0"
 tokio-io = "0.1"
