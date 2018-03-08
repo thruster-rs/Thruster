@@ -88,7 +88,7 @@ Which will generate everything you need to get started! Note that this requires 
 postgres://postgres@localhost/<Your Project Name>
 ```
 
-This is all configurable and none of it is exposed to the developer. Check out the docs for [fanta-cli here](https://github.com/trezm/fanta-cli).
+This is all configurable and none of it is hidden from the developer. It's like seeing the magic trick and learning how it's done! Check out the docs for [fanta-cli here](https://github.com/trezm/fanta-cli).
 
 ### Changelog
 
