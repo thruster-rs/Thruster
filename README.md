@@ -8,8 +8,6 @@ Fanta is a web framework that aims for developers to be productive and consisten
 - Fast
 - Intuitive
 
-Based heavily off of the work here: https://github.com/tokio-rs/tokio-minihttp
-
 ## Opinionated
 
 Fanta and Fanta-cli strive to give a good way to do domain driven design. It's also designed to let set you on the right path, but not obfuscate certain hard parts behind libraries.
@@ -18,7 +16,7 @@ Fanta and Fanta-cli strive to give a good way to do domain driven design. It's a
 
 Using the following command, we get roughly 96% of the speed of pure `tokio-minihttp` running in release mode.
 
-```
+```bash
 wrk -t12 -c400 -d30s http://127.0.0.1:4321/plaintext
 ```
 
@@ -54,11 +52,60 @@ Based on frameworks like Koa, and Express, Fanta aims to be a pleasure to develo
 
 ## Getting Started
 
+### The most basic example
+
+```rust
+extern crate fanta;
+extern crate futures;
+extern crate serde;
+extern crate serde_json;
+extern crate tokio_proto;
+extern crate tokio_service;
+
+#[macro_use] extern crate lazy_static;
+
+use std::boxed::Box;
+use futures::{future, Future};
+use std::io;
+
+use fanta::{App, BasicContext as Ctx, MiddlewareChain, Request};
+
+lazy_static! {
+  static ref APP: App<Ctx> = {
+    let mut _app = App::<Ctx>::create(generate_context);
+
+    _app.get("/plaintext", vec![plaintext]);
+
+    _app
+  };
+}
+
+fn generate_context(request: &Request) -> Ctx {
+  Ctx {
+    body: "".to_owned(),
+    params: request.params().clone()
+  }
+}
+
+fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Box<Future<Item=Ctx, Error=io::Error>> {
+  let val = "Hello, World!".to_owned();
+  context.body = val;
+
+  Box::new(future::ok(context))
+}
+
+fn main() {
+  println!("Starting server...");
+
+  App::start(&APP, "0.0.0.0".to_string(), "4321".to_string());
+}
+```
+
 ### Quick setup without a DB
 
 The easiest way to get started is to just clone the [starter kit](https://github.com/trezm/fanta-starter-kit)
 
-```
+```bash
 > git clone git@github.com:trezm/fanta-starter-kit.git
 > cd fanta-starter-kit
 > cargo run
@@ -70,13 +117,13 @@ The example provides a simple route plaintext route, a route with JSON serializa
 
 The easiest way to get started with postgres is to install fanta-cli,
 
-```
+```bash
 > cargo install fanta-cli
 ```
 
 And then to run
 
-```
+```bash
 > fanta-cli init MyAwesomeProject
 > fanta-cli component Users
 > fanta-cli migrate
