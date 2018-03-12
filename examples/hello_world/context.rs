@@ -1,5 +1,6 @@
 use std::collections::{HashMap};
-use fanta::{Context, Request, Response};
+use thruster::{Context, Request, Response};
+use tokio::reactor::Handle;
 
 pub struct Ctx {
   pub body: String,
@@ -24,22 +25,23 @@ impl Ctx {
     }
   }
 
-  pub fn set_header(&mut self, key: &str, val: &str) {
-    self.headers.push((key.to_owned(), val.to_owned()));
+  pub fn set_header(&mut self, key: String, val: String) {
+    self.headers.push((key, val));
   }
 }
 
 impl Context for Ctx {
-  fn get_response(&self) -> Response {
-    let mut response = Response::new();
-    response.body(&self.body);
-    response.status_code(self.status_code, "");
+  fn get_response(&self) -> Response<String> {
+    let mut builder = Response::builder();
+    builder.status(200);
 
     for header_pair in &self.headers {
-      response.header(&header_pair.0, &header_pair.1);
+      let key: &str = &header_pair.0;
+      let val: &str = &header_pair.1;
+      builder.header(key, val);
     }
 
-    response
+    builder.body(self.body.clone()).unwrap()
   }
 
   fn set_body(&mut self, body: String) {
@@ -47,7 +49,7 @@ impl Context for Ctx {
   }
 }
 
-pub fn generate_context(request: &Request) -> Ctx {
+pub fn generate_context(request: &Request, _handle: &Handle) -> Ctx {
   Ctx {
     body: "".to_owned(),
     method: request.method().to_owned(),

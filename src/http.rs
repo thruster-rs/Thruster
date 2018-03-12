@@ -1,27 +1,13 @@
-use bytes::BytesMut;
-use tokio_io::codec::{Encoder, Decoder, Framed};
-use tokio_io::{AsyncRead, AsyncWrite};
-use tokio_proto::pipeline::ServerProto;
-use response::{self, Response};
+use bytes::{BytesMut, BufMut};
+use tokio_io::codec::{Encoder, Decoder};
+
+use httplib::Response;
 use request::{self, Request};
 use std::io;
 
 pub struct Http;
 
-impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for Http {
-    type Request = Request;
-    type Response = Response;
-    type Transport = Framed<T, HttpCodec>;
-    type BindTransport = io::Result<Framed<T, HttpCodec>>;
-
-    fn bind_transport(&self, io: T) -> io::Result<Framed<T, HttpCodec>> {
-        Ok(io.framed(HttpCodec))
-    }
-}
-
-pub struct HttpCodec;
-
-impl Decoder for HttpCodec {
+impl Decoder for Http {
     type Item = Request;
     type Error = io::Error;
 
@@ -30,12 +16,33 @@ impl Decoder for HttpCodec {
     }
 }
 
-impl Encoder for HttpCodec {
-    type Item = Response;
+impl Encoder for Http {
+    type Item = Response<String>;
     type Error = io::Error;
 
-    fn encode(&mut self, msg: Response, buf: &mut BytesMut) -> io::Result<()> {
-        response::encode(msg, buf);
+    fn encode(&mut self, msg: Response<String>, buf: &mut BytesMut) -> io::Result<()> {
+        encode(msg, buf);
         Ok(())
     }
+}
+
+
+pub fn encode(msg: Response<String>, buf: &mut BytesMut) {
+    let length = msg.body().len();
+    let now = ::date::now();
+
+    templatify_buffer! { buf, "\
+        HTTP/1.1 "; format!("{}", msg.status()) ;"\r\n\
+        Server: thruster\r\n\
+        Content-Length: "; format!("{}", length) ;"\r\n\
+        Date: "; format!("{}", now) ;"\r\n\
+    " };
+
+    for (ref k, ref v) in msg.headers() {
+        let key: &str = k.as_ref();
+        let val: &[u8] = v.as_bytes();
+        templatify_buffer! { buf, ""; key ;": "; val ;"\r\n" };
+    }
+
+    templatify_buffer! { buf, "\r\n"; msg.body() ;"" };
 }

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-use response::Response;
+use httplib::Response;
 
 pub trait Context {
-  fn get_response(&self) -> Response;
+  fn get_response(&self) -> Response<String>;
   fn set_body(&mut self, String);
 }
 
@@ -21,11 +21,10 @@ impl BasicContext {
 }
 
 impl Context for BasicContext {
-  fn get_response(&self) -> Response {
-    let mut response = Response::new();
-    response.body(&self.body);
+  fn get_response(&self) -> Response<String> {
+    let mut response = Response::builder();
 
-    response
+    response.body(self.body.clone()).unwrap()
   }
 
   fn set_body(&mut self, body: String) {

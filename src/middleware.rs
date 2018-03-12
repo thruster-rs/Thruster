@@ -3,22 +3,25 @@ use std::vec::Vec;
 use std::cell::Cell;
 use std::boxed::Box;
 use futures::{future, Future};
+use tokio::reactor::Handle;
 use std::io;
 
 // pub type Middleware<T: Context> = fn(T, chain: &MiddlewareChain<T>) -> T;
-pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error>>;
+pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error> + Send>;
 pub type Middleware<T> = fn(T, chain: &MiddlewareChain<T>) -> MiddlewareReturnValue<T>;
 
-pub struct MiddlewareChain<T: Context> {
+pub struct MiddlewareChain<'a, T: Context> {
   _chain_index: Cell<usize>,
+  pub handle: &'a Handle,
   pub middleware: Vec<Middleware<T>>
 }
 
-impl<T: 'static + Context> MiddlewareChain<T> {
-  pub fn new(middleware: Vec<Middleware<T>>) -> MiddlewareChain<T> {
+impl<'a, T: 'static + Context + Send> MiddlewareChain<'a, T> {
+  pub fn new(middleware: Vec<Middleware<T>>, handle: &'a Handle) -> MiddlewareChain<'a, T> {
     MiddlewareChain {
+      handle: handle,
       middleware: middleware,
-      _chain_index: Cell::new(0)
+      _chain_index: Cell::new(0),
     }
   }
 

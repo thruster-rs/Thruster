@@ -1,17 +1,16 @@
-extern crate fanta;
+extern crate thruster;
 extern crate futures;
 extern crate serde;
 extern crate serde_json;
-extern crate tokio_proto;
-extern crate tokio_service;
+extern crate tokio;
 
 #[macro_use] extern crate lazy_static;
 
 use std::boxed::Box;
-use futures::{future, Future};
-use std::io;
+use futures::future;
+use tokio::reactor::Handle;
 
-use fanta::{App, BasicContext as Ctx, MiddlewareChain, Request};
+use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
 
 lazy_static! {
   static ref APP: App<Ctx> = {
@@ -23,14 +22,14 @@ lazy_static! {
   };
 }
 
-fn generate_context(request: &Request) -> Ctx {
+fn generate_context(request: &Request, _handle: &Handle) -> Ctx {
   Ctx {
     body: "".to_owned(),
     params: request.params().clone()
   }
 }
 
-fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Box<Future<Item=Ctx, Error=io::Error>> {
+fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
   context.body = val;
 

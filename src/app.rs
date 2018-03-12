@@ -3,18 +3,19 @@ use std::vec::Vec;
 
 use futures::future;
 use futures::Future;
-use tokio_service::Service;
-use tokio_proto::TcpServer;
 use regex::Regex;
-use num_cpus;
+use tokio;
+use tokio::reactor::Handle;
+use tokio::net::{TcpStream, TcpListener};
+use tokio::prelude::*;
 
 use context::{BasicContext, Context};
+use http::Http;
+use httplib::{Response};
 use std::boxed::Box;
 use request::Request;
-use response::Response;
 use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
-use http::Http;
 use util::{strip_leading_slash};
 
 enum Method {
@@ -56,7 +57,7 @@ fn _insert_prefix_to_methodized_path(path: String, prefix: String) -> String {
   }
 }
 
-fn _rehydrate_stars_for_app_with_route<T: 'static + Context>(app: &App<T>, route: &str) -> String {
+fn _rehydrate_stars_for_app_with_route<T: 'static + Context + Send>(app: &App<T>, route: &str) -> String {
   let mut split_iterator = route.split("/");
 
   let first_piece = split_iterator.next();
@@ -79,29 +80,54 @@ fn _rehydrate_stars_for_app_with_route<T: 'static + Context>(app: &App<T>, route
   accumulator
 }
 
-pub struct App<T: 'static + Context> {
+pub struct App<T: 'static + Context + Send> {
   _route_parser: RouteParser<T>,
-  pub context_generator: fn(&Request) -> T
+  pub context_generator: fn(&Request, &Handle) -> T
 }
 
-fn generate_context(request: &Request) -> BasicContext {
+fn generate_context(request: &Request, _handle: &Handle) -> BasicContext {
   BasicContext {
     body: "".to_owned(),
     params: request.params().clone()
   }
 }
 
-impl<T: Context> App<T> {
+impl<T: Context + Send> App<T> {
   pub fn start(app: &'static App<T>, host: String, port: String) {
     let addr = format!("{}:{}", host, port).parse().unwrap();
 
-    let mut server = TcpServer::new(Http, addr);
-    server.threads(num_cpus::get());
-    server.serve(move || {
-        let service = AppService::new(app);
+    let listener = TcpListener::bind(&addr).unwrap();
 
-        Ok(service)
-      });
+    fn process<T: Context + Send>(app: &'static App<T>, socket: TcpStream) {
+      let (tx, rx) = socket
+          .framed(Http)
+          .split();
+
+      let task = tx.send_all(rx.and_then(move |request: Request| {
+            let response = app.resolve(request, &tokio::reactor::Handle::current());
+
+            response
+          }))
+          .then(|res| {
+            if let Err(e) = res {
+              println!("failed to process connection; error = {:?}", e);
+            }
+
+            Ok(())
+          });
+
+      // Spawn the task that handles the connection.
+      tokio::spawn(task);
+    }
+
+    let server = listener.incoming()
+        .map_err(|e| println!("error = {:?}", e))
+        .for_each(move |socket| {
+            process(app, socket);
+            Ok(())
+        });
+
+    tokio::run(server);
   }
 
   pub fn new() -> App<BasicContext> {
@@ -111,7 +137,7 @@ impl<T: Context> App<T> {
     }
   }
 
-  pub fn create(generate_context: fn(&Request) -> T) -> App<T> {
+  pub fn create(generate_context: fn(&Request, _handle: &Handle) -> T) -> App<T> {
     App {
       _route_parser: RouteParser::new(),
       context_generator: generate_context
@@ -200,16 +226,16 @@ impl<T: Context> App<T> {
       &_add_method_to_route(method, path.to_owned()))
   }
 
-  fn resolve(&self, mut request: Request) -> Box<Future<Item=Response, Error=io::Error>> {
+  fn resolve(&self, mut request: Request, handle: &Handle) -> Box<Future<Item=Response<String>, Error=io::Error> + Send> {
     let matched_route = self._req_to_matched_route(&request);
     request.set_params(matched_route.params);
 
     match matched_route.sub_app {
       Some(sub_app) => {
-        let mut context = (sub_app.context_generator)(&request);
+        let mut context = (sub_app.context_generator)(&request, handle);
 
         let middleware = matched_route.middleware;
-        let middleware_chain = MiddlewareChain::new(middleware);
+        let middleware_chain = MiddlewareChain::new(middleware, handle);
 
         let context_future = middleware_chain.next(context);
         let future_response = context_future
@@ -220,10 +246,10 @@ impl<T: Context> App<T> {
         Box::new(future_response)
       },
       None => {
-        let mut context = (self.context_generator)(&request);
+        let mut context = (self.context_generator)(&request, handle);
 
         let middleware = matched_route.middleware;
-        let middleware_chain = MiddlewareChain::new(middleware);
+        let middleware_chain = MiddlewareChain::new(middleware, handle);
 
         let context_future = middleware_chain.next(context);
         let future_response = context_future
@@ -237,30 +263,6 @@ impl<T: Context> App<T> {
   }
 }
 
-pub struct AppService<'a, T: Context + 'static> {
-  _app: &'a App<T>
-}
-
-impl<'a, T: Context> AppService<'a, T> {
-  pub fn new(app: &'a App<T>) -> AppService<'a, T> {
-    AppService {
-      _app: app
-    }
-  }
-}
-
-impl<'a, T: Context> Service for AppService<'a, T> {
-  type Request = Request;
-  type Response = Response;
-  type Error = io::Error;
-  type Future = Box<Future<Item=Response, Error=io::Error>>;
-
-  fn call(&self, _request: Request) -> Box<Future<Item=Response, Error=io::Error>> {
-    self._app.resolve(_request)
-  }
-}
-
-
 #[cfg(test)]
 mod tests {
   use super::App;
@@ -269,11 +271,13 @@ mod tests {
   use context::{BasicContext, Context};
   use request::{decode, Request};
   use middleware::MiddlewareChain;
-  use response::Response;
+  use httplib::Response;
   use serde;
   use futures::{future, Future};
   use std::boxed::Box;
   use std::io;
+  use std::marker::Send;
+  use tokio;
 
   struct TypedContext<T> {
     pub request_body: T,
@@ -294,9 +298,8 @@ mod tests {
   }
 
   impl<'a, T> Context for TypedContext<T> {
-    fn get_response(&self) -> Response {
-      let mut response = Response::new();
-      response.body(&self.body);
+    fn get_response(&self) -> Response<String> {
+      let response = Response::new(self.body.clone());
 
       response
     }
@@ -310,7 +313,7 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "1".to_string(),
         params: HashMap::new()
@@ -322,17 +325,18 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(41);
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "1");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "1");
   }
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request_with_params() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: context.params.get("id").unwrap().to_owned(),
         params: context.params
@@ -344,17 +348,18 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(45);
     bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "123");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "123");
   }
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request_with_params_in_a_subapp() {
     let mut app1 = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: context.params.get("id").unwrap().to_owned(),
         params: context.params
@@ -369,15 +374,16 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(45);
     bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "123");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "123");
   }
 
   #[test]
   fn it_should_be_able_to_parse_an_incoming_body() {
-    fn generate_context_with_body(request: &Request) -> TypedContext<TestStruct> {
+    fn generate_context_with_body(request: &Request, _handle: &tokio::reactor::Handle) -> TypedContext<TestStruct> {
       TypedContext::<TestStruct>::new(request)
     }
 
@@ -388,7 +394,7 @@ mod tests {
       key: String
     };
 
-    fn test_fn_1(mut context: TypedContext<TestStruct>, _chain: &MiddlewareChain<TypedContext<TestStruct>>) -> Box<Future<Item=TypedContext<TestStruct>, Error=io::Error>> {
+    fn test_fn_1(mut context: TypedContext<TestStruct>, _chain: &MiddlewareChain<TypedContext<TestStruct>>) -> Box<Future<Item=TypedContext<TestStruct>, Error=io::Error> + Send> {
       let value = context.request_body.key.clone();
 
       context.set_body(value);
@@ -401,24 +407,25 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(57);
     bytes.put(&b"POST /test HTTP/1.1\nHost: localhost:8080\n\n{\"key\":\"value\"}"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "value");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "value");
   }
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request_based_on_method() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: format!("{}{}", context.body, "1"),
         params: HashMap::new()
       }))
     };
 
-    fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: format!("{}{}", context.body, "2"),
         params: HashMap::new()
@@ -431,24 +438,25 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(41);
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "1");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "1");
   }
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request_up_and_down() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: format!("{}{}", context.body, "1"),
         params: HashMap::new()
       }))
     };
 
-    fn test_fn_2(context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_2(context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       let mut _context = BasicContext {
         body: format!("{}{}", context.body, "2"),
         params: HashMap::new()
@@ -468,17 +476,18 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(41);
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "212");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "212");
   }
 
   #[test]
   fn it_should_return_whatever_was_set_as_the_body_of_the_context() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "Hello world".to_string(),
         params: HashMap::new()
@@ -490,17 +499,18 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(41);
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "Hello world");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "Hello world");
   }
 
   #[test]
   fn it_should_first_run_use_then_methods() {
     let mut app = App::<BasicContext>::new();
 
-    fn method_agnostic(_context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn method_agnostic(_context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       let updated_context = chain.next(BasicContext {
         body: "agnostic".to_owned(),
         params: HashMap::new()
@@ -517,7 +527,7 @@ mod tests {
       Box::new(body_with_copied_context)
     }
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: format!("{}-1", context.body),
         params: HashMap::new()
@@ -530,17 +540,18 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(41);
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "agnostic-1");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "agnostic-1");
   }
 
   #[test]
   fn it_should_be_able_to_correctly_route_sub_apps() {
     let mut app1 = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "1".to_string(),
         params: HashMap::new()
@@ -555,17 +566,18 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(41);
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "1");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "1");
   }
 
   #[test]
   fn it_should_be_able_to_correctly_prefix_route_sub_apps() {
     let mut app1 = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "1".to_string(),
         params: HashMap::new()
@@ -580,17 +592,18 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(45);
     bytes.put(&b"GET /sub/test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "1");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "1");
   }
 
   #[test]
   fn it_should_be_able_to_correctly_prefix_the_root_of_sub_apps() {
     let mut app1 = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "1".to_string(),
         params: HashMap::new()
@@ -605,24 +618,25 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(45);
     bytes.put(&b"GET /sub HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "1");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "1");
   }
 
   #[test]
   fn it_should_be_able_to_correctly_handle_not_found_routes() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "1".to_string(),
         params: HashMap::new()
       }))
     };
 
-    fn test_404(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_404(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "not found".to_string(),
         params: HashMap::new()
@@ -635,9 +649,10 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(51);
     bytes.put(&b"GET /not_found HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.get_response() == "not found");
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "not found");
   }
 }

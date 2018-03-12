@@ -6,20 +6,20 @@ use middleware::{Middleware};
 use context::Context;
 use app::App;
 
-pub struct RouteNode<T: 'static + Context> {
+pub struct RouteNode<T: 'static + Context + Send> {
   pub has_param: bool,
   pub param_name: String,
   pub associated_middleware: Vec<Middleware<T>>
 }
 
-pub struct MatchedRoute<T: 'static + Context> {
+pub struct MatchedRoute<T: 'static + Context + Send> {
   pub value: String,
   pub params: HashMap<String, String>,
   pub middleware: Vec<Middleware<T>>,
   pub sub_app: Option<App<T>>
 }
 
-pub struct RouteParser<T: 'static + Context> {
+pub struct RouteParser<T: 'static + Context + Send> {
   pub _method_agnostic_middleware: HashMap<String, Vec<Middleware<T>>>,
   pub _wildcarded_method_agnostic_middleware: HashMap<String, Vec<Middleware<T>>>,
   pub _not_found_route: Vec<Middleware<T>>,
@@ -28,7 +28,7 @@ pub struct RouteParser<T: 'static + Context> {
   pub sub_apps: HashMap<String, App<T>>,
 }
 
-impl<T: Context> RouteParser<T> {
+impl<T: Context + Send> RouteParser<T> {
   pub fn new() -> RouteParser<T> {
     let parser = RouteParser {
       _method_agnostic_middleware: HashMap::new(),
@@ -44,7 +44,7 @@ impl<T: Context> RouteParser<T> {
 
   pub fn add_method_agnostic_middleware(&mut self, route: &str, middleware: Middleware<T>) {
 
-    fn _add_full_route<T: 'static + Context>(parser: &mut RouteParser<T>, route: &str, middleware: Middleware<T>) {
+    fn _add_full_route<T: 'static + Context + Send>(parser: &mut RouteParser<T>, route: &str, middleware: Middleware<T>) {
       let updated_vector: Vec<Middleware<T>> = match parser.middleware.get(route) {
         Some(val) => {
           let mut _in_progress: Vec<Middleware<T>> = Vec::new();
@@ -176,102 +176,14 @@ impl<T: Context> RouteParser<T> {
       sub_app: None
     }
   }
-
-  // pub fn match_route(&self, route: &str) -> MatchedRoute<T> {
-  //   let route = strip_leading_slash(route);
-  //   let route_iterator = route.split("/");
-  //   let mut accumulator = "".to_owned();
-  //   let mut current_node = &self._route_root_node;
-  //   let mut middleware = Vec::new();
-  //   let mut has_terminal_node = false;
-  //   let mut params = HashMap::new();
-
-  //   for piece in route_iterator {
-  //     // let wildcarded_params = wildcardify_params(&accumulator);
-  //     let wildcarded_params = accumulator.to_owned();
-  //     let wildcarded_route = strip_leading_slash(&wildcarded_params);
-  //     match self._method_agnostic_middleware.get(wildcarded_route) {
-  //       Some(_middleware) => {
-  //         for func in _middleware {
-  //           middleware.push(*func);
-  //         }
-  //       },
-  //       None => ()
-  //     };
-
-  //     for mut val in current_node.children.values() {
-  //       if val.value == piece || val.has_params {
-  //         println!("piece: {}", piece);
-
-  //         if val.has_params {
-  //           params.insert(val.value[1..].to_owned(), piece.to_owned());
-  //           // accumulator = templatify! { ""; &accumulator ;"/*" };
-  //         } else {
-  //           // accumulator = templatify! { ""; &accumulator ;"/"; piece ;"" };
-  //         }
-
-  //         println!("accumulator: {}", accumulator);
-
-  //         if val.is_terminal {
-  //           // if val.has_params {
-  //           //   accumulator = templatify! { ""; &accumulator ;"/*" };
-  //           // } else {
-  //           //   accumulator = templatify! { ""; &accumulator ;"/"; piece ;"" };
-  //           // }
-
-  //           let wildcarded_params = wildcardify_params(&accumulator);
-  //           let wildcarded_route = strip_leading_slash(&wildcarded_params);
-  //           match self.wildcarded_middleware.get(wildcarded_route) {
-  //             Some(_middleware) => {
-  //               for func in _middleware {
-  //                 middleware.push(*func);
-  //               }
-  //               has_terminal_node = true;
-  //               break;
-  //             },
-  //             None => ()
-  //           };
-  //         } else {
-  //           current_node = val;
-  //           break;
-  //         }
-  //       }
-  //     }
-
-  //     match piece.chars().nth(0) {
-  //       Some(val) => {
-  //         if val == ':' {
-  //           accumulator = templatify! { ""; &accumulator ;"/*" };
-  //         } else {
-  //           accumulator = templatify! { ""; &accumulator ;"/"; piece ;"" };
-  //         }
-  //       },
-  //       None => ()
-  //     };
-  //   }
-
-  //   if !has_terminal_node {
-  //     for func in &self._not_found_route {
-  //       middleware.push(*func);
-  //     }
-  //   }
-
-  //   MatchedRoute {
-  //     value: route.to_owned(),
-  //     params: params,
-  //     middleware: middleware,
-  //     sub_app: None
-  //   }
-  // }
 }
 
 #[cfg(test)]
 mod tests {
   use super::RouteParser;
   use context::BasicContext;
-  use middleware::MiddlewareChain;
-  use futures::{future, Future};
-  use std::io;
+  use middleware::{MiddlewareChain, MiddlewareReturnValue};
+  use futures::future;
   use std::boxed::Box;
 
   // #[test]
@@ -332,7 +244,7 @@ mod tests {
 
   #[test]
   fn when_adding_a_route_it_should_return_a_struct_with_all_appropriate_middleware() {
-    fn test_function(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_function(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
       Box::new(future::ok(context))
     }
 
@@ -346,11 +258,11 @@ mod tests {
 
   #[test]
   fn when_adding_a_route_with_method_agnostic_middleware() {
-    fn method_agnostic(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn method_agnostic(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
       Box::new(future::ok(context))
     }
 
-    fn test_function(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error>> {
+    fn test_function(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
       Box::new(future::ok(context))
     }
 
