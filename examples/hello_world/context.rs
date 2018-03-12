@@ -24,8 +24,8 @@ impl Ctx {
     }
   }
 
-  pub fn set_header(&mut self, key: &str, val: &str) {
-    self.headers.push((key.to_owned(), val.to_owned()));
+  pub fn set_header(&mut self, key: String, val: String) {
+    self.headers.push((key, val));
   }
 }
 
