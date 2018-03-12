@@ -6,20 +6,20 @@ use middleware::{Middleware};
 use context::Context;
 use app::App;
 
-pub struct RouteNode<T: 'static + Context> {
+pub struct RouteNode<T: 'static + Context + Send> {
   pub has_param: bool,
   pub param_name: String,
   pub associated_middleware: Vec<Middleware<T>>
 }
 
-pub struct MatchedRoute<T: 'static + Context> {
+pub struct MatchedRoute<T: 'static + Context + Send> {
   pub value: String,
   pub params: HashMap<String, String>,
   pub middleware: Vec<Middleware<T>>,
   pub sub_app: Option<App<T>>
 }
 
-pub struct RouteParser<T: 'static + Context> {
+pub struct RouteParser<T: 'static + Context + Send> {
   pub _method_agnostic_middleware: HashMap<String, Vec<Middleware<T>>>,
   pub _wildcarded_method_agnostic_middleware: HashMap<String, Vec<Middleware<T>>>,
   pub _not_found_route: Vec<Middleware<T>>,
@@ -28,7 +28,7 @@ pub struct RouteParser<T: 'static + Context> {
   pub sub_apps: HashMap<String, App<T>>,
 }
 
-impl<T: Context> RouteParser<T> {
+impl<T: Context + Send> RouteParser<T> {
   pub fn new() -> RouteParser<T> {
     let parser = RouteParser {
       _method_agnostic_middleware: HashMap::new(),
@@ -44,7 +44,7 @@ impl<T: Context> RouteParser<T> {
 
   pub fn add_method_agnostic_middleware(&mut self, route: &str, middleware: Middleware<T>) {
 
-    fn _add_full_route<T: 'static + Context>(parser: &mut RouteParser<T>, route: &str, middleware: Middleware<T>) {
+    fn _add_full_route<T: 'static + Context + Send>(parser: &mut RouteParser<T>, route: &str, middleware: Middleware<T>) {
       let updated_vector: Vec<Middleware<T>> = match parser.middleware.get(route) {
         Some(val) => {
           let mut _in_progress: Vec<Middleware<T>> = Vec::new();

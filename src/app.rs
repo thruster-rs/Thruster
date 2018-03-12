@@ -3,18 +3,18 @@ use std::vec::Vec;
 
 use futures::future;
 use futures::Future;
-use tokio_service::Service;
-use tokio_proto::TcpServer;
 use regex::Regex;
-use num_cpus;
+use tokio;
+use tokio::net::{TcpStream, TcpListener};
+use tokio::prelude::*;
 
 use context::{BasicContext, Context};
+use http::Http;
+use httplib::{Response};
 use std::boxed::Box;
 use request::Request;
-use response::Response;
 use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
-use http::Http;
 use util::{strip_leading_slash};
 
 enum Method {
@@ -56,7 +56,7 @@ fn _insert_prefix_to_methodized_path(path: String, prefix: String) -> String {
   }
 }
 
-fn _rehydrate_stars_for_app_with_route<T: 'static + Context>(app: &App<T>, route: &str) -> String {
+fn _rehydrate_stars_for_app_with_route<T: 'static + Context + Send>(app: &App<T>, route: &str) -> String {
   let mut split_iterator = route.split("/");
 
   let first_piece = split_iterator.next();
@@ -79,7 +79,7 @@ fn _rehydrate_stars_for_app_with_route<T: 'static + Context>(app: &App<T>, route
   accumulator
 }
 
-pub struct App<T: 'static + Context> {
+pub struct App<T: 'static + Context + Send> {
   _route_parser: RouteParser<T>,
   pub context_generator: fn(&Request) -> T
 }
@@ -91,17 +91,46 @@ fn generate_context(request: &Request) -> BasicContext {
   }
 }
 
-impl<T: Context> App<T> {
+impl<T: Context + Send> App<T> {
   pub fn start(app: &'static App<T>, host: String, port: String) {
     let addr = format!("{}:{}", host, port).parse().unwrap();
 
-    let mut server = TcpServer::new(Http, addr);
-    server.threads(num_cpus::get());
-    server.serve(move || {
-        let service = AppService::new(app);
+    let listener = TcpListener::bind(&addr).unwrap();
 
-        Ok(service)
-      });
+    fn process<T: Context + Send>(app: &'static App<T>, socket: TcpStream) {
+      let (tx, rx) = socket
+          // Frame the socket using the `Http` protocol. This maps the TCP socket
+          // to a Stream + Sink of HTTP frames.
+          .framed(Http)
+          // This splits a single `Stream + Sink` value into two separate handles
+          // that can be used independently (even on different tasks or threads).
+          .split();
+
+      let task = tx.send_all(rx.and_then(move |request: Request| {
+            let response = app.resolve(request);
+
+            response
+          }))
+          .then(|res| {
+            if let Err(e) = res {
+              println!("failed to process connection; error = {:?}", e);
+            }
+
+            Ok(())
+          });
+
+    // Spawn the task that handles the connection.
+      tokio::spawn(task);
+    }
+
+    let server = listener.incoming()
+        .map_err(|e| println!("error = {:?}", e))
+        .for_each(move |socket| {
+            process(app, socket);
+            Ok(())
+        });
+
+    tokio::run(server);
   }
 
   pub fn new() -> App<BasicContext> {
@@ -200,7 +229,7 @@ impl<T: Context> App<T> {
       &_add_method_to_route(method, path.to_owned()))
   }
 
-  fn resolve(&self, mut request: Request) -> Box<Future<Item=Response, Error=io::Error>> {
+  fn resolve(&self, mut request: Request) -> Box<Future<Item=Response<String>, Error=io::Error> + Send> {
     let matched_route = self._req_to_matched_route(&request);
     request.set_params(matched_route.params);
 
@@ -237,28 +266,28 @@ impl<T: Context> App<T> {
   }
 }
 
-pub struct AppService<'a, T: Context + 'static> {
-  _app: &'a App<T>
-}
+// pub struct AppService<'a, T: Context + 'static> {
+//   _app: &'a App<T>
+// }
 
-impl<'a, T: Context> AppService<'a, T> {
-  pub fn new(app: &'a App<T>) -> AppService<'a, T> {
-    AppService {
-      _app: app
-    }
-  }
-}
+// impl<'a, T: Context> AppService<'a, T> {
+//   pub fn new(app: &'a App<T>) -> AppService<'a, T> {
+//     AppService {
+//       _app: app
+//     }
+//   }
+// }
 
-impl<'a, T: Context> Service for AppService<'a, T> {
-  type Request = Request;
-  type Response = Response;
-  type Error = io::Error;
-  type Future = Box<Future<Item=Response, Error=io::Error>>;
+// impl<'a, T: Context> Service for AppService<'a, T> {
+//   type Request = Request;
+//   type Response = Response;
+//   type Error = io::Error;
+//   type Future = Box<Future<Item=Response, Error=io::Error>>;
 
-  fn call(&self, _request: Request) -> Box<Future<Item=Response, Error=io::Error>> {
-    self._app.resolve(_request)
-  }
-}
+//   fn call(&self, _request: Request) -> Box<Future<Item=Response, Error=io::Error>> {
+//     self._app.resolve(_request)
+//   }
+// }
 
 
 #[cfg(test)]

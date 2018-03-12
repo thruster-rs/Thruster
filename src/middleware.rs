@@ -6,7 +6,7 @@ use futures::{future, Future};
 use std::io;
 
 // pub type Middleware<T: Context> = fn(T, chain: &MiddlewareChain<T>) -> T;
-pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error>>;
+pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error> + Send>;
 pub type Middleware<T> = fn(T, chain: &MiddlewareChain<T>) -> MiddlewareReturnValue<T>;
 
 pub struct MiddlewareChain<T: Context> {
@@ -14,7 +14,7 @@ pub struct MiddlewareChain<T: Context> {
   pub middleware: Vec<Middleware<T>>
 }
 
-impl<T: 'static + Context> MiddlewareChain<T> {
+impl<T: 'static + Context + Send> MiddlewareChain<T> {
   pub fn new(middleware: Vec<Middleware<T>>) -> MiddlewareChain<T> {
     MiddlewareChain {
       middleware: middleware,
