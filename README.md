@@ -10,7 +10,7 @@ Fanta is a web framework that aims for developers to be productive and consisten
 
 ## Opinionated
 
-Fanta and Fanta-cli strive to give a good way to do domain driven design. It's also designed to let set you on the right path, but not obfuscate certain hard parts behind libraries.
+Fanta and Fanta-cli strive to give a good way to do domain driven design. It's also designed to set you on the right path, but to not obfuscate certain hard parts behind libraries.
 
 ## Fast
 
@@ -48,7 +48,7 @@ Transfer/sec:      7.62MB
 
 ## Intuitive
 
-Based on frameworks like Koa, and Express, Fanta aims to be a pleasure to develop with.
+Based on frameworks like Koa and Express, Fanta aims to be a pleasure to develop with.
 
 ## Getting Started
 
@@ -111,7 +111,7 @@ The easiest way to get started is to just clone the [starter kit](https://github
 > cargo run
 ```
 
-The example provides a simple route plaintext route, a route with JSON serialization, and the preferred way to organize sub routes using sub apps.
+The example provides a simple plaintext route, a route with JSON serialization, and the preferred way to organize sub routes using sub apps.
 
 ### Quick setup with postgres
 
