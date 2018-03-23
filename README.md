@@ -79,7 +79,7 @@ lazy_static! {
   };
 }
 
-fn generate_context(request: &Request, _handle: &Handle) -> Ctx {
+fn generate_context(request: &Request) -> Ctx {
   Ctx {
     body: "".to_owned(),
     params: request.params().clone()

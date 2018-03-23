@@ -82,10 +82,10 @@ fn _rehydrate_stars_for_app_with_route<T: 'static + Context + Send>(app: &App<T>
 
 pub struct App<T: 'static + Context + Send> {
   _route_parser: RouteParser<T>,
-  pub context_generator: fn(&Request, &Handle) -> T
+  pub context_generator: fn(&Request) -> T
 }
 
-fn generate_context(request: &Request, _handle: &Handle) -> BasicContext {
+fn generate_context(request: &Request) -> BasicContext {
   BasicContext {
     body: "".to_owned(),
     params: request.params().clone()
@@ -137,7 +137,7 @@ impl<T: Context + Send> App<T> {
     }
   }
 
-  pub fn create(generate_context: fn(&Request, _handle: &Handle) -> T) -> App<T> {
+  pub fn create(generate_context: fn(&Request) -> T) -> App<T> {
     App {
       _route_parser: RouteParser::new(),
       context_generator: generate_context
@@ -232,7 +232,7 @@ impl<T: Context + Send> App<T> {
 
     match matched_route.sub_app {
       Some(sub_app) => {
-        let mut context = (sub_app.context_generator)(&request, handle);
+        let mut context = (sub_app.context_generator)(&request);
 
         let middleware = matched_route.middleware;
         let middleware_chain = MiddlewareChain::new(middleware, handle);
@@ -246,7 +246,7 @@ impl<T: Context + Send> App<T> {
         Box::new(future_response)
       },
       None => {
-        let mut context = (self.context_generator)(&request, handle);
+        let mut context = (self.context_generator)(&request);
 
         let middleware = matched_route.middleware;
         let middleware_chain = MiddlewareChain::new(middleware, handle);
@@ -383,7 +383,7 @@ mod tests {
 
   #[test]
   fn it_should_be_able_to_parse_an_incoming_body() {
-    fn generate_context_with_body(request: &Request, _handle: &tokio::reactor::Handle) -> TypedContext<TestStruct> {
+    fn generate_context_with_body(request: &Request) -> TypedContext<TestStruct> {
       TypedContext::<TestStruct>::new(request)
     }
 

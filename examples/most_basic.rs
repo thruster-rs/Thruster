@@ -8,7 +8,6 @@ extern crate tokio;
 
 use std::boxed::Box;
 use futures::future;
-use tokio::reactor::Handle;
 
 use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
 
@@ -22,7 +21,7 @@ lazy_static! {
   };
 }
 
-fn generate_context(request: &Request, _handle: &Handle) -> Ctx {
+fn generate_context(request: &Request) -> Ctx {
   Ctx {
     body: "".to_owned(),
     params: request.params().clone()
