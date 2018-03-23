@@ -1,16 +1,16 @@
-# Fanta
+# Thruster
 ## An opinionated framework for web development in rust.
 
-[![Build Status](https://travis-ci.org/trezm/Fanta.svg?branch=master)](https://travis-ci.org/trezm/Fanta)
+[![Build Status](https://travis-ci.org/trezm/thruster.svg?branch=master)](https://travis-ci.org/trezm/thruster)
 
-Fanta is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:
+thruster is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:
 - Opinionated
 - Fast
 - Intuitive
 
 ## Opinionated
 
-Fanta and Fanta-cli strive to give a good way to do domain driven design. It's also designed to set you on the right path, but to not obfuscate certain hard parts behind libraries.
+thruster and thruster-cli strive to give a good way to do domain driven design. It's also designed to set you on the right path, but not obfuscate certain hard parts behind libraries. Made with science 🔭, not magic 🧙‍♂️.
 
 ## Fast
 
@@ -20,7 +20,7 @@ Using the following command, we get roughly 96% of the speed of pure `tokio-mini
 wrk -t12 -c400 -d30s http://127.0.0.1:4321/plaintext
 ```
 
-Fanta results:
+thruster results:
 ```
 Running 30s test @ http://127.0.0.1:4321/plaintext
   12 threads and 400 connections
@@ -48,27 +48,26 @@ Transfer/sec:      7.62MB
 
 ## Intuitive
 
-Based on frameworks like Koa and Express, Fanta aims to be a pleasure to develop with.
+Based on frameworks like Koa, and Express, thruster aims to be a pleasure to develop with.
 
 ## Getting Started
 
 ### The most basic example
 
 ```rust
-extern crate fanta;
+extern crate thruster;
 extern crate futures;
 extern crate serde;
 extern crate serde_json;
-extern crate tokio_proto;
-extern crate tokio_service;
+extern crate tokio;
 
 #[macro_use] extern crate lazy_static;
 
 use std::boxed::Box;
-use futures::{future, Future};
-use std::io;
+use futures::future;
+use tokio::reactor::Handle;
 
-use fanta::{App, BasicContext as Ctx, MiddlewareChain, Request};
+use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
 
 lazy_static! {
   static ref APP: App<Ctx> = {
@@ -80,14 +79,14 @@ lazy_static! {
   };
 }
 
-fn generate_context(request: &Request) -> Ctx {
+fn generate_context(request: &Request, _handle: &Handle) -> Ctx {
   Ctx {
     body: "".to_owned(),
     params: request.params().clone()
   }
 }
 
-fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> Box<Future<Item=Ctx, Error=io::Error>> {
+fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
   context.body = val;
 
@@ -103,11 +102,11 @@ fn main() {
 
 ### Quick setup without a DB
 
-The easiest way to get started is to just clone the [starter kit](https://github.com/trezm/fanta-starter-kit)
+The easiest way to get started is to just clone the [starter kit](https://github.com/trezm/thruster-starter-kit)
 
 ```bash
-> git clone git@github.com:trezm/fanta-starter-kit.git
-> cd fanta-starter-kit
+> git clone git@github.com:trezm/thruster-starter-kit.git
+> cd thruster-starter-kit
 > cargo run
 ```
 
@@ -115,18 +114,18 @@ The example provides a simple plaintext route, a route with JSON serialization, 
 
 ### Quick setup with postgres
 
-The easiest way to get started with postgres is to install fanta-cli,
+The easiest way to get started with postgres is to install thruster-cli,
 
 ```bash
-> cargo install fanta-cli
+> cargo install thruster-cli
 ```
 
 And then to run
 
 ```bash
-> fanta-cli init MyAwesomeProject
-> fanta-cli component Users
-> fanta-cli migrate
+> thruster-cli init MyAwesomeProject
+> thruster-cli component Users
+> thruster-cli migrate
 ```
 
 Which will generate everything you need to get started! Note that this requires a running postgres connection and assumes the following connection string is valid:
@@ -135,7 +134,7 @@ Which will generate everything you need to get started! Note that this requires 
 postgres://postgres@localhost/<Your Project Name>
 ```
 
-This is all configurable and none of it is hidden from the developer. It's like seeing the magic trick and learning how it's done! Check out the docs for [fanta-cli here](https://github.com/trezm/fanta-cli).
+This is all configurable and none of it is hidden from the developer. It's like seeing the magic trick and learning how it's done! Check out the docs for [thruster-cli here](https://github.com/trezm/thruster-cli).
 
 ### Changelog
 

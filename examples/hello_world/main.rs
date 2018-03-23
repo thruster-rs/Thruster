@@ -1,9 +1,8 @@
-extern crate fanta;
+extern crate thruster;
 extern crate futures;
 extern crate serde;
 extern crate serde_json;
-extern crate tokio_proto;
-extern crate tokio_service;
+extern crate tokio;
 
 #[macro_use] extern crate serde_derive;
 #[macro_use] extern crate lazy_static;
@@ -12,7 +11,7 @@ mod context;
 
 use futures::future;
 
-use fanta::{App, MiddlewareChain, MiddlewareReturnValue};
+use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
 use context::{generate_context, Ctx};
 
 lazy_static! {
@@ -34,7 +33,7 @@ fn not_found_404(context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
   context.body = "<html>
   ( ͡° ͜ʖ ͡°) What're you looking for here?
 </html>".to_owned();
-  context.set_header("Content-Type", "text/html");
+  context.set_header("Content-Type".to_owned(), "text/html".to_owned());
   context.status_code = 404;
 
   Box::new(future::ok(context))
@@ -52,8 +51,8 @@ fn json(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValu
   let val = serde_json::to_string(&json).unwrap();
 
   context.body = val;
-  context.set_header("Server", "fanta");
-  context.set_header("Content-Type", "application/json");
+  context.set_header("Server".to_owned(), "thruster".to_owned());
+  context.set_header("Content-Type".to_owned(), "application/json".to_owned());
 
   Box::new(future::ok(context))
 }
@@ -62,8 +61,8 @@ fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
   let val = "Hello, World!".to_owned();
 
   context.body = val;
-  context.set_header("Server", "fanta");
-  context.set_header("Content-Type", "text/plain");
+  context.set_header("Server".to_owned(), "thruster".to_owned());
+  context.set_header("Content-Type".to_owned(), "text/plain".to_owned());
 
   Box::new(future::ok(context))
 }
