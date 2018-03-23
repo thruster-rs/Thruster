@@ -1,6 +1,5 @@
 use std::collections::{HashMap};
 use thruster::{Context, Request, Response};
-use tokio::reactor::Handle;
 
 pub struct Ctx {
   pub body: String,
@@ -49,7 +48,7 @@ impl Context for Ctx {
   }
 }
 
-pub fn generate_context(request: &Request, _handle: &Handle) -> Ctx {
+pub fn generate_context(request: &Request) -> Ctx {
   Ctx {
     body: "".to_owned(),
     method: request.method().to_owned(),
