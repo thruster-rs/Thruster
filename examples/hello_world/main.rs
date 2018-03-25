@@ -5,7 +5,6 @@ extern crate serde_json;
 extern crate tokio;
 
 #[macro_use] extern crate serde_derive;
-#[macro_use] extern crate lazy_static;
 
 mod context;
 
@@ -13,19 +12,6 @@ use futures::future;
 
 use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
 use context::{generate_context, Ctx};
-
-lazy_static! {
-  static ref APP: App<Ctx> = {
-    let mut _app = App::<Ctx>::create(generate_context);
-
-    _app.get("/json", vec![json]);
-    _app.get("/plaintext", vec![plaintext]);
-
-    _app.set404(vec![not_found_404]);
-
-    _app
-  };
-}
 
 fn not_found_404(context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let mut context = Ctx::new(context);
@@ -70,5 +56,12 @@ fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
 fn main() {
   println!("Starting server...");
 
-  App::start(&APP, "0.0.0.0".to_string(), "4321".to_string());
+  let mut app = App::<Ctx>::create(generate_context);
+
+  app.get("/json", vec![json]);
+  app.get("/plaintext", vec![plaintext]);
+
+  app.set404(vec![not_found_404]);
+
+  App::start(app, "0.0.0.0".to_string(), "4321".to_string());
 }

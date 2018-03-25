@@ -17,6 +17,7 @@ use request::Request;
 use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
 use util::{strip_leading_slash};
+use std::sync::Arc;
 
 enum Method {
   DELETE,
@@ -93,12 +94,13 @@ fn generate_context(request: &Request) -> BasicContext {
 }
 
 impl<T: Context + Send> App<T> {
-  pub fn start(app: &'static App<T>, host: String, port: String) {
+  pub fn start(app: App<T>, host: String, port: String) {
     let addr = format!("{}:{}", host, port).parse().unwrap();
 
     let listener = TcpListener::bind(&addr).unwrap();
+    let arc_app = Arc::new(app);
 
-    fn process<T: Context + Send>(app: &'static App<T>, socket: TcpStream) {
+    fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
       let (tx, rx) = socket
           .framed(Http)
           .split();
@@ -123,7 +125,7 @@ impl<T: Context + Send> App<T> {
     let server = listener.incoming()
         .map_err(|e| println!("error = {:?}", e))
         .for_each(move |socket| {
-            process(app, socket);
+            process(arc_app.clone(), socket);
             Ok(())
         });
 
