@@ -1,7 +1,7 @@
 # Thruster
 ## An opinionated framework for web development in rust.
 
-[![Build Status](https://travis-ci.org/trezm/thruster.svg?branch=master)](https://travis-ci.org/trezm/thruster)
+[![Build Status](https://travis-ci.org/trezm/Thruster.svg?branch=master)](https://travis-ci.org/trezm/Thruster)
 
 thruster is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:
 - Opinionated
