@@ -20,8 +20,8 @@ pub struct Request {
 type Slice = (usize, usize);
 
 pub struct RequestHeaders<'req> {
-    headers: slice::Iter<'req, (Slice, Slice)>,
-    req: &'req Request,
+    pub headers: slice::Iter<'req, (Slice, Slice)>,
+    pub req: &'req Request,
 }
 
 impl Request {
