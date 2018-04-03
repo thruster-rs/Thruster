@@ -1,5 +1,6 @@
-use std::{io, slice, str, fmt};
+use std::{io, str, fmt};
 use std::collections::HashMap;
+use std::iter::Iterator;
 use serde;
 use bytes::BytesMut;
 use serde_json;
@@ -19,11 +20,6 @@ pub struct Request {
 
 type Slice = (usize, usize);
 
-pub struct RequestHeaders<'req> {
-    pub headers: slice::Iter<'req, (Slice, Slice)>,
-    pub req: &'req Request,
-}
-
 impl Request {
     pub fn raw_body(&self) -> &str {
         str::from_utf8(self.slice(&self.body)).unwrap()
@@ -41,11 +37,17 @@ impl Request {
         self.version
     }
 
-    pub fn headers(&self) -> RequestHeaders {
-        RequestHeaders {
-            headers: self.headers.iter(),
-            req: self,
+    pub fn headers(&self) -> HashMap<String, String> {
+        let mut header_map = HashMap::new();
+
+        for slice_pair in self.headers.iter() {
+            header_map.insert(
+                str::from_utf8(self.slice(&slice_pair.0)).unwrap().to_owned(),
+                str::from_utf8(self.slice(&slice_pair.1)).unwrap().to_owned()
+            );
         }
+
+        header_map
     }
 
     pub fn body_as<'a, T>(&self, body: &'a str) -> serde_json::Result<T>
@@ -117,16 +119,4 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         body: body,
         params: HashMap::new()
     }.into())
-}
-
-impl<'req> Iterator for RequestHeaders<'req> {
-    type Item = (&'req str, &'req [u8]);
-
-    fn next(&mut self) -> Option<(&'req str, &'req [u8])> {
-        self.headers.next().map(|&(ref a, ref b)| {
-            let a = self.req.slice(a);
-            let b = self.req.slice(b);
-            (str::from_utf8(a).unwrap(), b)
-        })
-    }
 }
