@@ -15,6 +15,7 @@ pub struct RouteNode<T: 'static + Context + Send> {
 pub struct MatchedRoute<T: 'static + Context + Send> {
   pub value: String,
   pub params: HashMap<String, String>,
+  pub query_params: HashMap<String, String>,
   pub middleware: Vec<Middleware<T>>,
   pub sub_app: Option<App<T>>
 }
@@ -132,9 +133,27 @@ impl<T: Context + Send> RouteParser<T> {
   }
 
   pub fn match_route(&self, route: &str) -> MatchedRoute<T> {
-    let mut split_iterator = route.split("/");
     let mut params = HashMap::new();
+    let mut query_params = HashMap::new();
     let mut composed_middleware = Vec::new();
+
+    let mut iter = route.split("?");
+    let route = iter.next().unwrap();
+    match iter.next() {
+      Some(query_string) => {
+        for query_piece in query_string.split("&") {
+          let mut query_iterator = query_piece.split("=");
+          let key = query_iterator.next().unwrap().to_owned();
+          match query_iterator.next() {
+            Some(val) => query_params.insert(key, val.to_owned()),
+            None => query_params.insert(key, "true".to_owned())
+          };
+        }
+      },
+      None => ()
+    };
+
+    let mut split_iterator = route.split("/");
 
     // split_iterator.next();
     let first_piece = split_iterator.next();
@@ -151,6 +170,7 @@ impl<T: Context + Send> RouteParser<T> {
           for func in &hit.associated_middleware {
             composed_middleware.push(*func);
           }
+
           params.insert((&hit.param_name).to_owned(), piece.to_owned());
         },
         None => ()
@@ -176,6 +196,7 @@ impl<T: Context + Send> RouteParser<T> {
     MatchedRoute {
       value: route.to_owned(),
       params: params,
+      query_params: query_params,
       middleware: composed_middleware,
       sub_app: None
     }

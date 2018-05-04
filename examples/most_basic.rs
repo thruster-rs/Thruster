@@ -12,7 +12,8 @@ use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue,
 fn generate_context(request: &Request) -> Ctx {
   Ctx {
     body: "".to_owned(),
-    params: request.params().clone()
+    params: request.params().clone(),
+    query_params: request.query_params().clone()
   }
 }
 
