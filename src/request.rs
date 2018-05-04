@@ -15,7 +15,8 @@ pub struct Request {
     // TODO: use a small vec to avoid this unconditional allocation
     headers: Vec<(Slice, Slice)>,
     data: BytesMut,
-    params: HashMap<String, String>
+    params: HashMap<String, String>,
+    query_params: HashMap<String, String>
 }
 
 type Slice = (usize, usize);
@@ -64,8 +65,16 @@ impl Request {
         &self.params
     }
 
+    pub fn query_params(&self) -> &HashMap<String, String> {
+        &self.query_params
+    }
+
     pub fn set_params(&mut self, params: HashMap<String, String>) {
         self.params = params;
+    }
+
+    pub fn set_query_params(&mut self, query_params: HashMap<String, String>) {
+        self.query_params = query_params;
     }
 }
 
@@ -117,6 +126,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         headers: headers,
         data: buf.split_to(len),
         body: body,
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
     }.into())
 }

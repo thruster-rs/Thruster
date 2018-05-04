@@ -8,14 +8,16 @@ pub trait Context {
 
 pub struct BasicContext {
   pub body: String,
-  pub params: HashMap<String, String>
+  pub params: HashMap<String, String>,
+  pub query_params: HashMap<String, String>
 }
 
 impl BasicContext {
   pub fn new() -> BasicContext {
     BasicContext {
       body: "".to_owned(),
-      params: HashMap::new()
+      params: HashMap::new(),
+      query_params: HashMap::new()
     }
   }
 }

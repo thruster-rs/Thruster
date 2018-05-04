@@ -89,7 +89,8 @@ pub struct App<T: 'static + Context + Send> {
 fn generate_context(request: &Request) -> BasicContext {
   BasicContext {
     body: "".to_owned(),
-    params: request.params().clone()
+    params: request.params().clone(),
+    query_params: request.query_params().clone()
   }
 }
 
@@ -235,6 +236,7 @@ impl<T: Context + Send> App<T> {
   fn resolve(&self, mut request: Request, handle: &Handle) -> Box<Future<Item=Response<String>, Error=io::Error> + Send> {
     let matched_route = self._req_to_matched_route(&request);
     request.set_params(matched_route.params);
+    request.set_query_params(matched_route.query_params);
 
     match matched_route.sub_app {
       Some(sub_app) => {
@@ -322,7 +324,8 @@ mod tests {
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "1".to_string(),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 
@@ -338,6 +341,31 @@ mod tests {
     assert!(response.body() == "1");
   }
 
+
+  #[test]
+  fn it_should_handle_query_parameters() {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      Box::new(future::ok(BasicContext {
+        body: context.query_params.get("hello").unwrap().to_owned(),
+        params: HashMap::new(),
+        query_params: context.query_params
+      }))
+    };
+
+    app.get("/test", vec![test_fn_1]);
+
+    let mut bytes = BytesMut::with_capacity(53);
+    bytes.put(&b"GET /test?hello=world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "world");
+  }
+
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request_with_params() {
     let mut app = App::<BasicContext>::new();
@@ -345,7 +373,8 @@ mod tests {
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: context.params.get("id").unwrap().to_owned(),
-        params: context.params
+        params: context.params,
+        query_params: context.query_params
       }))
     };
 
@@ -368,7 +397,35 @@ mod tests {
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: context.params.get("id").unwrap().to_owned(),
-        params: context.params
+        params: context.params,
+        query_params: context.query_params
+      }))
+    };
+
+    app1.get("/:id", vec![test_fn_1]);
+
+    let mut app2 = App::<BasicContext>::new();
+    app2.use_sub_app("/test", &app1);
+
+    let mut bytes = BytesMut::with_capacity(45);
+    bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+
+    assert!(response.body() == "123");
+  }
+
+  #[test]
+  fn it_should_correctly_parse_params_in_subapps() {
+    let mut app1 = App::<BasicContext>::new();
+
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      Box::new(future::ok(BasicContext {
+        body: context.params.get("id").unwrap().to_owned(),
+        params: context.params,
+        query_params: context.query_params
       }))
     };
 
@@ -427,14 +484,16 @@ mod tests {
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: format!("{}{}", context.body, "1"),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 
     fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: format!("{}{}", context.body, "2"),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 
@@ -458,14 +517,16 @@ mod tests {
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: format!("{}{}", context.body, "1"),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 
     fn test_fn_2(context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       let mut _context = BasicContext {
         body: format!("{}{}", context.body, "2"),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       };
 
       let context_with_body = chain.next(_context)
@@ -496,7 +557,8 @@ mod tests {
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "Hello world".to_string(),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 
@@ -519,14 +581,16 @@ mod tests {
     fn method_agnostic(_context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       let updated_context = chain.next(BasicContext {
         body: "agnostic".to_owned(),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       });
 
       let body_with_copied_context = updated_context
           .and_then(|context| {
             future::ok(BasicContext {
               body: context.body,
-              params: HashMap::new()
+              params: HashMap::new(),
+              query_params: HashMap::new()
             })
           });
 
@@ -536,7 +600,8 @@ mod tests {
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: format!("{}-1", context.body),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 
@@ -560,7 +625,8 @@ mod tests {
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "1".to_string(),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 
@@ -586,7 +652,8 @@ mod tests {
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "1".to_string(),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 
@@ -612,7 +679,8 @@ mod tests {
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "1".to_string(),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 
@@ -638,14 +706,16 @@ mod tests {
     fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "1".to_string(),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 
     fn test_404(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       Box::new(future::ok(BasicContext {
         body: "not found".to_string(),
-        params: HashMap::new()
+        params: HashMap::new(),
+        query_params: HashMap::new()
       }))
     };
 

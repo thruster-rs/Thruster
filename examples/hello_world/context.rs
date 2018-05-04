@@ -7,6 +7,7 @@ pub struct Ctx {
   pub path: String,
   pub request_body: String,
   pub params: HashMap<String, String>,
+  pub query_params: HashMap<String, String>,
   pub headers: Vec<(String, String)>,
   pub status_code: u32
 }
@@ -18,6 +19,7 @@ impl Ctx {
       method: context.method,
       path: context.path,
       params: context.params,
+      query_params: context.query_params,
       request_body: context.request_body,
       headers: Vec::new(),
       status_code: 200
@@ -54,6 +56,7 @@ pub fn generate_context(request: &Request) -> Ctx {
     method: request.method().to_owned(),
     path: request.path().to_owned(),
     params: request.params().clone(),
+    query_params: request.query_params().clone(),
     request_body: request.raw_body().to_owned(),
     headers: Vec::new(),
     status_code: 200
