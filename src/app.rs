@@ -14,7 +14,7 @@ use http::Http;
 use httplib::{Response};
 use std::boxed::Box;
 use request::Request;
-use route_parser::{MatchedRoute, RouteParser};
+use route_parser::{MatchedRoute, RouteParser, RouteNode};
 use middleware::{Middleware, MiddlewareChain};
 use util::{strip_leading_slash};
 use std::sync::Arc;
@@ -160,9 +160,13 @@ impl<T: Context + Send> App<T> {
       let prefixed_path = &_insert_prefix_to_methodized_path(path.to_owned(), prefix.to_owned());
       let prefixed_path = &_rehydrate_stars_for_app_with_route(app, prefixed_path);
 
-      self._route_parser.add_route(
+      self._route_parser.add_route_with_node(
         prefixed_path,
-        route_node.associated_middleware.clone());
+        RouteNode {
+          has_param: route_node.has_param,
+          param_name: route_node.param_name.clone(),
+          associated_middleware: route_node.associated_middleware.clone()
+        });
     }
 
     self
@@ -368,10 +372,10 @@ mod tests {
       }))
     };
 
-    app1.get("/test/:id", vec![test_fn_1]);
+    app1.get("/:id", vec![test_fn_1]);
 
     let mut app2 = App::<BasicContext>::new();
-    app2.use_sub_app("/", &app1);
+    app2.use_sub_app("/test", &app1);
 
     let mut bytes = BytesMut::with_capacity(45);
     bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
