@@ -126,12 +126,3 @@ postgres://postgres@localhost/<Your Project Name>
 ```
 
 This is all configurable and none of it is hidden from the developer. It's like seeing the magic trick and learning how it's done! Check out the docs for [thruster-cli here](https://github.com/trezm/thruster-cli).
-
-### Changelog
-
-#### 0.2.0
-* Breaking Changes
-  * Migrated to use Futures for all middleware callbacks
-* Highlights
-  * Dropped support for tree-based lookup of routes to remove potential branching
-  * Removed many regexes involved in lookup

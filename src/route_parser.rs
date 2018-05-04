@@ -124,7 +124,11 @@ impl<T: Context + Send> RouteParser<T> {
       }
     };
 
-    self.middleware.insert(accumulator.clone(), new_node);
+    self.add_route_with_node(&accumulator, new_node)
+  }
+
+  pub fn add_route_with_node(&mut self, accumulator: &str, node: RouteNode<T>) {
+    self.middleware.insert(accumulator.to_owned(), node);
   }
 
   pub fn match_route(&self, route: &str) -> MatchedRoute<T> {
