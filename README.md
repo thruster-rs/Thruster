@@ -87,7 +87,7 @@ fn main() {
 
   app.get("/plaintext", vec![plaintext]);
 
-  App::start(app, "0.0.0.0", "4321");
+  App::start(app, "0.0.0.0", 4321);
 }
 ```
 
