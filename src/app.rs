@@ -1,4 +1,5 @@
 use std::io;
+use std::net::ToSocketAddrs;
 use std::vec::Vec;
 
 use futures::future;
@@ -96,7 +97,7 @@ fn generate_context(request: &Request) -> BasicContext {
 
 impl<T: Context + Send> App<T> {
   pub fn start(app: App<T>, host: &str, port: u16) {
-    let addr = format!("{}:{}", host, port).parse().unwrap();
+    let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
     let listener = TcpListener::bind(&addr).unwrap();
     let arc_app = Arc::new(app);
