@@ -95,7 +95,7 @@ fn generate_context(request: &Request) -> BasicContext {
 }
 
 impl<T: Context + Send> App<T> {
-  pub fn start(app: App<T>, host: String, port: String) {
+  pub fn start(app: App<T>, host: &str, port: &str) {
     let addr = format!("{}:{}", host, port).parse().unwrap();
 
     let listener = TcpListener::bind(&addr).unwrap();

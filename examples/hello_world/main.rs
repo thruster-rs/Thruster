@@ -63,5 +63,5 @@ fn main() {
 
   app.set404(vec![not_found_404]);
 
-  App::start(app, "0.0.0.0".to_string(), "4321".to_string());
+  App::start(app, "0.0.0.0", "4321");
 }
