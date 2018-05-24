@@ -6,14 +6,12 @@ use futures::future;
 use futures::Future;
 use regex::Regex;
 use tokio;
-use tokio::reactor::Handle;
 use tokio::net::{TcpStream, TcpListener};
 use tokio::prelude::*;
 
 use context::{BasicContext, Context};
 use http::Http;
 use httplib::{Response};
-use std::boxed::Box;
 use request::Request;
 use route_parser::{MatchedRoute, RouteParser, RouteNode};
 use middleware::{Middleware, MiddlewareChain};
@@ -82,12 +80,50 @@ fn _rehydrate_stars_for_app_with_route<T: 'static + Context + Send>(app: &App<T>
   accumulator
 }
 
+///
+/// App, the main component of Thruster. The App is the entry point for your application
+/// and handles all incomming requests. Apps are also composeable, that is, via the `subapp`
+/// method, you can use all of the methods and middlewares contained within an app as a subset
+/// of your app's routes.
+///
+/// There are three main parts to creating a thruster app:
+/// 1. Use `App.create` to create a new app with a custom context generator
+/// 2. Add routes and middleware via `.get`, `.post`, etc.
+/// 3. Start the app with `App.start`
+///
+/// # Examples
+/// Subapp
+///
+/// ```rust, ignore
+/// let mut app1 = App::<BasicContext>::new();
+///
+/// fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+///   Box::new(future::ok(BasicContext {
+///     body: context.params.get("id").unwrap().to_owned(),
+///     params: context.params,
+///     query_params: context.query_params
+///   }))
+/// };
+///
+/// app1.get("/:id", vec![test_fn_1]);
+///
+/// let mut app2 = App::<BasicContext>::new();
+/// app2.use_sub_app("/test", &app1);
+/// ```
+///
+/// In the above example, the route `/test/some-id` will return `some-id` in the body of the response.
+///
 pub struct App<T: 'static + Context + Send> {
   _route_parser: RouteParser<T>,
-  pub context_generator: fn(&Request) -> T
+  ///
+  /// Generate context is common to all `App`s. It's the function that's called upon receiving a request
+  /// that translates an acutal `Request` struct to your custom Context type. It should be noted that
+  /// the context_generator should be as fast as possible as this is called with every request, including
+  /// 404s.
+  pub context_generator: fn(Request) -> T
 }
 
-fn generate_context(request: &Request) -> BasicContext {
+fn generate_context(request: Request) -> BasicContext {
   BasicContext {
     body: "".to_owned(),
     params: request.params().clone(),
@@ -108,7 +144,7 @@ impl<T: Context + Send> App<T> {
           .split();
 
       let task = tx.send_all(rx.and_then(move |request: Request| {
-            let response = app.resolve(request, &tokio::reactor::Handle::current());
+            let response = app.resolve(request);
 
             response
           }))
@@ -134,6 +170,9 @@ impl<T: Context + Send> App<T> {
     tokio::run(server);
   }
 
+  /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
+  /// examples, likely not a good solution for real code bases. The advantage is that the
+  /// context_generator is already supplied for the developer.
   pub fn new() -> App<BasicContext> {
     App {
       _route_parser: RouteParser::new(),
@@ -141,19 +180,26 @@ impl<T: Context + Send> App<T> {
     }
   }
 
-  pub fn create(generate_context: fn(&Request) -> T) -> App<T> {
+  /// Create a new app with the given context generator. The app does not begin listening until start
+  /// is called.
+  pub fn create(generate_context: fn(Request) -> T) -> App<T> {
     App {
       _route_parser: RouteParser::new(),
       context_generator: generate_context
     }
   }
 
+  /// Add method-agnostic middleware for a route. This is useful for applying headers, logging, and
+  /// anything else that might not be sensitive to the HTTP method for the endpoint.
   pub fn use_middleware(&mut self, path: &'static str, middleware: Middleware<T>) -> &mut App<T> {
     self._route_parser.add_method_agnostic_middleware(path, middleware);
 
     self
   }
 
+  /// Add an app as a predetermined set of routes and middleware. Will prefix whatever string is passed
+  /// in to all of the routes. This is a main feature of Thruster, as it allows projects to be extermely
+  /// modular and composeable in nature.
   pub fn use_sub_app(&mut self, prefix: &'static str, app: &App<T>) -> &mut App<T> {
     let sub_app_middleware = &app.get_route_parser().middleware;
 
@@ -174,10 +220,12 @@ impl<T: Context + Send> App<T> {
     self
   }
 
+  /// Return the route parser for a given app
   pub fn get_route_parser(&self) -> &RouteParser<T> {
     &self._route_parser
   }
 
+  /// Add a route that responds to `GET`s to a given path
   pub fn get(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
       &_add_method_to_route(Method::GET, path.to_owned()), middlewares);
@@ -185,6 +233,7 @@ impl<T: Context + Send> App<T> {
     self
   }
 
+  /// Add a route that responds to `POST`s to a given path
   pub fn post(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
       &_add_method_to_route(Method::POST, path.to_owned()), middlewares);
@@ -192,6 +241,7 @@ impl<T: Context + Send> App<T> {
     self
   }
 
+  /// Add a route that responds to `PUT`s to a given path
   pub fn put(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
       &_add_method_to_route(Method::PUT, path.to_owned()), middlewares);
@@ -199,6 +249,7 @@ impl<T: Context + Send> App<T> {
     self
   }
 
+  /// Add a route that responds to `DELETE`s to a given path
   pub fn delete(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
       &_add_method_to_route(Method::DELETE, path.to_owned()), middlewares);
@@ -206,6 +257,7 @@ impl<T: Context + Send> App<T> {
     self
   }
 
+  /// Add a route that responds to `UPDATE`s to a given path
   pub fn update(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
       &_add_method_to_route(Method::UPDATE, path.to_owned()), middlewares);
@@ -213,6 +265,7 @@ impl<T: Context + Send> App<T> {
     self
   }
 
+  /// Sets the middleware if no route is successfully matched.
   pub fn set404(&mut self, middlewares:Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.set_not_found(middlewares);
 
@@ -234,47 +287,31 @@ impl<T: Context + Send> App<T> {
       &_add_method_to_route(method, path.to_owned()))
   }
 
-  fn resolve(&self, mut request: Request, handle: &Handle) -> Box<Future<Item=Response<String>, Error=io::Error> + Send> {
+  fn resolve(&self, mut request: Request) -> impl Future<Item=Response<String>, Error=io::Error> + Send {
     let matched_route = self._req_to_matched_route(&request);
     request.set_params(matched_route.params);
     request.set_query_params(matched_route.query_params);
 
-    match matched_route.sub_app {
-      Some(sub_app) => {
-        let mut context = (sub_app.context_generator)(&request);
+    let context = match matched_route.sub_app {
+      Some(sub_app) => (sub_app.context_generator)(request),
+      None => (self.context_generator)(request)
+    };
 
-        let middleware = matched_route.middleware;
-        let middleware_chain = MiddlewareChain::new(middleware, handle);
+    let middleware = matched_route.middleware;
+    let middleware_chain = MiddlewareChain::new(middleware);
 
-        let context_future = middleware_chain.next(context);
-        let future_response = context_future
-            .and_then(|context| {
-              future::ok(context.get_response())
-            });
-
-        Box::new(future_response)
-      },
-      None => {
-        let mut context = (self.context_generator)(&request);
-
-        let middleware = matched_route.middleware;
-        let middleware_chain = MiddlewareChain::new(middleware, handle);
-
-        let context_future = middleware_chain.next(context);
-        let future_response = context_future
-            .and_then(|context| {
-              future::ok(context.get_response())
-            });
-
-        Box::new(future_response)
-      }
-    }
+    let context_future = middleware_chain.next(context);
+    context_future
+        .and_then(|context| {
+          future::ok(context.get_response())
+        })
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use super::App;
+  use test::Bencher;
+  use super::*;
   use std::collections::HashMap;
   use bytes::{BytesMut, BufMut};
   use context::{BasicContext, Context};
@@ -286,16 +323,15 @@ mod tests {
   use std::boxed::Box;
   use std::io;
   use std::marker::Send;
-  use tokio;
 
   struct TypedContext<T> {
     pub request_body: T,
     pub body: String
   }
 
-  impl<'a, T> TypedContext<T>
-    where T: serde::de::Deserialize<'a> {
-    pub fn new(request: &'a Request) -> TypedContext<T> {
+  impl<T> TypedContext<T> {
+    pub fn new<'a>(request: &'a Request) -> TypedContext<T>
+      where T: serde::de::Deserialize<'a> {
       match request.body_as::<T>(request.raw_body()) {
         Ok(val) => TypedContext {
           body: "".to_owned(),
@@ -306,7 +342,7 @@ mod tests {
     }
   }
 
-  impl<'a, T> Context for TypedContext<T> {
+  impl<T> Context for TypedContext<T> {
     fn get_response(&self) -> Response<String> {
       let response = Response::new(self.body.clone());
 
@@ -316,6 +352,72 @@ mod tests {
     fn set_body(&mut self, body: String) {
       self.body = body;
     }
+  }
+
+  #[bench]
+  fn bench_route_match(bench: &mut Bencher) {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      Box::new(future::ok(BasicContext {
+        body: "world".to_owned(),
+        params: HashMap::new(),
+        query_params: context.query_params
+      }))
+    };
+
+    app.get("/test/hello", vec![test_fn_1]);
+
+    bench.iter(|| {
+      let mut bytes = BytesMut::with_capacity(47);
+      bytes.put(&b"GET /test/hello HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+      let request = decode(&mut bytes).unwrap().unwrap();
+      let _response = app.resolve(request).wait().unwrap();
+    });
+  }
+
+  #[bench]
+  fn bench_route_match_with_param(bench: &mut Bencher) {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      Box::new(future::ok(BasicContext {
+        body: context.params.get("hello").unwrap().to_owned(),
+        params: HashMap::new(),
+        query_params: context.query_params
+      }))
+    };
+
+    app.get("/test/:hello", vec![test_fn_1]);
+
+    bench.iter(|| {
+      let mut bytes = BytesMut::with_capacity(48);
+      bytes.put(&b"GET /test/world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+      let request = decode(&mut bytes).unwrap().unwrap();
+      let _response = app.resolve(request).wait().unwrap();
+    });
+  }
+
+  #[bench]
+  fn bench_route_match_with_query_param(bench: &mut Bencher) {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      Box::new(future::ok(BasicContext {
+        body: context.query_params.get("hello").unwrap().to_owned(),
+        params: HashMap::new(),
+        query_params: context.query_params
+      }))
+    };
+
+    app.get("/test", vec![test_fn_1]);
+
+    bench.iter(|| {
+      let mut bytes = BytesMut::with_capacity(54);
+      bytes.put(&b"GET /test?hello=world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+      let request = decode(&mut bytes).unwrap().unwrap();
+      let _response = app.resolve(request).wait().unwrap();
+    });
   }
 
   #[test]
@@ -337,7 +439,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app.resolve(request).wait().unwrap();
 
     assert!(response.body() == "1");
   }
@@ -362,7 +464,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app.resolve(request).wait().unwrap();
 
     assert!(response.body() == "world");
   }
@@ -386,7 +488,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app.resolve(request).wait().unwrap();
 
     assert!(response.body() == "123");
   }
@@ -413,7 +515,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app2.resolve(request).wait().unwrap();
 
     assert!(response.body() == "123");
   }
@@ -440,15 +542,15 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app2.resolve(request).wait().unwrap();
 
     assert!(response.body() == "123");
   }
 
   #[test]
   fn it_should_be_able_to_parse_an_incoming_body() {
-    fn generate_context_with_body(request: &Request) -> TypedContext<TestStruct> {
-      TypedContext::<TestStruct>::new(request)
+    fn generate_context_with_body(request: Request) -> TypedContext<TestStruct> {
+      TypedContext::<TestStruct>::new(&request)
     }
 
     let mut app = App::create(generate_context_with_body);
@@ -473,7 +575,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app.resolve(request).wait().unwrap();
 
     assert!(response.body() == "value");
   }
@@ -506,7 +608,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app.resolve(request).wait().unwrap();
 
     assert!(response.body() == "1");
   }
@@ -546,7 +648,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app.resolve(request).wait().unwrap();
 
     assert!(response.body() == "212");
   }
@@ -570,7 +672,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app.resolve(request).wait().unwrap();
 
     assert!(response.body() == "Hello world");
   }
@@ -614,7 +716,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app.resolve(request).wait().unwrap();
 
     assert!(response.body() == "agnostic-1");
   }
@@ -641,7 +743,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app2.resolve(request).wait().unwrap();
 
     assert!(response.body() == "1");
   }
@@ -668,7 +770,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app2.resolve(request).wait().unwrap();
 
     assert!(response.body() == "1");
   }
@@ -695,7 +797,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app2.resolve(request).wait().unwrap();
 
     assert!(response.body() == "1");
   }
@@ -728,7 +830,7 @@ mod tests {
 
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request, &tokio::reactor::Handle::current()).wait().unwrap();
+    let response = app.resolve(request).wait().unwrap();
 
     assert!(response.body() == "not found");
   }

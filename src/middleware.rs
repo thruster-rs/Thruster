@@ -3,23 +3,30 @@ use std::vec::Vec;
 use std::cell::Cell;
 use std::boxed::Box;
 use futures::{future, Future};
-use tokio::reactor::Handle;
 use std::io;
 
-// pub type Middleware<T: Context> = fn(T, chain: &MiddlewareChain<T>) -> T;
+/// `MiddlewareReturnValue`s are the values that Thruster expects middleware to return. It's
+/// shorthand for a Future, where the Item is a Context associated with the app, and the
+/// error is an io::Error.
 pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error> + Send>;
+
+/// The `Middleware` type simply defines the signature of a thruster middleware function.
+/// It takes a context of the type of the thruster app, followed by a MiddlewareChain.
 pub type Middleware<T> = fn(T, chain: &MiddlewareChain<T>) -> MiddlewareReturnValue<T>;
 
-pub struct MiddlewareChain<'a, T: Context> {
+/// The `MiddlewareChain` represents a chain of futures that is every piece of middleware
+/// following the current one. If you wish to not continue down the chain, simply do not call
+/// `chain.next`, otherwise, you can call it and wait for the return value of the future and
+/// proceed with work accordingly.
+pub struct MiddlewareChain<T: Context> {
   _chain_index: Cell<usize>,
-  pub handle: &'a Handle,
   pub middleware: Vec<Middleware<T>>
 }
 
-impl<'a, T: 'static + Context + Send> MiddlewareChain<'a, T> {
-  pub fn new(middleware: Vec<Middleware<T>>, handle: &'a Handle) -> MiddlewareChain<'a, T> {
+impl<T: 'static + Context + Send> MiddlewareChain<T> {
+  /// Create a new `MiddlewareChain` with a vector of middleware to be executed.
+  pub fn new(middleware: Vec<Middleware<T>>) -> MiddlewareChain<T> {
     MiddlewareChain {
-      handle: handle,
       middleware: middleware,
       _chain_index: Cell::new(0),
     }

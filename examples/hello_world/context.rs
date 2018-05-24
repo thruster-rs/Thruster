@@ -50,14 +50,18 @@ impl Context for Ctx {
   }
 }
 
-pub fn generate_context(request: &Request) -> Ctx {
+pub fn generate_context(request: Request) -> Ctx {
+  let method = request.method().to_owned();
+  let path = request.path().to_owned();
+  let request_body = request.raw_body().to_owned();
+
   Ctx {
     body: "".to_owned(),
-    method: request.method().to_owned(),
-    path: request.path().to_owned(),
-    params: request.params().clone(),
-    query_params: request.query_params().clone(),
-    request_body: request.raw_body().to_owned(),
+    method: method,
+    path: path,
+    params: request.params,
+    query_params: request.query_params,
+    request_body: request_body,
     headers: Vec::new(),
     status_code: 200
   }
