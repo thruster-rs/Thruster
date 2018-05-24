@@ -31,5 +31,5 @@ fn main() {
 
   app.get("/plaintext", vec![plaintext]);
 
-  App::start(app, "0.0.0.0".to_string(), "4321".to_string());
+  App::start(app, "0.0.0.0", 4321);
 }
