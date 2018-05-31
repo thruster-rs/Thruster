@@ -44,7 +44,6 @@ impl<T: Context + Send> RouteParser<T> {
   }
 
   pub fn add_method_agnostic_middleware(&mut self, route: &str, middleware: Middleware<T>) {
-
     fn _add_full_route<T: 'static + Context + Send>(parser: &mut RouteParser<T>, route: &str, middleware: Middleware<T>) {
       let updated_vector: Vec<Middleware<T>> = match parser.middleware.get(route) {
         Some(val) => {
@@ -160,7 +159,6 @@ impl<T: Context + Send> RouteParser<T> {
 
     assert!(first_piece.is_some());
 
-    // let mut accumulator = templatify! { "/"; first_piece.unwrap_or("") ;"" };
     let mut accumulator = first_piece.unwrap_or("").to_owned();
 
     for piece in split_iterator {

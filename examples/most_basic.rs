@@ -1,3 +1,5 @@
+#![feature(test)]
+
 extern crate thruster;
 extern crate futures;
 extern crate serde;
@@ -9,7 +11,7 @@ use futures::future;
 
 use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
 
-fn generate_context(request: &Request) -> Ctx {
+fn generate_context(request: Request) -> Ctx {
   Ctx {
     body: "".to_owned(),
     params: request.params().clone(),

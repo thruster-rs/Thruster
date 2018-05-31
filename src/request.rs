@@ -15,8 +15,8 @@ pub struct Request {
     // TODO: use a small vec to avoid this unconditional allocation
     headers: Vec<(Slice, Slice)>,
     data: BytesMut,
-    params: HashMap<String, String>,
-    query_params: HashMap<String, String>
+    pub params: HashMap<String, String>,
+    pub query_params: HashMap<String, String>
 }
 
 type Slice = (usize, usize);
