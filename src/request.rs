@@ -13,7 +13,7 @@ pub struct Request {
     path: Slice,
     version: u8,
     // TODO: use a small vec to avoid this unconditional allocation
-    headers: Vec<(Slice, Slice)>,
+    pub headers: Vec<(Slice, Slice)>,
     data: BytesMut,
     pub params: HashMap<String, String>,
     pub query_params: HashMap<String, String>
