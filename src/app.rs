@@ -4,7 +4,6 @@ use std::vec::Vec;
 
 use futures::future;
 use futures::Future;
-use regex::Regex;
 use tokio;
 use tokio::net::{TcpStream, TcpListener};
 use tokio::prelude::*;
@@ -13,9 +12,8 @@ use context::{BasicContext, Context};
 use http::Http;
 use httplib::{Response};
 use request::Request;
-use route_parser::{MatchedRoute, RouteParser, RouteNode};
+use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
-use util::{strip_leading_slash};
 use std::sync::Arc;
 
 enum Method {
@@ -35,49 +33,7 @@ fn _add_method_to_route(method: Method, path: String) -> String {
     Method::UPDATE => "__UPDATE__"
   };
 
-  format!("/{}{}", prefix, path)
-}
-
-fn _insert_prefix_to_methodized_path(path: String, prefix: String) -> String {
-  let regex = Regex::new(r"^(/?__\w+__)/(.*)").unwrap();
-
-  let path_clone_just_in_case = path.clone();
-  match regex.captures(&path) {
-    Some(cap) => {
-      let mut stripped_prefix = strip_leading_slash(&prefix).to_owned();
-
-      if stripped_prefix.len() > 0 &&
-        (&cap[2]).len() > 0 {
-        stripped_prefix = format!("{}/", stripped_prefix);
-      }
-
-      format!("{}/{}{}", &cap[1], stripped_prefix, &cap[2])
-    },
-    None => path_clone_just_in_case
-  }
-}
-
-fn _rehydrate_stars_for_app_with_route<T: 'static + Context + Send>(app: &App<T>, route: &str) -> String {
-  let mut split_iterator = route.split("/");
-
-  let first_piece = split_iterator.next();
-
-  assert!(first_piece.is_some());
-
-  let mut accumulator = first_piece.unwrap_or("").to_owned();
-
-  for piece in split_iterator {
-    if piece == "*" {
-      match app._route_parser.middleware.get(&templatify! { ""; &accumulator ;"/*" }) {
-        Some(val) => accumulator = templatify! { ""; &accumulator ;"/:"; &val.param_name ;"" },
-        None => accumulator = templatify! { ""; &accumulator ;"/*" }
-      };
-    } else {
-      accumulator = templatify! { ""; &accumulator ;"/"; piece ;"" }; // Test vs. a join
-    }
-  }
-
-  accumulator
+  format!("{}{}", prefix, path)
 }
 
 ///
@@ -120,7 +76,8 @@ pub struct App<T: 'static + Context + Send> {
   /// that translates an acutal `Request` struct to your custom Context type. It should be noted that
   /// the context_generator should be as fast as possible as this is called with every request, including
   /// 404s.
-  pub context_generator: fn(Request) -> T
+  pub context_generator: fn(Request) -> T,
+  not_found: Vec<Middleware<T>>
 }
 
 fn generate_context(request: Request) -> BasicContext {
@@ -148,12 +105,8 @@ impl<T: Context + Send> App<T> {
 
             response
           }))
-          .then(|res| {
-            if let Err(e) = res {
-              println!("failed to process connection; error = {:?}", e);
-            }
-
-            Ok(())
+          .then(|_| {
+            future::ok(())
           });
 
       // Spawn the task that handles the connection.
@@ -176,7 +129,8 @@ impl<T: Context + Send> App<T> {
   pub fn new() -> App<BasicContext> {
     App {
       _route_parser: RouteParser::new(),
-      context_generator: generate_context
+      context_generator: generate_context,
+      not_found: Vec::new()
     }
   }
 
@@ -185,7 +139,8 @@ impl<T: Context + Send> App<T> {
   pub fn create(generate_context: fn(Request) -> T) -> App<T> {
     App {
       _route_parser: RouteParser::new(),
-      context_generator: generate_context
+      context_generator: generate_context,
+      not_found: Vec::new()
     }
   }
 
@@ -200,22 +155,9 @@ impl<T: Context + Send> App<T> {
   /// Add an app as a predetermined set of routes and middleware. Will prefix whatever string is passed
   /// in to all of the routes. This is a main feature of Thruster, as it allows projects to be extermely
   /// modular and composeable in nature.
-  pub fn use_sub_app(&mut self, prefix: &'static str, app: &App<T>) -> &mut App<T> {
-    let sub_app_middleware = &app.get_route_parser().middleware;
-
-    // This is incorrect right now, because we need to prefix the path.
-    for (path, route_node) in sub_app_middleware {
-      let prefixed_path = &_insert_prefix_to_methodized_path(path.to_owned(), prefix.to_owned());
-      let prefixed_path = &_rehydrate_stars_for_app_with_route(app, prefixed_path);
-
-      self._route_parser.add_route_with_node(
-        prefixed_path,
-        RouteNode {
-          has_param: route_node.has_param,
-          param_name: route_node.param_name.clone(),
-          associated_middleware: route_node.associated_middleware.clone()
-        });
-    }
+  pub fn use_sub_app(&mut self, prefix: &'static str, app: App<T>) -> &mut App<T> {
+    self._route_parser.route_tree
+      .add_route_tree(prefix, app._route_parser.route_tree);
 
     self
   }
@@ -266,8 +208,8 @@ impl<T: Context + Send> App<T> {
   }
 
   /// Sets the middleware if no route is successfully matched.
-  pub fn set404(&mut self, middlewares:Vec<Middleware<T>>) -> &mut App<T> {
-    self._route_parser.set_not_found(middlewares);
+  pub fn set404(&mut self, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
+    self.not_found = middlewares;
 
     self
   }
@@ -298,7 +240,7 @@ impl<T: Context + Send> App<T> {
     };
 
     let middleware = matched_route.middleware;
-    let middleware_chain = MiddlewareChain::new(middleware);
+    let middleware_chain = MiddlewareChain::new(middleware, &self.not_found);
 
     let context_future = middleware_chain.next(context);
     context_future
@@ -508,7 +450,7 @@ mod tests {
     app1.get("/:id", vec![test_fn_1]);
 
     let mut app2 = App::<BasicContext>::new();
-    app2.use_sub_app("/test", &app1);
+    app2.use_sub_app("/test", app1);
 
     let mut bytes = BytesMut::with_capacity(45);
     bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
@@ -535,7 +477,7 @@ mod tests {
     app1.get("/:id", vec![test_fn_1]);
 
     let mut app2 = App::<BasicContext>::new();
-    app2.use_sub_app("/test", &app1);
+    app2.use_sub_app("/test", app1);
 
     let mut bytes = BytesMut::with_capacity(45);
     bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
@@ -736,7 +678,7 @@ mod tests {
     app1.get("/test", vec![test_fn_1]);
 
     let mut app2 = App::<BasicContext>::new();
-    app2.use_sub_app("/", &app1);
+    app2.use_sub_app("/", app1);
 
     let mut bytes = BytesMut::with_capacity(41);
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
@@ -763,7 +705,7 @@ mod tests {
     app1.get("/test", vec![test_fn_1]);
 
     let mut app2 = App::<BasicContext>::new();
-    app2.use_sub_app("/sub", &app1);
+    app2.use_sub_app("/sub", app1);
 
     let mut bytes = BytesMut::with_capacity(45);
     bytes.put(&b"GET /sub/test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
@@ -790,11 +732,15 @@ mod tests {
     app1.get("/", vec![test_fn_1]);
 
     let mut app2 = App::<BasicContext>::new();
-    app2.use_sub_app("/sub", &app1);
+    app2.use_sub_app("/sub", app1);
 
     let mut bytes = BytesMut::with_capacity(45);
     bytes.put(&b"GET /sub HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
+    println!("app: {}", app2._route_parser.route_tree.root_node.to_string(""));
+    for (route, middleware) in app2._route_parser.route_tree.root_node.enumerate() {
+      println!("{}: {}", route, middleware.len());
+    }
 
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();

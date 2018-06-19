@@ -22,20 +22,20 @@ wrk -t12 -c400 -d30s http://127.0.0.1:4321/plaintext
 
 ```
 >>> Framework: Cowboy
-Requests/sec:  12374.60
-Transfer/sec:      1.54MB
->>> Framework: Phoenix/Elixir (prod mode)
-Requests/sec:    530.35
-Transfer/sec:    131.03KB
->>> Framework: Rocket (prod mode)
-Requests/sec:  31807.87
-Transfer/sec:      4.43MB
->>> Framework: Thruster (dev mode)
-Requests/sec:  12372.31
+Requests/sec:  14066.80
 Transfer/sec:      1.75MB
+>>> Framework: Phoenix/Elixir (prod mode)
+Requests/sec:    531.22
+Transfer/sec:    131.25KB
+>>> Framework: Actix (prod mode)
+Requests/sec:  48661.48
+Transfer/sec:      6.03MB
+>>> Framework: Hyper (prod mode)
+Requests/sec:  52909.67
+Transfer/sec:      4.44MB
 >>> Framework: Thruster (prod mode)
-Requests/sec:  51291.43
-Transfer/sec:      7.24MB
+Requests/sec:  53612.10
+Transfer/sec:      7.57MB
 ```
 
 ## Intuitive
