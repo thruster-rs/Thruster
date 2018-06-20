@@ -18,22 +18,25 @@ pub type Middleware<T> = fn(T, chain: &MiddlewareChain<T>) -> MiddlewareReturnVa
 /// following the current one. If you wish to not continue down the chain, simply do not call
 /// `chain.next`, otherwise, you can call it and wait for the return value of the future and
 /// proceed with work accordingly.
-pub struct MiddlewareChain<T: Context> {
+pub struct MiddlewareChain<'a, T: 'a + Context> {
   _chain_index: Cell<usize>,
-  pub middleware: Vec<Middleware<T>>
+  pub middleware: &'a Vec<Middleware<T>>,
+  pub not_found: &'a Vec<Middleware<T>>
 }
 
-impl<T: 'static + Context + Send> MiddlewareChain<T> {
+impl<'a, T: 'static + Context + Send> MiddlewareChain<'a, T> {
   /// Create a new `MiddlewareChain` with a vector of middleware to be executed.
-  pub fn new(middleware: Vec<Middleware<T>>) -> MiddlewareChain<T> {
+  pub fn new(middleware: &'a Vec<Middleware<T>>, not_found: &'a Vec<Middleware<T>>) -> MiddlewareChain<'a, T> {
     MiddlewareChain {
       middleware: middleware,
       _chain_index: Cell::new(0),
+      not_found: not_found
     }
   }
 
   pub fn next(&self, context: T) -> MiddlewareReturnValue<T> {
-    let next_middleware = self.middleware.get(self._chain_index.get());
+    let next_middleware = self.middleware.get(self._chain_index.get())
+      .or_else(|| self.not_found.get(self._chain_index.get() - self.middleware.len()));
     self._chain_index.set(self._chain_index.get() + 1);
 
     match next_middleware {
