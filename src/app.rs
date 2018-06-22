@@ -252,7 +252,8 @@ impl<T: Context + Send> App<T> {
 
 #[cfg(test)]
 mod tests {
-  use test::Bencher;
+  // Uncomment to run benchmarks
+  // use test::Bencher;
   use super::*;
   use std::collections::HashMap;
   use bytes::{BytesMut, BufMut};
@@ -296,71 +297,72 @@ mod tests {
     }
   }
 
-  #[bench]
-  fn bench_route_match(bench: &mut Bencher) {
-    let mut app = App::<BasicContext>::new();
+  // Uncomment to run benchmarks
+  // #[bench]
+  // fn bench_route_match(bench: &mut Bencher) {
+  //   let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
-        body: "world".to_owned(),
-        params: HashMap::new(),
-        query_params: context.query_params
-      }))
-    };
+  //   fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+  //     Box::new(future::ok(BasicContext {
+  //       body: "world".to_owned(),
+  //       params: HashMap::new(),
+  //       query_params: context.query_params
+  //     }))
+  //   };
 
-    app.get("/test/hello", vec![test_fn_1]);
+  //   app.get("/test/hello", vec![test_fn_1]);
 
-    bench.iter(|| {
-      let mut bytes = BytesMut::with_capacity(47);
-      bytes.put(&b"GET /test/hello HTTP/1.1\nHost: localhost:8080\n\n"[..]);
-      let request = decode(&mut bytes).unwrap().unwrap();
-      let _response = app.resolve(request).wait().unwrap();
-    });
-  }
+  //   bench.iter(|| {
+  //     let mut bytes = BytesMut::with_capacity(47);
+  //     bytes.put(&b"GET /test/hello HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+  //     let request = decode(&mut bytes).unwrap().unwrap();
+  //     let _response = app.resolve(request).wait().unwrap();
+  //   });
+  // }
 
-  #[bench]
-  fn bench_route_match_with_param(bench: &mut Bencher) {
-    let mut app = App::<BasicContext>::new();
+  // #[bench]
+  // fn bench_route_match_with_param(bench: &mut Bencher) {
+  //   let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
-        body: context.params.get("hello").unwrap().to_owned(),
-        params: HashMap::new(),
-        query_params: context.query_params
-      }))
-    };
+  //   fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+  //     Box::new(future::ok(BasicContext {
+  //       body: context.params.get("hello").unwrap().to_owned(),
+  //       params: HashMap::new(),
+  //       query_params: context.query_params
+  //     }))
+  //   };
 
-    app.get("/test/:hello", vec![test_fn_1]);
+  //   app.get("/test/:hello", vec![test_fn_1]);
 
-    bench.iter(|| {
-      let mut bytes = BytesMut::with_capacity(48);
-      bytes.put(&b"GET /test/world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
-      let request = decode(&mut bytes).unwrap().unwrap();
-      let _response = app.resolve(request).wait().unwrap();
-    });
-  }
+  //   bench.iter(|| {
+  //     let mut bytes = BytesMut::with_capacity(48);
+  //     bytes.put(&b"GET /test/world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+  //     let request = decode(&mut bytes).unwrap().unwrap();
+  //     let _response = app.resolve(request).wait().unwrap();
+  //   });
+  // }
 
-  #[bench]
-  fn bench_route_match_with_query_param(bench: &mut Bencher) {
-    let mut app = App::<BasicContext>::new();
+  // #[bench]
+  // fn bench_route_match_with_query_param(bench: &mut Bencher) {
+  //   let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
-        body: context.query_params.get("hello").unwrap().to_owned(),
-        params: HashMap::new(),
-        query_params: context.query_params
-      }))
-    };
+  //   fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+  //     Box::new(future::ok(BasicContext {
+  //       body: context.query_params.get("hello").unwrap().to_owned(),
+  //       params: HashMap::new(),
+  //       query_params: context.query_params
+  //     }))
+  //   };
 
-    app.get("/test", vec![test_fn_1]);
+  //   app.get("/test", vec![test_fn_1]);
 
-    bench.iter(|| {
-      let mut bytes = BytesMut::with_capacity(54);
-      bytes.put(&b"GET /test?hello=world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
-      let request = decode(&mut bytes).unwrap().unwrap();
-      let _response = app.resolve(request).wait().unwrap();
-    });
-  }
+  //   bench.iter(|| {
+  //     let mut bytes = BytesMut::with_capacity(54);
+  //     bytes.put(&b"GET /test?hello=world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+  //     let request = decode(&mut bytes).unwrap().unwrap();
+  //     let _response = app.resolve(request).wait().unwrap();
+  //   });
+  // }
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request() {
