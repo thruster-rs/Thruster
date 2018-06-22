@@ -1,4 +1,5 @@
-#![feature(test)]
+// Uncomment to run benchmarks
+// #![feature(test)]
 
 extern crate bytes;
 extern crate futures;
@@ -21,8 +22,10 @@ extern crate tokio_io;
 #[macro_use] extern crate serde_json;
 #[allow(unused_imports)]
 extern crate tokio_core;
-#[allow(unused_imports)]
-extern crate test;
+
+// Uncomment to run benchmarks
+// #[allow(unused_imports)]
+// extern crate test;
 
 mod app;
 mod builtins;

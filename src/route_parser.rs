@@ -122,7 +122,6 @@ mod tests {
 
     let matched = route_parser.match_route("1/2/3");
     assert!(matched.middleware.len() == 1);
-    // assert!(matched.middleware.get(0).unwrap() == &(test_function as Middleware));
   }
 
   #[test]
