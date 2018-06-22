@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use self::node::Node;
 use context::Context;
 use middleware::{Middleware};
+use smallvec::SmallVec;
 
 pub enum Method {
   DELETE,
@@ -41,17 +42,17 @@ impl<T: Context + Send> RouteTree<T> {
   pub fn update_root_node(&mut self) {
     let mut root_node = self.specific_root_node.clone();
 
-    root_node.push_middleware_to_populated_nodes(&self.generic_root_node, vec![]);
+    root_node.push_middleware_to_populated_nodes(&self.generic_root_node, smallvec![]);
 
     self.root_node = root_node;
   }
 
-  pub fn add_use_node(&mut self, route: &str, middleware: Vec<Middleware<T>>) {
+  pub fn add_use_node(&mut self, route: &str, middleware: SmallVec<[Middleware<T>; 8]>) {
     self.generic_root_node.add_route(route, middleware);
     self.update_root_node();
   }
 
-  pub fn add_route_with_method(&mut self, method: Method, route: &str, middleware: Vec<Middleware<T>>) {
+  pub fn add_route_with_method(&mut self, method: Method, route: &str, middleware: SmallVec<[Middleware<T>; 8]>) {
     let prefix = method_to_prefix(method);
 
     let full_route = format!("{}{}", prefix, route);
@@ -60,7 +61,7 @@ impl<T: Context + Send> RouteTree<T> {
     self.update_root_node();
   }
 
-  pub fn add_route(&mut self, route: &str, middleware: Vec<Middleware<T>>) {
+  pub fn add_route(&mut self, route: &str, middleware: SmallVec<[Middleware<T>; 8]>) {
     self.specific_root_node.add_route(route, middleware);
     self.update_root_node();
   }
@@ -89,11 +90,11 @@ impl<T: Context + Send> RouteTree<T> {
     self._adopt_sub_app_method_to_self(route, route_tree, Method::UPDATE);
   }
 
-  pub fn match_route(&self, route: &str) -> (&Vec<Middleware<T>>, HashMap<String, String>) {
+  pub fn match_route(&self, route: &str) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
     self.root_node.match_route(route.split("/"))
   }
 
-  pub fn match_route_with_params(&self, route: &str, params: HashMap<String, String>) -> (&Vec<Middleware<T>>, HashMap<String, String>) {
+  pub fn match_route_with_params(&self, route: &str, params: HashMap<String, String>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
     self.root_node.match_route_with_params(route.split("/"), params)
   }
 }
@@ -104,9 +105,10 @@ mod tests {
   use super::Method;
   use std::collections::HashMap;
   use context::BasicContext;
-  use middleware::{MiddlewareChain, MiddlewareReturnValue};
+  use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
   use futures::{future, Future};
   use std::boxed::Box;
+  use smallvec::SmallVec;
 
   #[test]
   fn it_should_match_a_simple_route() {
@@ -118,10 +120,10 @@ mod tests {
       Box::new(future::ok(context))
     }
 
-    route_tree.add_route_with_method(Method::GET, "/a/b", vec![test_function]);
+    route_tree.add_route_with_method(Method::GET, "/a/b", smallvec![test_function as Middleware<BasicContext>]);
     let middleware = route_tree.match_route_with_params("__GET__/a/b", HashMap::new());
 
-    let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&vec![], &vec![]))
+    let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&smallvec![], &smallvec![]))
       .wait()
       .unwrap();
 
@@ -141,13 +143,13 @@ mod tests {
       Box::new(future::ok(context))
     }
 
-    route_tree.add_route_with_method(Method::GET, "/:key", vec![test_function]);
+    route_tree.add_route_with_method(Method::GET, "/:key", smallvec![test_function as Middleware<BasicContext>]);
     let middleware = route_tree.match_route("__GET__/value");
 
     let mut context = BasicContext::new();
     context.params = middleware.1;
 
-    let result = middleware.0[0](context, &MiddlewareChain::new(&vec![], &vec![]))
+    let result = middleware.0[0](context, &MiddlewareChain::new(&smallvec![], &smallvec![]))
       .wait()
       .unwrap();
 
@@ -168,15 +170,15 @@ mod tests {
     }
 
     let mut route_tree2 = RouteTree::new();
-    route_tree2.add_route_with_method(Method::GET, "/c", vec![test_function2]);
+    route_tree2.add_route_with_method(Method::GET, "/c", smallvec![test_function2 as Middleware<BasicContext>]);
 
     let mut route_tree1 = RouteTree::new();
-    route_tree1.add_route_with_method(Method::GET, "/a", vec![test_function1]);
+    route_tree1.add_route_with_method(Method::GET, "/a", smallvec![test_function1 as Middleware<BasicContext>]);
     route_tree1.add_route_tree("/b", route_tree2);
 
     let middleware = route_tree1.match_route_with_params("__GET__/b/c", HashMap::new());
 
-    let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&vec![], &vec![]))
+    let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&smallvec![], &smallvec![]))
       .wait()
       .unwrap();
 

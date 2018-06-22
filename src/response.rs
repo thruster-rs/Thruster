@@ -3,7 +3,7 @@ use std::fmt::{self, Write};
 use bytes::{BytesMut, BufMut};
 
 pub struct Response {
-    headers: Vec<(String, String)>,
+    headers: SmallVec<(String, String)>,
     response: String,
     status_message: StatusMessage,
 }
@@ -16,7 +16,7 @@ enum StatusMessage {
 impl Response {
     pub fn new() -> Response {
         Response {
-            headers: Vec::new(),
+            headers: SmallVec::new(),
             response: String::new(),
             status_message: StatusMessage::Ok,
         }
@@ -72,9 +72,9 @@ fn push(buf: &mut BytesMut, data: &[u8]) {
     }
 }
 
-// TODO: impl fmt::Write for Vec<u8>
+// TODO: impl fmt::Write for SmallVec<u8>
 //
-// Right now `write!` on `Vec<u8>` goes through io::Write and is not super
+// Right now `write!` on `SmallVec<u8>` goes through io::Write and is not super
 // speedy, so inline a less-crufty implementation here which doesn't go through
 // io::Error.
 struct FastWrite<'a>(&'a mut BytesMut);

@@ -1,4 +1,5 @@
 use std::collections::{HashMap};
+use smallvec::SmallVec;
 use thruster::{Context, Request, Response};
 
 pub struct Ctx {
@@ -8,7 +9,7 @@ pub struct Ctx {
   pub request_body: String,
   pub params: HashMap<String, String>,
   pub query_params: HashMap<String, String>,
-  pub headers: Vec<(String, String)>,
+  pub headers: SmallVec<[(String, String); 8]>,
   pub status_code: u32
 }
 
@@ -21,7 +22,7 @@ impl Ctx {
       params: context.params,
       query_params: context.query_params,
       request_body: context.request_body,
-      headers: Vec::new(),
+      headers: SmallVec::new(),
       status_code: 200
     }
   }
@@ -62,7 +63,7 @@ pub fn generate_context(request: Request) -> Ctx {
     params: request.params,
     query_params: request.query_params,
     request_body: request_body,
-    headers: Vec::new(),
+    headers: SmallVec::new(),
     status_code: 200
   }
 }

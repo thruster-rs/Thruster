@@ -1,12 +1,12 @@
 use std::collections::HashMap;
-use std::vec::Vec;
+use smallvec::SmallVec;
 use std::str::Split;
 
 use middleware::{Middleware};
 use context::Context;
 
 pub struct Node<T: Context + Send> {
-  middleware: Vec<Middleware<T>>,
+  middleware: SmallVec<[Middleware<T>; 8]>,
   pub children: HashMap<String, Node<T>>,
   wildcard_node: Option<Box<Node<T>>>,
   param_key: Option<String>,
@@ -37,7 +37,7 @@ impl<T: Context + Send> Node<T> {
   pub fn new(value: &str) -> Node<T> {
     Node {
       children: HashMap::new(),
-      middleware: Vec::new(),
+      middleware: SmallVec::new(),
       wildcard_node: Some(Box::new(Node::new_wildcard(None))),
       value: value.to_owned(),
       param_key: None
@@ -47,14 +47,14 @@ impl<T: Context + Send> Node<T> {
   pub fn new_wildcard(param_name: Option<String>) -> Node<T> {
     Node {
       children: HashMap::new(),
-      middleware: Vec::new(),
+      middleware: SmallVec::new(),
       wildcard_node: None,
       value: "*".to_owned(),
       param_key: param_name
     }
   }
 
-  pub fn add_route(&mut self, route: &str, middleware: Vec<Middleware<T>>) {
+  pub fn add_route(&mut self, route: &str, middleware: SmallVec<[Middleware<T>; 8]>) {
     // Strip a leading slash
     let mut split_iterator = match route.chars().next() {
       Some('/') => &route[1..],
@@ -71,14 +71,14 @@ impl<T: Context + Send> Node<T> {
             let mut child = self.children.remove(piece)
               .unwrap_or_else(|| Node::new(piece));
 
-            child.add_route(&split_iterator.collect::<Vec<&str>>().join("/"), middleware);
+            child.add_route(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), middleware);
 
             self.children.insert(piece.to_owned(), child);
           },
           true => {
             let mut wildcard = Node::new_wildcard(Some(piece[1..].to_owned()));
 
-            wildcard.add_route(&split_iterator.collect::<Vec<&str>>().join("/"), middleware);
+            wildcard.add_route(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), middleware);
 
             self.wildcard_node = Some(Box::new(wildcard));
           }
@@ -124,7 +124,7 @@ impl<T: Context + Send> Node<T> {
         let mut child = self.children.remove(piece)
           .unwrap_or_else(|| Node::new(piece));
 
-        child.add_subtree(&split_iterator.collect::<Vec<&str>>().join("/"), subtree);
+        child.add_subtree(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), subtree);
 
         self.children.insert(piece.to_owned(), child);
       }
@@ -135,11 +135,11 @@ impl<T: Context + Send> Node<T> {
     self.middleware.len() > 0
   }
 
-  pub fn match_route(&self, route: Split<&str>) -> (&Vec<Middleware<T>>, HashMap<String, String>) {
+  pub fn match_route(&self, route: Split<&str>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
     self.match_route_with_params(route, HashMap::new())
   }
 
-  pub fn match_route_with_params(&self, mut route: Split<&str>, mut params: HashMap<String, String>) -> (&Vec<Middleware<T>>, HashMap<String, String>) {
+  pub fn match_route_with_params(&self, mut route: Split<&str>, mut params: HashMap<String, String>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
     if let Some(piece) = route.next() {
       match self.children.get(piece) {
         Some(child) => child.match_route_with_params(route, params),
@@ -181,8 +181,8 @@ impl<T: Context + Send> Node<T> {
     in_progress
   }
 
-  pub fn enumerate(&self) -> Vec<(String, Vec<Middleware<T>>)> {
-    let mut children = Vec::new();
+  pub fn enumerate(&self) -> SmallVec<[(String, SmallVec<[Middleware<T>; 8]>); 8]> {
+    let mut children = SmallVec::new();
 
     for (_key, child) in &self.children {
       let piece = match &self.param_key {
@@ -206,7 +206,8 @@ impl<T: Context + Send> Node<T> {
 
   pub fn copy_node_middleware(&mut self, other_node: &Node<T>) {
     // Copy the other node's middlware over to self
-    self.middleware.append(&mut other_node.middleware.clone());
+    let len = self.middleware.len();
+    self.middleware.insert_many(len, &mut other_node.middleware.clone().into_iter());
 
     // Match children, recurse if child match
     for (key, child) in self.children.iter_mut() {
@@ -224,20 +225,25 @@ impl<T: Context + Send> Node<T> {
     }
   }
 
-  pub fn push_middleware_to_populated_nodes(&mut self, other_node: &Node<T>, mut accumulated_middleware: Vec<Middleware<T>>) {
+  pub fn push_middleware_to_populated_nodes(&mut self, other_node: &Node<T>, accumulated_middleware: SmallVec<[Middleware<T>; 8]>) {
     let fake_node = Node::new("");
-    let mut _accumulated_middleware = Vec::new();
+    let mut _accumulated_middleware = SmallVec::new();
 
-    _accumulated_middleware.append(&mut other_node.middleware.clone());
-    _accumulated_middleware.append(&mut accumulated_middleware);
+    let mut len = _accumulated_middleware.len();
+    _accumulated_middleware.insert_many(len, &mut other_node.middleware.clone().into_iter());
+    len = _accumulated_middleware.len();
+    _accumulated_middleware.insert_many(len, &mut accumulated_middleware.into_iter());
 
     // Copy the other node's middleware over to self
     if self.middleware.len() > 0 {
-      let mut old_middleware = self.middleware.clone();
-      self.middleware = Vec::new();
-      self.middleware.append(&mut _accumulated_middleware.clone());
-      self.middleware.append(&mut other_node.middleware.clone());
-      self.middleware.append(&mut old_middleware);
+      let old_middleware = self.middleware.clone();
+      self.middleware = SmallVec::new();
+
+      self.middleware.insert_many(0, &mut _accumulated_middleware.clone().into_iter());
+      let len = self.middleware.len();
+      self.middleware.insert_many(len, &mut other_node.middleware.clone().into_iter());
+      let len = self.middleware.len();
+      self.middleware.insert_many(len, &mut old_middleware.into_iter());
     }
 
     // Match children, recurse if child match
