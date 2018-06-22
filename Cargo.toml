@@ -1,12 +1,12 @@
 [package]
 name = "thruster"
-version = "0.4.3"
+version = "0.4.4"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
 license = "MIT"
-documentation = "https://github.com/trezm/thruster"
-homepage = "https://github.com/trezm/thruster"
+documentation = "https://thruster.github.com"
+homepage = "https://thruster.github.com"
 repository = "https://github.com/trezm/thruster"
 
 [dependencies]
@@ -21,6 +21,7 @@ regex = "0.2"
 serde = "1.0.24"
 serde_json = "1.0.8"
 serde_derive = "1.0.24"
+smallvec = "0.6.2"
 templatify = "0.2.2"
 time = "0.1"
 tokio = "0.1.6"

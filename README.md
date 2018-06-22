@@ -3,6 +3,8 @@
 
 [![Build Status](https://travis-ci.org/trezm/Thruster.svg?branch=master)](https://travis-ci.org/trezm/Thruster)
 
+[Documentation](https://docs.rs/thruster/0.4.4/thruster/)
+
 thruster is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:
 - Opinionated
 - Fast
@@ -77,7 +79,7 @@ fn main() {
 
   let mut app = App::<Ctx>::create(generate_context);
 
-  app.get("/plaintext", vec![plaintext]);
+  app.get("/plaintext", smallvec![plaintext]);
 
   App::start(app, "0.0.0.0", 4321);
 }

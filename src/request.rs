@@ -4,6 +4,7 @@ use std::iter::Iterator;
 use serde;
 use bytes::BytesMut;
 use serde_json;
+use smallvec::SmallVec;
 
 use httparse;
 
@@ -13,7 +14,7 @@ pub struct Request {
     path: Slice,
     version: u8,
     // TODO: use a small vec to avoid this unconditional allocation
-    pub headers: Vec<(Slice, Slice)>,
+    pub headers: SmallVec<[(Slice, Slice); 8]>,
     data: BytesMut,
     pub params: HashMap<String, String>,
     pub query_params: HashMap<String, String>
@@ -89,7 +90,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
     //       for more headers
     let len = buf.len();
     let (method, path, version, headers, body) = {
-        let mut headers = [httparse::EMPTY_HEADER; 16];
+        let mut headers = [httparse::EMPTY_HEADER; 8];
         let mut r = httparse::Request::new(&mut headers);
         let status = try!(r.parse(buf).map_err(|e| {
             let msg = format!("failed to parse http request: {:?}", e);

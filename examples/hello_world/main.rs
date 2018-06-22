@@ -4,6 +4,7 @@ extern crate thruster;
 extern crate futures;
 extern crate serde;
 extern crate serde_json;
+extern crate smallvec;
 extern crate tokio;
 extern crate test;
 

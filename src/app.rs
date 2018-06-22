@@ -1,6 +1,6 @@
 use std::io;
 use std::net::ToSocketAddrs;
-use std::vec::Vec;
+use smallvec::SmallVec;
 
 use futures::future;
 use futures::Future;
@@ -77,7 +77,7 @@ pub struct App<T: 'static + Context + Send> {
   /// the context_generator should be as fast as possible as this is called with every request, including
   /// 404s.
   pub context_generator: fn(Request) -> T,
-  not_found: Vec<Middleware<T>>
+  not_found: SmallVec<[Middleware<T>; 8]>
 }
 
 fn generate_context(request: Request) -> BasicContext {
@@ -130,7 +130,7 @@ impl<T: Context + Send> App<T> {
     App {
       _route_parser: RouteParser::new(),
       context_generator: generate_context,
-      not_found: Vec::new()
+      not_found: SmallVec::new()
     }
   }
 
@@ -140,7 +140,7 @@ impl<T: Context + Send> App<T> {
     App {
       _route_parser: RouteParser::new(),
       context_generator: generate_context,
-      not_found: Vec::new()
+      not_found: SmallVec::new()
     }
   }
 
@@ -170,7 +170,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `GET`s to a given path
   pub fn get(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::GET, path.to_owned()), middlewares);
+      &_add_method_to_route(Method::GET, path.to_owned()), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -178,7 +178,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `POST`s to a given path
   pub fn post(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::POST, path.to_owned()), middlewares);
+      &_add_method_to_route(Method::POST, path.to_owned()), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -186,7 +186,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `PUT`s to a given path
   pub fn put(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::PUT, path.to_owned()), middlewares);
+      &_add_method_to_route(Method::PUT, path.to_owned()), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -194,7 +194,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `DELETE`s to a given path
   pub fn delete(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::DELETE, path.to_owned()), middlewares);
+      &_add_method_to_route(Method::DELETE, path.to_owned()), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -202,14 +202,14 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `UPDATE`s to a given path
   pub fn update(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::UPDATE, path.to_owned()), middlewares);
+      &_add_method_to_route(Method::UPDATE, path.to_owned()), SmallVec::from_vec(middlewares));
 
     self
   }
 
   /// Sets the middleware if no route is successfully matched.
   pub fn set404(&mut self, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
-    self.not_found = middlewares;
+    self.not_found = SmallVec::from_vec(middlewares);
 
     self
   }

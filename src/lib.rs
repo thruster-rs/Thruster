@@ -13,6 +13,7 @@ extern crate tokio;
 extern crate tokio_io;
 
 #[macro_use] extern crate templatify;
+#[macro_use] extern crate smallvec;
 // For tests
 #[allow(unused_imports)]
 #[macro_use] extern crate serde_derive;

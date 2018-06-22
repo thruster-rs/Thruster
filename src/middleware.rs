@@ -1,5 +1,5 @@
 use context::{Context};
-use std::vec::Vec;
+use smallvec::SmallVec;
 use std::cell::Cell;
 use std::boxed::Box;
 use futures::{future, Future};
@@ -20,13 +20,13 @@ pub type Middleware<T> = fn(T, chain: &MiddlewareChain<T>) -> MiddlewareReturnVa
 /// proceed with work accordingly.
 pub struct MiddlewareChain<'a, T: 'a + Context> {
   _chain_index: Cell<usize>,
-  pub middleware: &'a Vec<Middleware<T>>,
-  pub not_found: &'a Vec<Middleware<T>>
+  pub middleware: &'a SmallVec<[Middleware<T>; 8]>,
+  pub not_found: &'a SmallVec<[Middleware<T>; 8]>
 }
 
 impl<'a, T: 'static + Context + Send> MiddlewareChain<'a, T> {
   /// Create a new `MiddlewareChain` with a vector of middleware to be executed.
-  pub fn new(middleware: &'a Vec<Middleware<T>>, not_found: &'a Vec<Middleware<T>>) -> MiddlewareChain<'a, T> {
+  pub fn new(middleware: &'a SmallVec<[Middleware<T>; 8]>, not_found: &'a SmallVec<[Middleware<T>; 8]>) -> MiddlewareChain<'a, T> {
     MiddlewareChain {
       middleware: middleware,
       _chain_index: Cell::new(0),

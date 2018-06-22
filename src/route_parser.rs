@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::vec::Vec;
+use smallvec::SmallVec;
 
 use middleware::{Middleware};
 use route_tree::RouteTree;
@@ -10,7 +10,7 @@ pub struct MatchedRoute<'a, T: 'static + Context + Send> {
   pub value: String,
   pub params: HashMap<String, String>,
   pub query_params: HashMap<String, String>,
-  pub middleware: &'a Vec<Middleware<T>>,
+  pub middleware: &'a SmallVec<[Middleware<T>; 8]>,
   pub sub_app: Option<App<T>>
 }
 
@@ -28,10 +28,10 @@ impl<T: Context + Send> RouteParser<T> {
   }
 
   pub fn add_method_agnostic_middleware(&mut self, route: &str, middleware: Middleware<T>) {
-    self.route_tree.add_use_node(route, vec![middleware]);
+    self.route_tree.add_use_node(route, smallvec![middleware]);
   }
 
-  pub fn add_route(&mut self, route: &str, middleware: Vec<Middleware<T>>) {
+  pub fn add_route(&mut self, route: &str, middleware: SmallVec<[Middleware<T>; 8]>) {
     self.route_tree.add_route(route, middleware);
   }
 
@@ -70,14 +70,15 @@ impl<T: Context + Send> RouteParser<T> {
 mod tests {
   use super::RouteParser;
   use context::BasicContext;
-  use middleware::{MiddlewareChain, MiddlewareReturnValue};
+  use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
   use futures::future;
   use std::boxed::Box;
+  use smallvec::SmallVec;
 
   #[test]
   fn it_should_return_a_matched_path_for_a_good_route() {
     let mut route_parser = RouteParser::<BasicContext>::new();
-    route_parser.add_route("1/2/3/4", Vec::new());
+    route_parser.add_route("1/2/3/4", SmallVec::new());
 
     assert!(route_parser.match_route("1/2/3/4").value == "1/2/3/4");
   }
@@ -85,7 +86,7 @@ mod tests {
   #[test]
   fn it_should_use_not_found_for_not_handled_routes() {
     let mut route_parser = RouteParser::<BasicContext>::new();
-    route_parser.add_route("1/2/3/4", Vec::new());
+    route_parser.add_route("1/2/3/4", SmallVec::new());
 
     assert!(route_parser.match_route("5").value == "5");
   }
@@ -93,9 +94,9 @@ mod tests {
   #[test]
   fn it_should_return_a_matched_path_for_a_good_route_with_multiple_similar_routes() {
     let mut route_parser = RouteParser::<BasicContext>::new();
-    route_parser.add_route("1/2/3/6", Vec::new());
-    route_parser.add_route("1/2/3/4/5", Vec::new());
-    route_parser.add_route("1/2/3/4", Vec::new());
+    route_parser.add_route("1/2/3/6", SmallVec::new());
+    route_parser.add_route("1/2/3/4/5", SmallVec::new());
+    route_parser.add_route("1/2/3/4", SmallVec::new());
 
     assert!(route_parser.match_route("1/2/3/4").value == "1/2/3/4");
   }
@@ -103,7 +104,7 @@ mod tests {
   #[test]
   fn it_should_appropriately_define_route_params() {
     let mut route_parser = RouteParser::<BasicContext>::new();
-    route_parser.add_route("1/:param/2", Vec::new());
+    route_parser.add_route("1/:param/2", SmallVec::new());
 
     let matched = route_parser.match_route("1/somevar/2");
 
@@ -117,7 +118,7 @@ mod tests {
     }
 
     let mut route_parser = RouteParser::<BasicContext>::new();
-    route_parser.add_route("1/2/3", vec![test_function]);
+    route_parser.add_route("1/2/3", smallvec![test_function as Middleware<BasicContext>]);
 
     let matched = route_parser.match_route("1/2/3");
     assert!(matched.middleware.len() == 1);
@@ -136,7 +137,7 @@ mod tests {
 
     let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_method_agnostic_middleware("/", method_agnostic);
-    route_parser.add_route("/__GET__/1/2/3", vec![test_function]);
+    route_parser.add_route("/__GET__/1/2/3", smallvec![test_function as Middleware<BasicContext>]);
 
     let matched = route_parser.match_route("__GET__/1/2/3");
     assert!(matched.middleware.len() == 2);
