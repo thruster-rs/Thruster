@@ -75,9 +75,9 @@ fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
 fn main() {
   println!("Starting server...");
 
-  let mut app = App::<Ctx>::create(generate_context);
+  let mut app = App::create(generate_context);
 
-  app.get("/plaintext", vec![plaintext]);
+  app.get("/plaintext", smallvec![plaintext]);
 
   App::start(app, "0.0.0.0", 4321);
 }

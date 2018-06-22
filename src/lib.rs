@@ -1,6 +1,3 @@
-// Uncomment to run benchmarks
-// #![feature(test)]
-
 extern crate bytes;
 extern crate futures;
 extern crate httparse;
@@ -23,10 +20,6 @@ extern crate tokio_io;
 #[allow(unused_imports)]
 extern crate tokio_core;
 
-// Uncomment to run benchmarks
-// #[allow(unused_imports)]
-// extern crate test;
-
 mod app;
 mod builtins;
 mod context;
@@ -41,6 +34,6 @@ pub use app::App;
 pub use builtins::send::file;
 pub use context::{BasicContext, Context};
 pub use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
-pub use request::Request;
+pub use request::{decode, Request};
 pub use httplib::Response;
 pub use http::Http;
