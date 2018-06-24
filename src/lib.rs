@@ -1,5 +1,4 @@
-// Uncomment to run benchmarks
-// #![feature(test)]
+#![cfg_attr(feature = "bench", feature(test))]
 
 extern crate bytes;
 extern crate futures;
@@ -23,9 +22,9 @@ extern crate tokio_io;
 #[allow(unused_imports)]
 extern crate tokio_core;
 
-// Uncomment to run benchmarks
-// #[allow(unused_imports)]
-// extern crate test;
+#[cfg(feature = "bench")]
+#[allow(unused_imports)]
+extern crate test;
 
 mod app;
 mod builtins;
