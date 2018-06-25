@@ -7,6 +7,7 @@ use futures::Future;
 use tokio;
 use tokio::net::{TcpStream, TcpListener};
 use tokio::prelude::*;
+use tokio_codec::Framed;
 
 use context::{BasicContext, Context};
 use http::Http;
@@ -96,9 +97,8 @@ impl<T: Context + Send> App<T> {
     let arc_app = Arc::new(app);
 
     fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
-      let (tx, rx) = socket
-          .framed(Http)
-          .split();
+      let framed = Framed::new(socket, Http);
+      let (tx, rx) = framed.split();
 
       let task = tx.send_all(rx.and_then(move |request: Request| {
             let response = app.resolve(request);
