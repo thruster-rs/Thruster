@@ -3,7 +3,7 @@
 
 [![Build Status](https://travis-ci.org/trezm/Thruster.svg?branch=master)](https://travis-ci.org/trezm/Thruster)
 
-[Documentation](https://docs.rs/thruster/0.4.4/thruster/)
+[Documentation](https://docs.rs/thruster/0.4.5/thruster/)
 
 Thruster is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:
 - Opinionated
