@@ -124,6 +124,7 @@ impl<T: Context + Send> Node<T> {
         let mut child = self.children.remove(piece)
           .unwrap_or_else(|| Node::new(piece));
 
+        child.middleware.insert_many(0, &mut subtree.middleware.clone().into_iter());
         child.add_subtree(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), subtree);
 
         self.children.insert(piece.to_owned(), child);
@@ -146,10 +147,14 @@ impl<T: Context + Send> Node<T> {
         None => {
           match &self.wildcard_node {
             Some(wildcard_node) => {
-              if let Some(param_key) = &wildcard_node.param_key {
-                params.insert(param_key.to_owned(), piece.to_owned());
+              if piece.len() == 0 {
+                (&self.middleware, params)
+              } else {
+                if let Some(param_key) = &wildcard_node.param_key {
+                  params.insert(param_key.to_owned(), piece.to_owned());
+                }
+                wildcard_node.match_route_with_params(route, params)
               }
-              wildcard_node.match_route_with_params(route, params)
             }
             None => (&self.middleware, params)
           }
@@ -160,6 +165,17 @@ impl<T: Context + Send> Node<T> {
     }
   }
 
+  /// Used mostly for debugging the route tree
+  /// Example usage
+  /// ```ignore
+  ///   let mut app = App::create(generate_context);
+  ///
+  ///   app.get("/plaintext", vec![plaintext]);
+  ///  println!("app: {}", app._route_parser.route_tree.root_node.to_string(""));
+  ///  for (route, middleware) in app._route_parser.route_tree.root_node.enumerate() {
+  ///    println!("{}: {}", route, middleware.len());
+  ///  }
+  /// ```
   pub fn to_string(&self, indent: &str) -> String {
     let mut in_progress = "".to_owned();
     let value = self.param_key.clone().unwrap_or(self.value.to_owned());

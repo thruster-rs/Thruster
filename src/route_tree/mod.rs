@@ -136,9 +136,7 @@ mod tests {
     let mut route_tree = RouteTree::new();
 
     fn test_function(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      let len = context.params.len();
       context.body = context.params.get("key").unwrap().to_owned();
-      println!("params: {}", len);
 
       Box::new(future::ok(context))
     }

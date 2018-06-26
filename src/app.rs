@@ -258,7 +258,7 @@ mod tests {
   use bytes::{BytesMut, BufMut};
   use context::{BasicContext, Context};
   use request::{decode, Request};
-  use middleware::MiddlewareChain;
+  use middleware::{MiddlewareChain, MiddlewareReturnValue};
   use httplib::Response;
   use serde;
   use futures::{future, Future};
@@ -421,6 +421,84 @@ mod tests {
     let response = app2.resolve(request).wait().unwrap();
 
     assert!(response.body() == "123");
+  }
+
+  #[test]
+  fn it_should_match_as_far_as_possible_in_a_subapp() {
+    let mut app1 = App::<BasicContext>::new();
+
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      Box::new(future::ok(BasicContext {
+        body: context.params.get("id").unwrap().to_owned(),
+        params: context.params,
+        query_params: context.query_params
+      }))
+    };
+
+    fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      Box::new(future::ok(BasicContext {
+        body: "-1".to_owned(),
+        params: context.params,
+        query_params: context.query_params
+      }))
+    }
+
+    app1.get("/", vec![test_fn_2]);
+    app1.get("/:id", vec![test_fn_1]);
+
+    let mut app2 = App::<BasicContext>::new();
+    app2.use_sub_app("/test", app1);
+
+    let mut bytes = BytesMut::with_capacity(45);
+    bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request).wait().unwrap();
+
+    assert!(response.body() == "123");
+
+    let mut bytes = BytesMut::with_capacity(41);
+    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request).wait().unwrap();
+
+    assert!(response.body() == "-1");
+  }
+
+  #[test]
+  fn it_should_trim_trailing_slashes() {
+    let mut app1 = App::<BasicContext>::new();
+
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      Box::new(future::ok(BasicContext {
+        body: context.params.get("id").unwrap().to_owned(),
+        params: context.params,
+        query_params: context.query_params
+      }))
+    };
+
+    fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      Box::new(future::ok(BasicContext {
+        body: "-1".to_owned(),
+        params: context.params,
+        query_params: context.query_params
+      }))
+    }
+
+    app1.get("/:id", vec![test_fn_1]);
+
+    let mut app2 = App::<BasicContext>::new();
+    app2.use_sub_app("/test", app1);
+    app2.set404(vec![test_fn_2]);
+
+    let mut bytes = BytesMut::with_capacity(42);
+    bytes.put(&b"GET /test/ HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request).wait().unwrap();
+
+    assert!(response.body() == "-1");
   }
 
   #[test]
@@ -670,11 +748,6 @@ mod tests {
 
     let mut bytes = BytesMut::with_capacity(45);
     bytes.put(&b"GET /sub HTTP/1.1\nHost: localhost:8080\n\n"[..]);
-
-    println!("app: {}", app2._route_parser.route_tree.root_node.to_string(""));
-    for (route, middleware) in app2._route_parser.route_tree.root_node.enumerate() {
-      println!("{}: {}", route, middleware.len());
-    }
 
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();

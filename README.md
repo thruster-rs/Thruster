@@ -5,10 +5,14 @@
 
 [Documentation](https://docs.rs/thruster/0.4.4/thruster/)
 
-thruster is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:
+Thruster is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:
 - Opinionated
 - Fast
 - Intuitive
+
+Thruster also
+- Does not use `unsafe`
+- Works in stable rust
 
 ## Opinionated
 
