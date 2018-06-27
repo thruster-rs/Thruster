@@ -81,7 +81,7 @@ fn main() {
 
   let mut app = App::create(generate_context);
 
-  app.get("/plaintext", smallvec![plaintext]);
+  app.get("/plaintext", vec![plaintext]);
 
   App::start(app, "0.0.0.0", 4321);
 }
