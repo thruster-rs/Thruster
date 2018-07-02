@@ -78,6 +78,11 @@ pub struct App<T: 'static + Context + Send> {
   /// the context_generator should be as fast as possible as this is called with every request, including
   /// 404s.
   pub context_generator: fn(Request) -> T,
+
+  ///
+  /// The thread pool size for Thruster. This will default to 16.
+  ///
+  pub thread_pool_size: usize,
   not_found: SmallVec<[Middleware<T>; 8]>
 }
 
@@ -94,6 +99,7 @@ impl<T: Context + Send> App<T> {
     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
     let listener = TcpListener::bind(&addr).unwrap();
+    let thread_pool_size = app.thread_pool_size;
     let arc_app = Arc::new(app);
 
     fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
@@ -120,7 +126,22 @@ impl<T: Context + Send> App<T> {
             Ok(())
         });
 
-    tokio::run(server);
+    // create and configure ThreadPool
+    let mut threadpool_builder = tokio::executor::thread_pool::Builder::new();
+    threadpool_builder
+        .name_prefix("thruster")
+        .pool_size(thread_pool_size);
+
+    // build Runtime
+    let mut runtime = tokio::runtime::Builder::new()
+        .threadpool_builder(threadpool_builder)
+        .build()
+        .expect("Could not create a runtime");
+
+    runtime.spawn(server);
+    runtime.shutdown_on_idle()
+      .wait()
+      .unwrap();
   }
 
   /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
@@ -130,7 +151,8 @@ impl<T: Context + Send> App<T> {
     App {
       _route_parser: RouteParser::new(),
       context_generator: generate_context,
-      not_found: SmallVec::new()
+      not_found: SmallVec::new(),
+      thread_pool_size: 16
     }
   }
 
@@ -140,7 +162,8 @@ impl<T: Context + Send> App<T> {
     App {
       _route_parser: RouteParser::new(),
       context_generator: generate_context,
-      not_found: SmallVec::new()
+      not_found: SmallVec::new(),
+      thread_pool_size: 16
     }
   }
 
