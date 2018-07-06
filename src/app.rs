@@ -524,8 +524,8 @@ mod tests {
 
     app.post("/test", vec![test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(57);
-    bytes.put(&b"POST /test HTTP/1.1\nHost: localhost:8080\n\n{\"key\":\"value\"}"[..]);
+    let mut bytes = BytesMut::with_capacity(76);
+    bytes.put(&b"POST /test HTTP/1.1\nHost: localhost:8080\nContent-Length: 15\n\n{\"key\":\"value\"}"[..]);
 
 
     let request = decode(&mut bytes).unwrap().unwrap();

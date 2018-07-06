@@ -7,6 +7,7 @@ use serde_json;
 use smallvec::SmallVec;
 
 use httparse;
+use httplib;
 
 pub struct Request {
     body: Slice,
@@ -88,10 +89,10 @@ impl fmt::Debug for Request {
 pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
     // TODO: we should grow this headers array if parsing fails and asks
     //       for more headers
-    let len = buf.len();
-    let (method, path, version, headers, body) = {
+    let (method, path, version, headers, amt, body_len) = {
         let mut headers = [httparse::EMPTY_HEADER; 8];
         let mut r = httparse::Request::new(&mut headers);
+        let mut body_len: usize = 0;
         let status = try!(r.parse(buf).map_err(|e| {
             let msg = format!("failed to parse http request: {:?}", e);
             io::Error::new(io::ErrorKind::Other, msg)
@@ -110,6 +111,13 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
             (start, start + a.len())
         };
 
+        for header in r.headers.iter() {
+            if header.name == httplib::header::CONTENT_LENGTH {
+                let value = str::from_utf8(header.value).unwrap_or("0");
+                body_len = value.parse::<usize>().unwrap_or(0);
+            }
+        }
+
         (toslice(r.method.unwrap().as_bytes()),
          toslice(r.path.unwrap().as_bytes()),
          r.version.unwrap(),
@@ -117,7 +125,8 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
           .iter()
           .map(|h| (toslice(h.name.as_bytes()), toslice(h.value)))
           .collect(),
-         (amt, buf.len()))
+         amt,
+         body_len)
     };
 
     Ok(Request {
@@ -125,8 +134,8 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         path: path,
         version: version,
         headers: headers,
-        data: buf.split_to(len),
-        body: body,
+        data: buf.split_to(amt + body_len),
+        body: (amt, amt + body_len),
         params: HashMap::new(),
         query_params: HashMap::new()
     }.into())
