@@ -11,6 +11,7 @@ impl Decoder for Http {
     type Item = Request;
     type Error = io::Error;
 
+
     fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Request>> {
         request::decode(buf)
     }
@@ -19,6 +20,7 @@ impl Decoder for Http {
 impl Encoder for Http {
     type Item = Response<String>;
     type Error = io::Error;
+
 
     fn encode(&mut self, msg: Response<String>, buf: &mut BytesMut) -> io::Result<()> {
         encode(msg, buf);
@@ -32,10 +34,10 @@ pub fn encode(msg: Response<String>, buf: &mut BytesMut) {
     let now = ::date::now();
 
     templatify_buffer! { buf, "\
-        HTTP/1.1 "; format!("{}", msg.status()) ;"\r\n\
+        HTTP/1.1 "; msg.status().to_string() ;"\r\n\
         Server: thruster\r\n\
-        Content-Length: "; format!("{}", length) ;"\r\n\
-        Date: "; format!("{}", now) ;"\r\n\
+        Content-Length: "; length.to_string() ;"\r\n\
+        Date: "; now.to_string() ;"\r\n\
     " };
 
     for (ref k, ref v) in msg.headers() {

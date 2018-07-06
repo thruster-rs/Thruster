@@ -17,6 +17,8 @@ use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
 use std::sync::Arc;
 
+use std::fs::File;
+
 enum Method {
   DELETE,
   GET,
@@ -96,25 +98,14 @@ impl<T: Context + Send> App<T> {
     let listener = TcpListener::bind(&addr).unwrap();
     let arc_app = Arc::new(app);
 
+
     fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
       let framed = Framed::new(socket, Http);
       let (tx, rx) = framed.split();
 
       let task = tx.send_all(rx.and_then(move |request: Request| {
-            let mut builder = Response::builder();
-            // builder.status(200);
-
-            // for header_pair in &self.headers {
-            //     let key: &str = &header_pair.0;
-            //     let val: &str = &header_pair.1;
-            //     builder.header(key, val);
-            // }
-
-            let response = builder.body("Hello, world!".to_owned()).unwrap();
-
-            // let response = app.resolve(request);
-            // response
-            future::ok(response)
+            let response = app.resolve(request);
+            response
           }))
           .then(|_| {
             future::ok(())
@@ -225,6 +216,7 @@ impl<T: Context + Send> App<T> {
     self
   }
 
+
   fn _req_to_matched_route(&self, request: &Request) -> MatchedRoute<T> {
     let path = request.path();
     let method = match request.method() {
@@ -241,6 +233,7 @@ impl<T: Context + Send> App<T> {
   }
 
   /// Resolves a request, returning a future that is processable into a Response
+
   pub fn resolve(&self, mut request: Request) -> impl Future<Item=Response<String>, Error=io::Error> + Send {
     let matched_route = self._req_to_matched_route(&request);
     request.set_params(matched_route.params);
