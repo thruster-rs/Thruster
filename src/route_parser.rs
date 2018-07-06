@@ -15,13 +15,15 @@ pub struct MatchedRoute<'a, T: 'static + Context + Send> {
 }
 
 pub struct RouteParser<T: 'static + Context + Send> {
-  pub route_tree: RouteTree<T>
+  pub route_tree: RouteTree<T>,
+  pub shortcuts: HashMap<String, SmallVec<[Middleware<T>; 8]>>
 }
 
 impl<T: Context + Send> RouteParser<T> {
   pub fn new() -> RouteParser<T> {
     let parser = RouteParser {
       route_tree: RouteTree::new(),
+      shortcuts: HashMap::new()
     };
 
     parser
@@ -33,6 +35,14 @@ impl<T: Context + Send> RouteParser<T> {
 
   pub fn add_route(&mut self, route: &str, middleware: SmallVec<[Middleware<T>; 8]>) {
     self.route_tree.add_route(route, middleware);
+  }
+
+  pub fn optimize(&mut self) {
+    let routes = self.route_tree.root_node.enumerate();
+
+    for (path, middleware) in routes {
+      self.shortcuts.insert((&path[1..]).to_owned(), middleware);
+    }
   }
 
   pub fn match_route(&self, route: &str) -> MatchedRoute<T> {
@@ -54,14 +64,24 @@ impl<T: Context + Send> RouteParser<T> {
       None => ()
     };
 
-    let matched = self.route_tree.match_route(route);
+    if let Some(shortcut) = self.shortcuts.get(route) {
+      MatchedRoute {
+        value: route.to_owned(),
+        params: HashMap::new(),
+        query_params: query_params,
+        middleware: shortcut,
+        sub_app: None
+      }
+    } else {
+      let matched = self.route_tree.match_route(route);
 
-    MatchedRoute {
-      value: route.to_owned(),
-      params: matched.1,
-      query_params: query_params,
-      middleware: matched.0,
-      sub_app: None
+      MatchedRoute {
+        value: route.to_owned(),
+        params: matched.1,
+        query_params: query_params,
+        middleware: matched.0,
+        sub_app: None
+      }
     }
   }
 }

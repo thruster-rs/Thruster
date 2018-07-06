@@ -33,17 +33,19 @@ impl Ctx {
 }
 
 impl Context for Ctx {
-  fn get_response(&self) -> Response<String> {
-    let mut builder = Response::builder();
-    builder.status(200);
+  fn get_response(&self) -> Response {
+    let mut response = Response::new();
+    response.status_code(200, "OK");
 
     for header_pair in &self.headers {
       let key: &str = &header_pair.0;
       let val: &str = &header_pair.1;
-      builder.header(key, val);
+      response.header(key, val);
     }
 
-    builder.body(self.body.clone()).unwrap()
+    response.body(&self.body);
+
+    response
   }
 
   fn set_body(&mut self, body: String) {

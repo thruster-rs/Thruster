@@ -86,6 +86,7 @@ impl fmt::Debug for Request {
     }
 }
 
+
 pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
     // TODO: we should grow this headers array if parsing fails and asks
     //       for more headers
