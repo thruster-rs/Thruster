@@ -101,9 +101,20 @@ impl<T: Context + Send> App<T> {
       let (tx, rx) = framed.split();
 
       let task = tx.send_all(rx.and_then(move |request: Request| {
-            let response = app.resolve(request);
+            let mut builder = Response::builder();
+            // builder.status(200);
 
-            response
+            // for header_pair in &self.headers {
+            //     let key: &str = &header_pair.0;
+            //     let val: &str = &header_pair.1;
+            //     builder.header(key, val);
+            // }
+
+            let response = builder.body("Hello, world!".to_owned()).unwrap();
+
+            // let response = app.resolve(request);
+            // response
+            future::ok(response)
           }))
           .then(|_| {
             future::ok(())
