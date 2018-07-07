@@ -63,11 +63,11 @@ pub fn encode(msg: Response<String>, buf: &mut BytesMut) {
     //     Date: "; now.to_string() ;"\r\n\
     // " };
 
-    // for (ref k, ref v) in msg.headers() {
-    //     let key: &str = k.as_ref();
-    //     let val: &[u8] = v.as_bytes();
-    //     templatify_buffer! { buf, ""; key ;": "; val ;"\r\n" };
-    // }
+    for (ref k, ref v) in msg.headers() {
+        let key: &str = k.as_ref();
+        let val: &[u8] = v.as_bytes();
+        templatify_buffer! { buf, ""; key ;": "; val ;"\r\n" };
+    }
 
     templatify_buffer! { buf, "\r\n"; parts.1 ;"" };
 }
