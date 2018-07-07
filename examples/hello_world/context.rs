@@ -37,11 +37,11 @@ impl Context for Ctx {
     let mut builder = Response::builder();
     builder.status(200);
 
-    for header_pair in &self.headers {
-      let key: &str = &header_pair.0;
-      let val: &str = &header_pair.1;
-      builder.header(key, val);
-    }
+    // for header_pair in &self.headers {
+    //   let key: &str = &header_pair.0;
+    //   let val: &str = &header_pair.1;
+    //   builder.header(key, val);
+    // }
 
     builder.body(self.body.clone()).unwrap()
   }

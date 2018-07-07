@@ -1,6 +1,7 @@
 use std::io;
 use std::net::ToSocketAddrs;
 use smallvec::SmallVec;
+use std::time::{Duration, Instant};
 
 use futures::future;
 use futures::Future;
@@ -104,7 +105,10 @@ impl<T: Context + Send> App<T> {
       let (tx, rx) = framed.split();
 
       let task = tx.send_all(rx.and_then(move |request: Request| {
+            //#bench let instant = Instant::now();
             let response = app.resolve(request);
+            //#bench let new_now = Instant::now();
+            //#bench println!("resolve {:?}", new_now.duration_since(instant));
             response
           }))
           .then(|_| {
