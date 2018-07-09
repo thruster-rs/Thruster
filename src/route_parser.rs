@@ -54,7 +54,6 @@ impl<T: Context + Send> RouteParser<T> {
       },
       None => ()
     };
-
     let matched = self.route_tree.match_route(route);
 
     MatchedRoute {
