@@ -31,7 +31,6 @@ mod response;
 mod request;
 mod route_parser;
 mod route_tree;
-mod app_inline;
 
 pub use app::App;
 pub use builtins::send::file;
@@ -41,4 +40,3 @@ pub use response::{encode, Response};
 pub use request::{decode, Request};
 // pub use httplib::Response;
 pub use http::Http;
-pub use app_inline::*;
