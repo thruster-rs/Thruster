@@ -29,7 +29,7 @@ enum Method {
   UPDATE
 }
 
-fn _add_method_to_route(method: Method, path: String) -> String {
+fn _add_method_to_route(method: Method, path: &str) -> String {
   let prefix = match method {
     Method::DELETE => "__DELETE__",
     Method::GET => "__GET__",
@@ -39,6 +39,10 @@ fn _add_method_to_route(method: Method, path: String) -> String {
   };
 
   format!("{}{}", prefix, path)
+}
+
+fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
+  format!("__{}__{}", method, path)
 }
 
 ///
@@ -177,7 +181,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `GET`s to a given path
   pub fn get(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::GET, path.to_owned()), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(Method::GET, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -185,7 +189,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `POST`s to a given path
   pub fn post(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::POST, path.to_owned()), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(Method::POST, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -193,7 +197,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `PUT`s to a given path
   pub fn put(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::PUT, path.to_owned()), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(Method::PUT, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -201,7 +205,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `DELETE`s to a given path
   pub fn delete(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::DELETE, path.to_owned()), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(Method::DELETE, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -209,7 +213,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `UPDATE`s to a given path
   pub fn update(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::UPDATE, path.to_owned()), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(Method::UPDATE, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -224,17 +228,9 @@ impl<T: Context + Send> App<T> {
 
   fn _req_to_matched_route(&self, request: &Request) -> MatchedRoute<T> {
     let path = request.path();
-    let method = match request.method() {
-      "DELETE" => Method::DELETE,
-      "GET" => Method::GET,
-      "POST" => Method::POST,
-      "PUT" => Method::PUT,
-      "UPDATE" => Method::UPDATE,
-      _ => Method::GET
-    };
 
     self._route_parser.match_route(
-      &_add_method_to_route(method, path.to_owned()))
+      &_add_method_to_route_from_str(request.method(), path))
   }
 
   /// Resolves a request, returning a future that is processable into a Response
