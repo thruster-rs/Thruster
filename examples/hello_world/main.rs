@@ -1,4 +1,4 @@
-extern crate thruster;
+#[macro_use] extern crate thruster;
 extern crate futures;
 extern crate serde;
 extern crate serde_json;
@@ -63,6 +63,8 @@ fn main() {
   app.get("/plaintext", vec![plaintext]);
 
   app.set404(vec![not_found_404]);
+
+  app_inline!(app);
 
   App::start(app, "0.0.0.0", 4321);
 }

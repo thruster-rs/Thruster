@@ -75,7 +75,7 @@ fn _add_method_to_route(method: Method, path: String) -> String {
 /// In the above example, the route `/test/some-id` will return `some-id` in the body of the response.
 ///
 pub struct App<T: 'static + Context + Send> {
-  _route_parser: RouteParser<T>,
+  pub _route_parser: RouteParser<T>,
   ///
   /// Generate context is common to all `App`s. It's the function that's called upon receiving a request
   /// that translates an acutal `Request` struct to your custom Context type. It should be noted that

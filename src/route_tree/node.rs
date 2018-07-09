@@ -10,7 +10,8 @@ pub struct Node<T: Context + Send> {
   pub children: HashMap<String, Node<T>>,
   wildcard_node: Option<Box<Node<T>>>,
   param_key: Option<String>,
-  pub value: String
+  pub value: String,
+  pub is_wildcard: bool
 }
 
 impl<T: Context + Send> Clone for Node<T> {
@@ -18,17 +19,21 @@ impl<T: Context + Send> Clone for Node<T> {
     let children = self.children.clone();
     let middleware = self.middleware.clone();
 
-    let wildcard = match &self.wildcard_node {
-      Some(wildcard) => (**wildcard).clone(),
-      None => Node::new_wildcard(None)
+    let wildcard = match self.is_wildcard {
+      false => Some(Box::new(match &self.wildcard_node {
+        Some(wildcard) => (**wildcard).clone(),
+        None => Node::new_wildcard(None)
+      })),
+      true => None
     };
 
     Node {
       children: children,
       middleware: middleware,
-      wildcard_node: Some(Box::new(wildcard)),
+      wildcard_node: wildcard,
       value: self.value.clone(),
-      param_key: self.param_key.clone()
+      param_key: self.param_key.clone(),
+      is_wildcard: self.is_wildcard
     }
   }
 }
@@ -40,7 +45,8 @@ impl<T: Context + Send> Node<T> {
       middleware: SmallVec::new(),
       wildcard_node: Some(Box::new(Node::new_wildcard(None))),
       value: value.to_owned(),
-      param_key: None
+      param_key: None,
+      is_wildcard: false
     }
   }
 
@@ -50,7 +56,8 @@ impl<T: Context + Send> Node<T> {
       middleware: SmallVec::new(),
       wildcard_node: None,
       value: "*".to_owned(),
-      param_key: param_name
+      param_key: param_name,
+      is_wildcard: true
     }
   }
 
@@ -76,11 +83,13 @@ impl<T: Context + Send> Node<T> {
             self.children.insert(piece.to_owned(), child);
           },
           true => {
-            let mut wildcard = Node::new_wildcard(Some(piece[1..].to_owned()));
+            if !self.is_wildcard {
+              let mut wildcard = Node::new_wildcard(Some(piece[1..].to_owned()));
 
-            wildcard.add_route(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), middleware);
+              wildcard.add_route(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), middleware);
 
-            self.wildcard_node = Some(Box::new(wildcard));
+              self.wildcard_node = Some(Box::new(wildcard));
+            }
           }
         };
       }
