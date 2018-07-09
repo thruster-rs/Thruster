@@ -12,7 +12,8 @@ use tokio_codec::Framed;
 
 use context::{BasicContext, Context};
 use http::Http;
-use httplib::{Response};
+// use httplib::Response;
+use response::Response;
 use request::Request;
 use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
@@ -238,7 +239,7 @@ impl<T: Context + Send> App<T> {
 
   /// Resolves a request, returning a future that is processable into a Response
 
-  pub fn resolve(&self, mut request: Request) -> impl Future<Item=Response<String>, Error=io::Error> + Send {
+  pub fn resolve(&self, mut request: Request) -> impl Future<Item=Response, Error=io::Error> + Send {
     let matched_route = self._req_to_matched_route(&request);
     request.set_params(matched_route.params);
     request.set_query_params(matched_route.query_params);
@@ -267,7 +268,8 @@ mod tests {
   use context::{BasicContext, Context};
   use request::{decode, Request};
   use middleware::{MiddlewareChain, MiddlewareReturnValue};
-  use httplib::Response;
+  // use httplib::Response;
+  use response::Response;
   use serde;
   use futures::{future, Future};
   use std::boxed::Box;
@@ -293,8 +295,9 @@ mod tests {
   }
 
   impl<T> Context for TypedContext<T> {
-    fn get_response(&self) -> Response<String> {
-      let response = Response::new(self.body.clone());
+    fn get_response(&self) -> Response {
+      let mut response = Response::new();
+      response.body(&self.body);
 
       response
     }
@@ -325,7 +328,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "1");
+    assert!(String::from_utf8(response.response).unwrap() == "1");
   }
 
 
@@ -350,7 +353,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "world");
+    assert!(String::from_utf8(response.response).unwrap() == "world");
   }
 
   #[test]
@@ -374,7 +377,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "123");
+    assert!(String::from_utf8(response.response).unwrap() == "123");
   }
 
   #[test]
@@ -401,7 +404,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "123");
+    assert!(String::from_utf8(response.response).unwrap() == "123");
   }
 
   #[test]
@@ -428,7 +431,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "123");
+    assert!(String::from_utf8(response.response).unwrap() == "123");
   }
 
   #[test]
@@ -463,7 +466,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "123");
+    assert!(String::from_utf8(response.response).unwrap() == "123");
 
     let mut bytes = BytesMut::with_capacity(41);
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
@@ -471,7 +474,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "-1");
+    assert!(String::from_utf8(response.response).unwrap() == "-1");
   }
 
   #[test]
@@ -506,7 +509,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "-1");
+    assert!(String::from_utf8(response.response).unwrap() == "-1");
   }
 
   #[test]
@@ -539,7 +542,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "value");
+    assert!(String::from_utf8(response.response).unwrap() == "value");
   }
 
   #[test]
@@ -572,7 +575,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "1");
+    assert!(String::from_utf8(response.response).unwrap() == "1");
   }
 
   #[test]
@@ -612,7 +615,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "212");
+    assert!(String::from_utf8(response.response).unwrap() == "212");
   }
 
   #[test]
@@ -636,7 +639,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "Hello world");
+    assert!(String::from_utf8(response.response).unwrap() == "Hello world");
   }
 
   #[test]
@@ -680,7 +683,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "agnostic-1");
+    assert!(String::from_utf8(response.response).unwrap() == "agnostic-1");
   }
 
   #[test]
@@ -707,7 +710,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "1");
+    assert!(String::from_utf8(response.response).unwrap() == "1");
   }
 
   #[test]
@@ -734,7 +737,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "1");
+    assert!(String::from_utf8(response.response).unwrap() == "1");
   }
 
   #[test]
@@ -760,7 +763,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "1");
+    assert!(String::from_utf8(response.response).unwrap() == "1");
   }
 
   #[test]
@@ -793,6 +796,6 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "not found");
+    assert!(String::from_utf8(response.response).unwrap() == "not found");
   }
 }
