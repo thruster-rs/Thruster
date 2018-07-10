@@ -41,6 +41,7 @@ fn _add_method_to_route(method: Method, path: &str) -> String {
   format!("{}{}", prefix, path)
 }
 
+#[inline]
 fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
   format!("__{}__{}", method, path)
 }
@@ -240,10 +241,7 @@ impl<T: Context + Send> App<T> {
     request.set_params(matched_route.params);
     request.set_query_params(matched_route.query_params);
 
-    let context = match matched_route.sub_app {
-      Some(sub_app) => (sub_app.context_generator)(request),
-      None => (self.context_generator)(request)
-    };
+    let context = (self.context_generator)(request);
     let middleware = matched_route.middleware;
     let middleware_chain = MiddlewareChain::new(middleware, &self.not_found);
 
