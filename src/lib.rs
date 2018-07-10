@@ -11,7 +11,6 @@ extern crate tokio;
 extern crate tokio_codec;
 extern crate tokio_io;
 
-#[macro_use] extern crate templatify;
 #[macro_use] extern crate smallvec;
 // For tests
 #[allow(unused_imports)]
@@ -27,6 +26,7 @@ mod context;
 mod date;
 mod http;
 mod middleware;
+mod response;
 mod request;
 mod route_parser;
 mod route_tree;
@@ -35,6 +35,6 @@ pub use app::App;
 pub use builtins::send::file;
 pub use context::{BasicContext, Context};
 pub use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
+pub use response::{encode, Response};
 pub use request::{decode, Request};
-pub use httplib::Response;
 pub use http::Http;

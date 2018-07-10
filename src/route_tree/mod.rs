@@ -1,7 +1,7 @@
 mod node;
 
 use std::collections::HashMap;
-use self::node::Node;
+pub use self::node::Node;
 use context::Context;
 use middleware::{Middleware};
 use smallvec::SmallVec;

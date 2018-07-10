@@ -11,7 +11,7 @@ use tokio_codec::Framed;
 
 use context::{BasicContext, Context};
 use http::Http;
-use httplib::{Response};
+use response::Response;
 use request::Request;
 use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
@@ -25,7 +25,7 @@ enum Method {
   UPDATE
 }
 
-fn _add_method_to_route(method: Method, path: String) -> String {
+fn _add_method_to_route(method: Method, path: &str) -> String {
   let prefix = match method {
     Method::DELETE => "__DELETE__",
     Method::GET => "__GET__",
@@ -35,6 +35,11 @@ fn _add_method_to_route(method: Method, path: String) -> String {
   };
 
   format!("{}{}", prefix, path)
+}
+
+#[inline]
+fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
+  format!("__{}__{}", method, path)
 }
 
 ///
@@ -71,7 +76,7 @@ fn _add_method_to_route(method: Method, path: String) -> String {
 /// In the above example, the route `/test/some-id` will return `some-id` in the body of the response.
 ///
 pub struct App<T: 'static + Context + Send> {
-  _route_parser: RouteParser<T>,
+  pub _route_parser: RouteParser<T>,
   ///
   /// Generate context is common to all `App`s. It's the function that's called upon receiving a request
   /// that translates an acutal `Request` struct to your custom Context type. It should be noted that
@@ -90,8 +95,10 @@ fn generate_context(request: Request) -> BasicContext {
 }
 
 impl<T: Context + Send> App<T> {
-  pub fn start(app: App<T>, host: &str, port: u16) {
+  pub fn start(mut app: App<T>, host: &str, port: u16) {
     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+
+    app._route_parser.optimize();
 
     let listener = TcpListener::bind(&addr).unwrap();
     let arc_app = Arc::new(app);
@@ -102,7 +109,6 @@ impl<T: Context + Send> App<T> {
 
       let task = tx.send_all(rx.and_then(move |request: Request| {
             let response = app.resolve(request);
-
             response
           }))
           .then(|_| {
@@ -170,7 +176,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `GET`s to a given path
   pub fn get(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::GET, path.to_owned()), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(Method::GET, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -178,7 +184,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `POST`s to a given path
   pub fn post(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::POST, path.to_owned()), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(Method::POST, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -186,7 +192,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `PUT`s to a given path
   pub fn put(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::PUT, path.to_owned()), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(Method::PUT, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -194,7 +200,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `DELETE`s to a given path
   pub fn delete(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::DELETE, path.to_owned()), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(Method::DELETE, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -202,7 +208,7 @@ impl<T: Context + Send> App<T> {
   /// Add a route that responds to `UPDATE`s to a given path
   pub fn update(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::UPDATE, path.to_owned()), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(Method::UPDATE, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -214,36 +220,27 @@ impl<T: Context + Send> App<T> {
     self
   }
 
+
   fn _req_to_matched_route(&self, request: &Request) -> MatchedRoute<T> {
     let path = request.path();
-    let method = match request.method() {
-      "DELETE" => Method::DELETE,
-      "GET" => Method::GET,
-      "POST" => Method::POST,
-      "PUT" => Method::PUT,
-      "UPDATE" => Method::UPDATE,
-      _ => Method::GET
-    };
 
     self._route_parser.match_route(
-      &_add_method_to_route(method, path.to_owned()))
+      &_add_method_to_route_from_str(request.method(), path))
   }
 
   /// Resolves a request, returning a future that is processable into a Response
-  pub fn resolve(&self, mut request: Request) -> impl Future<Item=Response<String>, Error=io::Error> + Send {
+
+  pub fn resolve(&self, mut request: Request) -> impl Future<Item=Response, Error=io::Error> + Send {
     let matched_route = self._req_to_matched_route(&request);
     request.set_params(matched_route.params);
     request.set_query_params(matched_route.query_params);
 
-    let context = match matched_route.sub_app {
-      Some(sub_app) => (sub_app.context_generator)(request),
-      None => (self.context_generator)(request)
-    };
-
+    let context = (self.context_generator)(request);
     let middleware = matched_route.middleware;
     let middleware_chain = MiddlewareChain::new(middleware, &self.not_found);
 
     let context_future = middleware_chain.next(context);
+
     context_future
         .and_then(|context| {
           future::ok(context.get_response())
@@ -259,7 +256,7 @@ mod tests {
   use context::{BasicContext, Context};
   use request::{decode, Request};
   use middleware::{MiddlewareChain, MiddlewareReturnValue};
-  use httplib::Response;
+  use response::Response;
   use serde;
   use futures::{future, Future};
   use std::boxed::Box;
@@ -285,8 +282,9 @@ mod tests {
   }
 
   impl<T> Context for TypedContext<T> {
-    fn get_response(&self) -> Response<String> {
-      let response = Response::new(self.body.clone());
+    fn get_response(&self) -> Response {
+      let mut response = Response::new();
+      response.body(&self.body);
 
       response
     }
@@ -317,7 +315,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "1");
+    assert!(String::from_utf8(response.response).unwrap() == "1");
   }
 
 
@@ -342,7 +340,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "world");
+    assert!(String::from_utf8(response.response).unwrap() == "world");
   }
 
   #[test]
@@ -366,7 +364,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "123");
+    assert!(String::from_utf8(response.response).unwrap() == "123");
   }
 
   #[test]
@@ -393,7 +391,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "123");
+    assert!(String::from_utf8(response.response).unwrap() == "123");
   }
 
   #[test]
@@ -420,7 +418,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "123");
+    assert!(String::from_utf8(response.response).unwrap() == "123");
   }
 
   #[test]
@@ -455,7 +453,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "123");
+    assert!(String::from_utf8(response.response).unwrap() == "123");
 
     let mut bytes = BytesMut::with_capacity(41);
     bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
@@ -463,7 +461,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "-1");
+    assert!(String::from_utf8(response.response).unwrap() == "-1");
   }
 
   #[test]
@@ -498,7 +496,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "-1");
+    assert!(String::from_utf8(response.response).unwrap() == "-1");
   }
 
   #[test]
@@ -531,7 +529,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "value");
+    assert!(String::from_utf8(response.response).unwrap() == "value");
   }
 
   #[test]
@@ -564,7 +562,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "1");
+    assert!(String::from_utf8(response.response).unwrap() == "1");
   }
 
   #[test]
@@ -604,7 +602,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "212");
+    assert!(String::from_utf8(response.response).unwrap() == "212");
   }
 
   #[test]
@@ -628,7 +626,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "Hello world");
+    assert!(String::from_utf8(response.response).unwrap() == "Hello world");
   }
 
   #[test]
@@ -672,7 +670,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "agnostic-1");
+    assert!(String::from_utf8(response.response).unwrap() == "agnostic-1");
   }
 
   #[test]
@@ -699,7 +697,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "1");
+    assert!(String::from_utf8(response.response).unwrap() == "1");
   }
 
   #[test]
@@ -726,7 +724,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "1");
+    assert!(String::from_utf8(response.response).unwrap() == "1");
   }
 
   #[test]
@@ -752,7 +750,7 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app2.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "1");
+    assert!(String::from_utf8(response.response).unwrap() == "1");
   }
 
   #[test]
@@ -785,6 +783,6 @@ mod tests {
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();
 
-    assert!(response.body() == "not found");
+    assert!(String::from_utf8(response.response).unwrap() == "not found");
   }
 }
