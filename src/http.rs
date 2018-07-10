@@ -16,10 +16,10 @@ impl Decoder for Http {
 
 
     fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Request>> {
-        /*#bench*/ let instant = Instant::now();
+        //#bench*/ let instant = Instant::now();
         let res = request::decode(buf);
-        /*#bench*/ let new_now = Instant::now();
-        /*#bench*/ println!("decode {:?}", new_now.duration_since(instant));
+        //#bench*/ let new_now = Instant::now();
+        //#bench*/ println!("decode {:?}", new_now.duration_since(instant));
 
         res
     }
@@ -31,10 +31,10 @@ impl Encoder for Http {
 
 
     fn encode(&mut self, msg: Response, buf: &mut BytesMut) -> io::Result<()> {
-        /*#bench*/ let instant = Instant::now();
+        //#bench*/ let instant = Instant::now();
         response::encode(msg, buf);
-        /*#bench*/ let new_now = Instant::now();
-        /*#bench*/ println!("encode {:?}", new_now.duration_since(instant));
+        //#bench*/ let new_now = Instant::now();
+        //#bench*/ println!("encode {:?}", new_now.duration_since(instant));
 
         Ok(())
     }
