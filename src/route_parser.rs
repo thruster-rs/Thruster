@@ -41,7 +41,7 @@ impl<T: Context + Send> RouteParser<T> {
     let routes = self.route_tree.root_node.enumerate();
 
     for (path, middleware) in routes {
-      self.shortcuts.insert(path.clone(), middleware);
+      self.shortcuts.insert((&path[1..]).to_owned(), middleware);
     }
   }
 
