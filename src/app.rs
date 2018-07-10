@@ -99,12 +99,13 @@ fn generate_context(request: Request) -> BasicContext {
 }
 
 impl<T: Context + Send> App<T> {
-  pub fn start(app: App<T>, host: &str, port: u16) {
+  pub fn start(mut app: App<T>, host: &str, port: u16) {
     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+
+    app._route_parser.optimize();
 
     let listener = TcpListener::bind(&addr).unwrap();
     let arc_app = Arc::new(app);
-
 
     fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
       let framed = Framed::new(socket, Http);
