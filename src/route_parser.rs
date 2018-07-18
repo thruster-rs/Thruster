@@ -48,21 +48,6 @@ impl<T: Context + Send> RouteParser<T> {
   pub fn match_route(&self, route: &str) -> MatchedRoute<T> {
     let mut query_params = HashMap::new();
 
-    let mut iter = route.split("?");
-    let route = iter.next().unwrap();
-    match iter.next() {
-      Some(query_string) => {
-        for query_piece in query_string.split("&") {
-          let mut query_iterator = query_piece.split("=");
-          let key = query_iterator.next().unwrap().to_owned();
-          match query_iterator.next() {
-            Some(val) => query_params.insert(key, val.to_owned()),
-            None => query_params.insert(key, "true".to_owned())
-          };
-        }
-      },
-      None => ()
-    };
 
     if let Some(shortcut) = self.shortcuts.get(route) {
       MatchedRoute {
@@ -73,6 +58,22 @@ impl<T: Context + Send> RouteParser<T> {
         sub_app: None
       }
     } else {
+      let mut iter = route.split("?");
+      let route = iter.next().unwrap();
+      match iter.next() {
+        Some(query_string) => {
+          for query_piece in query_string.split("&") {
+            let mut query_iterator = query_piece.split("=");
+            let key = query_iterator.next().unwrap().to_owned();
+            match query_iterator.next() {
+              Some(val) => query_params.insert(key, val.to_owned()),
+              None => query_params.insert(key, "true".to_owned())
+            };
+          }
+        },
+        None => ()
+      };
+
       let matched = self.route_tree.match_route(route);
 
       MatchedRoute {

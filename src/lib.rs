@@ -12,6 +12,7 @@ extern crate tokio_codec;
 extern crate tokio_io;
 
 #[macro_use] extern crate smallvec;
+#[macro_use] extern crate templatify;
 // For tests
 #[allow(unused_imports)]
 #[macro_use] extern crate serde_derive;
@@ -19,6 +20,9 @@ extern crate tokio_io;
 #[macro_use] extern crate serde_json;
 #[allow(unused_imports)]
 extern crate tokio_core;
+
+extern crate tokio_service;
+extern crate tokio_proto;
 
 mod app;
 mod builtins;

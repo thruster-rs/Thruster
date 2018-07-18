@@ -94,6 +94,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         let mut headers = [httparse::EMPTY_HEADER; 8];
         let mut r = httparse::Request::new(&mut headers);
         let mut body_len: usize = 0;
+        let mut header_vec = SmallVec::new();
         let status = try!(r.parse(buf).map_err(|e| {
             let msg = format!("failed to parse http request: {:?}", e);
             io::Error::new(io::ErrorKind::Other, msg)
@@ -117,15 +118,14 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
                 let value = str::from_utf8(header.value).unwrap_or("0");
                 body_len = value.parse::<usize>().unwrap_or(0);
             }
+
+            header_vec.push((toslice(header.name.as_bytes()), toslice(header.value)));
         }
 
         (toslice(r.method.unwrap().as_bytes()),
          toslice(r.path.unwrap().as_bytes()),
          r.version.unwrap(),
-         r.headers
-          .iter()
-          .map(|h| (toslice(h.name.as_bytes()), toslice(h.value)))
-          .collect(),
+         header_vec,
          amt,
          body_len)
     };
