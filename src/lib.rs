@@ -21,9 +21,6 @@ extern crate tokio_io;
 #[allow(unused_imports)]
 extern crate tokio_core;
 
-extern crate tokio_service;
-extern crate tokio_proto;
-
 mod app;
 mod builtins;
 mod context;

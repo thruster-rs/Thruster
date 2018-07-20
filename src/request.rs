@@ -1,6 +1,5 @@
 use std::{io, str, fmt};
 use std::collections::HashMap;
-use std::iter::Iterator;
 use serde;
 use bytes::BytesMut;
 use serde_json;

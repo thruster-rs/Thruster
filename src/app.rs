@@ -10,15 +10,12 @@ use tokio::prelude::*;
 use tokio_codec::Framed;
 
 use context::{BasicContext, Context};
-use http::{Http, HttpProto};
+use http::Http;
 use response::Response;
 use request::Request;
 use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
 use std::sync::Arc;
-use tokio_proto::TcpServer;
-use tokio_service::Service;
-use num_cpus;
 
 enum Method {
   DELETE,
@@ -97,37 +94,8 @@ fn generate_context(request: Request) -> BasicContext {
   }
 }
 
-impl<T: 'static + Context + Send> Service for App<T> {
-  type Request = Request;
-  type Response = Response;
-  type Error = io::Error;
-  type Future = Box<Future<Item=Response, Error=io::Error> + Send>;
-
-  fn call(&self, req: Request) -> Self::Future {
-    // Box::new(self.resolve(req))
-    let mut response = Response::new();
-    response.status_code(200, "OK");
-
-    response.header("Content-Type", "text/plain");
-
-    response.body("Hello, world!");
-
-    Box::new(future::ok(response))
-  }
-}
-
 impl<T: Context + Send> App<T> {
   pub fn start(mut app: App<T>, host: &str, port: u16) {
-    // let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-    // app._route_parser.optimize();
-
-    // let arc_app = Arc::new(app);
-    // let mut srv = TcpServer::new(HttpProto, addr);
-    // srv.threads(num_cpus::get());
-    // srv.serve(move || {
-    //     Ok(arc_app.clone())
-    // })
-
     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
     app._route_parser.optimize();
@@ -277,15 +245,6 @@ impl<T: Context + Send> App<T> {
         .and_then(|context| {
           future::ok(context.get_response())
         })
-
-    // let mut response = Response::new();
-    // response.status_code(200, "OK");
-
-    // response.header("Content-Type", "text/plain");
-
-    // response.body("Hello, world!");
-
-    // Box::new(future::ok(response))
   }
 }
 
