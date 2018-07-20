@@ -39,7 +39,7 @@ fn _add_method_to_route(method: Method, path: &str) -> String {
 
 #[inline]
 fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
-  format!("__{}__{}", method, path)
+  templatify!("__" ; method ; "__" ; path ; "")
 }
 
 ///

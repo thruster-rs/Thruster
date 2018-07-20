@@ -28,10 +28,9 @@ impl Response {
     }
 
     pub fn header(&mut self, name: &str, val: &str) -> &mut Response {
-        self.header_raw.extend_from_slice(name.as_bytes());
-        self.header_raw.extend_from_slice(": ".as_bytes());
-        self.header_raw.extend_from_slice(val.as_bytes());
-        self.header_raw.extend_from_slice("\r\n".as_bytes());
+        let header_string = templatify! { "" ; name ; ": " ; val ; "\r\n" };
+        self.header_raw.extend_from_slice(header_string.as_bytes());
+
         self
     }
 
@@ -58,7 +57,7 @@ pub fn encode(msg: Response, buf: &mut BytesMut) {
 
     write!(FastWrite(buf), "\
         HTTP/1.1 {}\r\n\
-        Server: Example\r\n\
+        carServer: Thruster\r\n\
         Content-Length: {}\r\n\
         Date: {}\r\n\
     ", msg.status_message, length, now).unwrap();
