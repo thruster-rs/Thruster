@@ -121,6 +121,9 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
             header_vec.push((toslice(header.name.as_bytes()), toslice(header.value)));
         }
 
+        println!("amt: {}", amt);
+        println!("body_len: {}", body_len);
+
         (toslice(r.method.unwrap().as_bytes()),
          toslice(r.path.unwrap().as_bytes()),
          r.version.unwrap(),

@@ -59,6 +59,7 @@ fn main() {
 
   app.get("/json", vec![json]);
   app.get("/plaintext", vec![plaintext]);
+  app.post("/post-plaintext", vec![plaintext]);
 
   app.set404(vec![not_found_404]);
 
