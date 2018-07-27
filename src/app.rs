@@ -8,13 +8,16 @@ use tokio;
 use tokio::net::{TcpStream, TcpListener};
 use tokio::prelude::*;
 use tokio_codec::Framed;
+use tokio_proto::TcpServer;
+use tokio_service::Service;
+use num_cpus;
 
 use context::{BasicContext, Context};
-use http::Http;
+use http::{Http, HttpProto};
 use response::Response;
 use request::Request;
 use route_parser::{MatchedRoute, RouteParser};
-use middleware::{Middleware, MiddlewareChain};
+use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
 use std::sync::Arc;
 
 enum Method {
@@ -40,6 +43,21 @@ fn _add_method_to_route(method: Method, path: &str) -> String {
 #[inline]
 fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
   templatify!("__" ; method ; "__" ; path ; "")
+}
+
+struct AppService<T: 'static + Context + Send> {
+  app: Arc<App<T>>
+}
+
+impl<T: 'static + Context + Send> Service for AppService<T> {
+    type Request = Request;
+    type Response = Response;
+    type Error = io::Error;
+    type Future = Box<Future<Item=Response, Error=io::Error>>;
+
+    fn call(&self, req: Request) -> Self::Future {
+        Box::new(self.app.resolve(req))
+    }
 }
 
 ///
@@ -99,31 +117,44 @@ impl<T: Context + Send> App<T> {
     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
     app._route_parser.optimize();
-
-    let listener = TcpListener::bind(&addr).unwrap();
     let arc_app = Arc::new(app);
 
-    fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
-      let framed = Framed::new(socket, Http);
-      let (tx, rx) = framed.split();
+    let mut srv = TcpServer::new(HttpProto, addr);
+    srv.threads(num_cpus::get());
+    srv.serve(move || {
+        Ok(AppService {
+            app: arc_app.clone()
+        })
+    })
 
-      let task = tx.send_all(rx.and_then(move |request: Request| {
-            app.resolve(request)
-          }))
-          .then(|_| future::ok(()));
+    // let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
-      // Spawn the task that handles the connection.
-      tokio::spawn(task);
-    }
+    // app._route_parser.optimize();
 
-    let server = listener.incoming()
-        .map_err(|e| println!("error = {:?}", e))
-        .for_each(move |socket| {
-            process(arc_app.clone(), socket);
-            Ok(())
-        });
+    // let listener = TcpListener::bind(&addr).unwrap();
+    // let arc_app = Arc::new(app);
 
-    tokio::run(server);
+    // fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
+    //   let framed = Framed::new(socket, Http);
+    //   let (tx, rx) = framed.split();
+
+    //   let task = tx.send_all(rx.and_then(move |request: Request| {
+    //         app.resolve(request)
+    //       }))
+    //       .then(|_| future::ok(()));
+
+    //   // Spawn the task that handles the connection.
+    //   tokio::spawn(task);
+    // }
+
+    // let server = listener.incoming()
+    //     .map_err(|e| println!("error = {:?}", e))
+    //     .for_each(move |socket| {
+    //         process(arc_app.clone(), socket);
+    //         Ok(())
+    //     });
+
+    // tokio::run(server);
   }
 
   /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
@@ -279,7 +310,7 @@ mod tests {
   }
 
   impl<T> Context for TypedContext<T> {
-    fn get_response(&self) -> Response {
+    fn get_response(self) -> Response {
       let mut response = Response::new();
       response.body(&self.body);
 

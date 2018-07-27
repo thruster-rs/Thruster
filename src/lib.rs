@@ -10,6 +10,8 @@ extern crate time;
 extern crate tokio;
 extern crate tokio_codec;
 extern crate tokio_io;
+extern crate tokio_proto;
+extern crate tokio_service;
 
 #[macro_use] extern crate smallvec;
 #[macro_use] extern crate templatify;
