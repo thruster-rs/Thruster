@@ -5,10 +5,31 @@ use std::boxed::Box;
 use futures::{future, Future};
 use std::io;
 
-/// `MiddlewareReturnValue`s are the values that Thruster expects middleware to return. It's
+pub enum MiddlewareReturnValue<T> {
+  TSync(T),
+  TAsync(MiddlewareFutureReturnValue<T>)
+}
+
+impl<T> MiddlewareReturnValue<T> {
+  pub fn expect_sync(self) -> T {
+    match self {
+      MiddlewareReturnValue::TSync(val) => val,
+      MiddlewareReturnValue::TAsync(_) => panic!("MiddlewareReturnValue expected sync, but was async")
+    }
+  }
+
+  pub fn expect_async(self) -> MiddlewareFutureReturnValue<T> {
+    match self {
+      MiddlewareReturnValue::TSync(_) => panic!("MiddlewareReturnValue expected sync, but was async"),
+      MiddlewareReturnValue::TAsync(val) => val
+    }
+  }
+}
+
+/// `MiddlewareFutureReturnValue`s are the values that Thruster expects middleware to return. It's
 /// shorthand for a Future, where the Item is a Context associated with the app, and the
 /// error is an io::Error.
-pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error> + Send>;
+pub type MiddlewareFutureReturnValue<T> = Box<Future<Item=T, Error=io::Error> + Send>;
 
 /// The `Middleware` type simply defines the signature of a thruster middleware function.
 /// It takes a context of the type of the thruster app, followed by a MiddlewareChain.
@@ -41,7 +62,14 @@ impl<'a, T: 'static + Context + Send> MiddlewareChain<'a, T> {
 
     match next_middleware {
       Some(middleware) => middleware(context, self),
-      None => Box::new(future::ok(context))
+      None => MiddlewareReturnValue::TSync(context)
+    }
+  }
+
+  pub fn next_as_future(&self, context: T) -> MiddlewareFutureReturnValue<T> {
+    match self.next(context) {
+      MiddlewareReturnValue::TSync(ctx) => Box::new(future::ok(ctx)),
+      MiddlewareReturnValue::TAsync(fut) => fut
     }
   }
 }

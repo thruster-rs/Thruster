@@ -17,11 +17,11 @@ fn bench_route_match(c: &mut Criterion) {
     let mut app = App::<BasicContext>::new();
 
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(BasicContext {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: "world".to_owned(),
         params: HashMap::new(),
         query_params: context.query_params
-      }))
+      })
     };
 
     app.get("/test/hello", vec![test_fn_1]);
@@ -40,11 +40,11 @@ fn bench_route_match_with_param(c: &mut Criterion) {
     let mut app = App::<BasicContext>::new();
 
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(BasicContext {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: context.params.get("hello").unwrap().to_owned(),
         params: HashMap::new(),
         query_params: context.query_params
-      }))
+      })
     };
 
     app.get("/test/:hello", vec![test_fn_1]);
@@ -63,11 +63,11 @@ fn bench_route_match_with_query_param(c: &mut Criterion) {
     let mut app = App::<BasicContext>::new();
 
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(BasicContext {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: context.query_params.get("hello").unwrap().to_owned(),
         params: HashMap::new(),
         query_params: context.query_params
-      }))
+      })
     };
 
     app.get("/test", vec![test_fn_1]);

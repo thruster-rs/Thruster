@@ -73,7 +73,7 @@ fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
   let val = "Hello, World!".to_owned();
   context.body = val;
 
-  Box::new(future::ok(context))
+  MiddlewareReturnValue::TSync(context)
 }
 
 fn main() {

@@ -117,15 +117,14 @@ mod tests {
     fn test_function(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
       context.body = "Hello".to_string();
 
-      Box::new(future::ok(context))
+      MiddlewareReturnValue::TSync(context)
     }
 
     route_tree.add_route_with_method(Method::GET, "/a/b", smallvec![test_function as Middleware<BasicContext>]);
     let middleware = route_tree.match_route_with_params("__GET__/a/b", HashMap::new());
 
     let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&smallvec![], &smallvec![]))
-      .wait()
-      .unwrap();
+      .expect_sync();
 
     assert!(middleware.0.len() == 1);
     assert!(result.body == "Hello");
@@ -138,7 +137,7 @@ mod tests {
     fn test_function(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
       context.body = context.params.get("key").unwrap().to_owned();
 
-      Box::new(future::ok(context))
+      MiddlewareReturnValue::TSync(context)
     }
 
     route_tree.add_route_with_method(Method::GET, "/:key", smallvec![test_function as Middleware<BasicContext>]);
@@ -148,8 +147,7 @@ mod tests {
     context.params = middleware.1;
 
     let result = middleware.0[0](context, &MiddlewareChain::new(&smallvec![], &smallvec![]))
-      .wait()
-      .unwrap();
+      .expect_sync();
 
     assert!(middleware.0.len() == 1);
     assert!(result.body == "value");
@@ -158,13 +156,13 @@ mod tests {
   #[test]
   fn it_should_compose_multiple_trees() {
     fn test_function1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(context))
+      MiddlewareReturnValue::TSync(context)
     }
 
     fn test_function2(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
       context.body = "Hello".to_string();
 
-      Box::new(future::ok(context))
+      MiddlewareReturnValue::TSync(context)
     }
 
     let mut route_tree2 = RouteTree::new();
@@ -177,8 +175,7 @@ mod tests {
     let middleware = route_tree1.match_route_with_params("__GET__/b/c", HashMap::new());
 
     let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&smallvec![], &smallvec![]))
-      .wait()
-      .unwrap();
+      .expect_sync();
 
     assert!(middleware.0.len() == 1);
     assert!(result.body == "Hello");

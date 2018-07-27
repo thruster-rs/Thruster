@@ -135,7 +135,7 @@ mod tests {
   #[test]
   fn when_adding_a_route_it_should_return_a_struct_with_all_appropriate_middleware() {
     fn test_function(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(context))
+      MiddlewareReturnValue::TSync(context)
     }
 
     let mut route_parser = RouteParser::<BasicContext>::new();
@@ -148,11 +148,11 @@ mod tests {
   #[test]
   fn when_adding_a_route_with_method_agnostic_middleware() {
     fn method_agnostic(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(context))
+      MiddlewareReturnValue::TSync(context)
     }
 
     fn test_function(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(context))
+      MiddlewareReturnValue::TSync(context)
     }
 
     let mut route_parser = RouteParser::<BasicContext>::new();

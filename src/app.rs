@@ -14,7 +14,7 @@ use http::Http;
 use response::Response;
 use request::Request;
 use route_parser::{MatchedRoute, RouteParser};
-use middleware::{Middleware, MiddlewareChain};
+use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue, MiddlewareFutureReturnValue};
 use std::sync::Arc;
 
 enum Method {
@@ -60,11 +60,11 @@ fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
 /// let mut app1 = App::<BasicContext>::new();
 ///
 /// fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-///   Box::new(future::ok(BasicContext {
+///   MiddlewareReturnValue::TSync(BasicContext {
 ///     body: context.params.get("id").unwrap().to_owned(),
 ///     params: context.params,
 ///     query_params: context.query_params
-///   }))
+///   })
 /// };
 ///
 /// app1.get("/:id", vec![test_fn_1]);
@@ -239,12 +239,25 @@ impl<T: Context + Send> App<T> {
     let middleware = matched_route.middleware;
     let middleware_chain = MiddlewareChain::new(middleware, &self.not_found);
 
-    let context_future = middleware_chain.next(context);
+    match middleware_chain.next(context) {
+      MiddlewareReturnValue::TSync(ctx) => self._inline_sync_cast(ctx),
+      MiddlewareReturnValue::TAsync(context_future) => self._inline_async_cast(context_future)
+    }
+  }
 
-    context_future
-        .and_then(|context| {
-          future::ok(context.get_response())
-        })
+  #[inline]
+  fn _inline_sync_cast(&self, ctx: T) -> Box<Future<Item=Response, Error=io::Error> + Send> {
+    Box::new(future::ok(ctx.get_response()))
+  }
+
+  #[inline]
+  fn _inline_async_cast(&self, fut: MiddlewareFutureReturnValue<T>) -> Box<Future<Item=Response, Error=io::Error> + Send> {
+    let result = fut
+      .and_then(|context| {
+        future::ok(context.get_response())
+      });
+
+    Box::new(result)
   }
 }
 
@@ -298,12 +311,12 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: "1".to_string(),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
     app.get("/test", vec![test_fn_1]);
@@ -323,12 +336,12 @@ mod tests {
   fn it_should_handle_query_parameters() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: context.query_params.get("hello").unwrap().to_owned(),
         params: HashMap::new(),
         query_params: context.query_params
-      }))
+      })
     };
 
     app.get("/test", vec![test_fn_1]);
@@ -347,12 +360,12 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request_with_params() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: context.params.get("id").unwrap().to_owned(),
         params: context.params,
         query_params: context.query_params
-      }))
+      })
     };
 
     app.get("/test/:id", vec![test_fn_1]);
@@ -371,12 +384,12 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request_with_params_in_a_subapp() {
     let mut app1 = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: context.params.get("id").unwrap().to_owned(),
         params: context.params,
         query_params: context.query_params
-      }))
+      })
     };
 
     app1.get("/:id", vec![test_fn_1]);
@@ -398,12 +411,12 @@ mod tests {
   fn it_should_correctly_parse_params_in_subapps() {
     let mut app1 = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: context.params.get("id").unwrap().to_owned(),
         params: context.params,
         query_params: context.query_params
-      }))
+      })
     };
 
     app1.get("/:id", vec![test_fn_1]);
@@ -426,19 +439,19 @@ mod tests {
     let mut app1 = App::<BasicContext>::new();
 
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(BasicContext {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: context.params.get("id").unwrap().to_owned(),
         params: context.params,
         query_params: context.query_params
-      }))
+      })
     };
 
     fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(BasicContext {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: "-1".to_owned(),
         params: context.params,
         query_params: context.query_params
-      }))
+      })
     }
 
     app1.get("/", vec![test_fn_2]);
@@ -469,19 +482,19 @@ mod tests {
     let mut app1 = App::<BasicContext>::new();
 
     fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(BasicContext {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: context.params.get("id").unwrap().to_owned(),
         params: context.params,
         query_params: context.query_params
-      }))
+      })
     };
 
     fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
-      Box::new(future::ok(BasicContext {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: "-1".to_owned(),
         params: context.params,
         query_params: context.query_params
-      }))
+      })
     }
 
     app1.get("/:id", vec![test_fn_1]);
@@ -512,12 +525,12 @@ mod tests {
       key: String
     };
 
-    fn test_fn_1(mut context: TypedContext<TestStruct>, _chain: &MiddlewareChain<TypedContext<TestStruct>>) -> Box<Future<Item=TypedContext<TestStruct>, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: TypedContext<TestStruct>, _chain: &MiddlewareChain<TypedContext<TestStruct>>) -> MiddlewareReturnValue<TypedContext<TestStruct>> {
       let value = context.request_body.key.clone();
 
       context.set_body(value);
 
-      Box::new(future::ok(context))
+      MiddlewareReturnValue::TSync(context)
     };
 
     app.post("/test", vec![test_fn_1]);
@@ -536,20 +549,20 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request_based_on_method() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: format!("{}{}", context.body, "1"),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
-    fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_2(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: format!("{}{}", context.body, "2"),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
     app.get("/test", vec![test_fn_1]);
@@ -569,28 +582,28 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request_up_and_down() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: format!("{}{}", context.body, "1"),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
-    fn test_fn_2(context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_2(context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
       let mut _context = BasicContext {
         body: format!("{}{}", context.body, "2"),
         params: HashMap::new(),
         query_params: HashMap::new()
       };
 
-      let context_with_body = chain.next(_context)
+      let context_with_body = chain.next_as_future(_context)
         .and_then(|mut _context| {
           _context.body = format!("{}{}", _context.body, "2");
           future::ok(_context)
         });
 
-      Box::new(context_with_body)
+      MiddlewareReturnValue::TAsync(Box::new(context_with_body))
     };
 
     app.get("/test", vec![test_fn_2, test_fn_1]);
@@ -609,12 +622,12 @@ mod tests {
   fn it_should_return_whatever_was_set_as_the_body_of_the_context() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: "Hello world".to_string(),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
     app.get("/test", vec![test_fn_1]);
@@ -633,8 +646,8 @@ mod tests {
   fn it_should_first_run_use_then_methods() {
     let mut app = App::<BasicContext>::new();
 
-    fn method_agnostic(_context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      let updated_context = chain.next(BasicContext {
+    fn method_agnostic(_context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      let updated_context = chain.next_as_future(BasicContext {
         body: "agnostic".to_owned(),
         params: HashMap::new(),
         query_params: HashMap::new()
@@ -649,15 +662,15 @@ mod tests {
             })
           });
 
-      Box::new(body_with_copied_context)
+      MiddlewareReturnValue::TAsync(Box::new(body_with_copied_context))
     }
 
-    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: format!("{}-1", context.body),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
     app.use_middleware("/", method_agnostic);
@@ -677,12 +690,12 @@ mod tests {
   fn it_should_be_able_to_correctly_route_sub_apps() {
     let mut app1 = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: "1".to_string(),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
     app1.get("/test", vec![test_fn_1]);
@@ -704,12 +717,12 @@ mod tests {
   fn it_should_be_able_to_correctly_prefix_route_sub_apps() {
     let mut app1 = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: "1".to_string(),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
     app1.get("/test", vec![test_fn_1]);
@@ -731,12 +744,12 @@ mod tests {
   fn it_should_be_able_to_correctly_prefix_the_root_of_sub_apps() {
     let mut app1 = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: "1".to_string(),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
     app1.get("/", vec![test_fn_1]);
@@ -757,20 +770,20 @@ mod tests {
   fn it_should_be_able_to_correctly_handle_not_found_routes() {
     let mut app = App::<BasicContext>::new();
 
-    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_fn_1(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: "1".to_string(),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
-    fn test_404(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      Box::new(future::ok(BasicContext {
+    fn test_404(_context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+      MiddlewareReturnValue::TSync(BasicContext {
         body: "not found".to_string(),
         params: HashMap::new(),
         query_params: HashMap::new()
-      }))
+      })
     };
 
     app.get("/", vec![test_fn_1]);

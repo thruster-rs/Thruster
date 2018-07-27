@@ -23,7 +23,7 @@ fn not_found_404(context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
   context.set_header("Content-Type".to_owned(), "text/html".to_owned());
   context.status_code = 404;
 
-  Box::new(future::ok(context))
+  MiddlewareReturnValue::TSync(context)
 }
 
 #[derive(Serialize)]
@@ -41,7 +41,7 @@ fn json(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValu
   context.set_header("Server".to_owned(), "thruster".to_owned());
   context.set_header("Content-Type".to_owned(), "application/json".to_owned());
 
-  Box::new(future::ok(context))
+  MiddlewareReturnValue::TSync(context)
 }
 
 fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
@@ -51,7 +51,7 @@ fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
   context.set_header("Server".to_owned(), "thruster".to_owned());
   context.set_header("Content-Type".to_owned(), "text/plain".to_owned());
 
-  Box::new(future::ok(context))
+  MiddlewareReturnValue::TSync(context)
 }
 
 fn main() {
