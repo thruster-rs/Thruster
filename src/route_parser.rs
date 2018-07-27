@@ -45,9 +45,15 @@ impl<T: Context + Send> RouteParser<T> {
     }
   }
 
+  #[inline]
   pub fn match_route(&self, route: &str) -> MatchedRoute<T> {
-    let mut query_params = HashMap::new();
+    let query_params = HashMap::new();
 
+    let split_route = route.find('?');
+    let route = match split_route {
+      Some(index) => &route[0..index],
+      None => route
+    };
 
     if let Some(shortcut) = self.shortcuts.get(route) {
       MatchedRoute {
@@ -58,22 +64,6 @@ impl<T: Context + Send> RouteParser<T> {
         sub_app: None
       }
     } else {
-      let mut iter = route.split("?");
-      let route = iter.next().unwrap();
-      match iter.next() {
-        Some(query_string) => {
-          for query_piece in query_string.split("&") {
-            let mut query_iterator = query_piece.split("=");
-            let key = query_iterator.next().unwrap().to_owned();
-            match query_iterator.next() {
-              Some(val) => query_params.insert(key, val.to_owned()),
-              None => query_params.insert(key, "true".to_owned())
-            };
-          }
-        },
-        None => ()
-      };
-
       let matched = self.route_tree.match_route(route);
 
       MatchedRoute {
@@ -90,7 +80,7 @@ impl<T: Context + Send> RouteParser<T> {
 #[cfg(test)]
 mod tests {
   use super::RouteParser;
-  use context::BasicContext;
+  use builtins::basic_context::BasicContext;
   use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
   use futures::future;
   use std::boxed::Box;

@@ -56,6 +56,7 @@ Based on frameworks like Koa, and Express, thruster aims to be a pleasure to dev
 extern crate thruster;
 extern crate futures;
 
+use std::collections::HashMap;
 use std::boxed::Box;
 use futures::future;
 
@@ -64,8 +65,9 @@ use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue,
 fn generate_context(request: Request) -> Ctx {
   Ctx {
     body: "".to_owned(),
-    params: request.params,
-    query_params: request.query_params
+    params: HashMap::new(),
+    query_params: HashMap::new(),
+    request: request
   }
 }
 

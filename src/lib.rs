@@ -22,7 +22,7 @@ extern crate tokio_io;
 extern crate tokio_core;
 
 mod app;
-mod builtins;
+pub mod builtins;
 mod context;
 mod date;
 mod http;
@@ -33,8 +33,8 @@ mod route_parser;
 mod route_tree;
 
 pub use app::App;
-pub use builtins::send::file;
-pub use context::{BasicContext, Context};
+pub use context::Context;
+pub use builtins::basic_context::BasicContext;
 pub use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
 pub use response::{encode, Response};
 pub use request::{decode, Request};

@@ -16,13 +16,24 @@ pub struct Request {
     // TODO: use a small vec to avoid this unconditional allocation
     pub headers: SmallVec<[(Slice, Slice); 8]>,
     data: BytesMut,
-    pub params: HashMap<String, String>,
-    pub query_params: HashMap<String, String>
+    pub params: HashMap<String, String>
 }
 
 type Slice = (usize, usize);
 
 impl Request {
+    pub fn new() -> Self {
+      Request  {
+        body: (0,0),
+        method: (0,0),
+        path: (0,0),
+        version: 0,
+        headers: SmallVec::new(),
+        data: BytesMut::new(),
+        params: HashMap::new(),
+      }
+    }
+
     pub fn raw_body(&self) -> &str {
         str::from_utf8(self.slice(&self.body)).unwrap()
     }
@@ -66,16 +77,8 @@ impl Request {
         &self.params
     }
 
-    pub fn query_params(&self) -> &HashMap<String, String> {
-        &self.query_params
-    }
-
     pub fn set_params(&mut self, params: HashMap<String, String>) {
         self.params = params;
-    }
-
-    pub fn set_query_params(&mut self, query_params: HashMap<String, String>) {
-        self.query_params = query_params;
     }
 }
 
@@ -136,7 +139,6 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         headers: headers,
         data: buf.split_to(amt + body_len),
         body: (amt, amt + body_len),
-        params: HashMap::new(),
-        query_params: HashMap::new()
+        params: HashMap::new()
     }.into())
 }
