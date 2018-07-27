@@ -108,12 +108,9 @@ impl<T: Context + Send> App<T> {
       let (tx, rx) = framed.split();
 
       let task = tx.send_all(rx.and_then(move |request: Request| {
-            let response = app.resolve(request);
-            response
+            app.resolve(request)
           }))
-          .then(|_| {
-            future::ok(())
-          });
+          .then(|_| future::ok(()));
 
       // Spawn the task that handles the connection.
       tokio::spawn(task);
@@ -240,25 +237,25 @@ impl<T: Context + Send> App<T> {
     let middleware_chain = MiddlewareChain::new(middleware, &self.not_found);
 
     match middleware_chain.next(context) {
-      MiddlewareReturnValue::TSync(ctx) => self._inline_sync_cast(ctx),
-      MiddlewareReturnValue::TAsync(context_future) => self._inline_async_cast(context_future)
+      MiddlewareReturnValue::TSync(ctx) => _inline_sync_cast(ctx),
+      MiddlewareReturnValue::TAsync(context_future) => _inline_async_cast(context_future)
     }
   }
+}
 
-  #[inline]
-  fn _inline_sync_cast(&self, ctx: T) -> Box<Future<Item=Response, Error=io::Error> + Send> {
-    Box::new(future::ok(ctx.get_response()))
-  }
+#[inline]
+fn _inline_sync_cast<T: Context>(ctx: T) -> Box<Future<Item=Response, Error=io::Error> + Send> {
+  Box::new(future::ok(ctx.get_response()))
+}
 
-  #[inline]
-  fn _inline_async_cast(&self, fut: MiddlewareFutureReturnValue<T>) -> Box<Future<Item=Response, Error=io::Error> + Send> {
-    let result = fut
-      .and_then(|context| {
-        future::ok(context.get_response())
-      });
+#[inline]
+fn _inline_async_cast<T: 'static + Context>(fut: MiddlewareFutureReturnValue<T>) -> Box<Future<Item=Response, Error=io::Error> + Send> {
+  let result = fut
+    .and_then(|context| {
+      future::ok(context.get_response())
+    });
 
-    Box::new(result)
-  }
+  Box::new(result)
 }
 
 #[cfg(test)]
