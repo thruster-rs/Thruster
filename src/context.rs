@@ -6,7 +6,7 @@ use response::Response;
 /// incomming request, it's important to keep this struct lean and quick, as
 /// well as the `context_generator` associated with it.
 pub trait Context {
-  fn get_response(&self) -> Response;
+  fn get_response(self) -> Response;
   fn set_body(&mut self, String);
 }
 
@@ -27,7 +27,7 @@ impl BasicContext {
 }
 
 impl Context for BasicContext {
-  fn get_response(&self) -> Response {
+  fn get_response(self) -> Response {
     let mut response = Response::new();
 
     response.body(&self.body);

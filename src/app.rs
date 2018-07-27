@@ -108,12 +108,9 @@ impl<T: Context + Send> App<T> {
       let (tx, rx) = framed.split();
 
       let task = tx.send_all(rx.and_then(move |request: Request| {
-            let response = app.resolve(request);
-            response
+            app.resolve(request)
           }))
-          .then(|_| {
-            future::ok(())
-          });
+          .then(|_| future::ok(()));
 
       // Spawn the task that handles the connection.
       tokio::spawn(task);

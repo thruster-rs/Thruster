@@ -10,7 +10,8 @@ pub struct Ctx {
   pub params: HashMap<String, String>,
   pub query_params: HashMap<String, String>,
   pub headers: SmallVec<[(String, String); 8]>,
-  pub status_code: u32
+  pub status_code: u32,
+  response: Response
 }
 
 impl Ctx {
@@ -23,29 +24,23 @@ impl Ctx {
       query_params: context.query_params,
       request_body: context.request_body,
       headers: SmallVec::new(),
-      status_code: 200
+      status_code: 200,
+      response: Response::new()
     }
   }
 
-  pub fn set_header(&mut self, key: String, val: String) {
-    self.headers.push((key, val));
+  pub fn set_header(&mut self, key: &str, val: &str) {
+    self.response.header(key, val);
   }
 }
 
 impl Context for Ctx {
-  fn get_response(&self) -> Response {
-    let mut response = Response::new();
-    response.status_code(200, "OK");
+  fn get_response(mut self) -> Response {
+    self.response.status_code(200, "OK");
 
-    for header_pair in &self.headers {
-      let key: &str = &header_pair.0;
-      let val: &str = &header_pair.1;
-      response.header(key, val);
-    }
+    self.response.body(&self.body);
 
-    response.body(&self.body);
-
-    response
+    self.response
   }
 
   fn set_body(&mut self, body: String) {
@@ -66,6 +61,7 @@ pub fn generate_context(request: Request) -> Ctx {
     query_params: request.query_params,
     request_body: request_body,
     headers: SmallVec::new(),
-    status_code: 200
+    status_code: 200,
+    response: Response::new()
   }
 }
