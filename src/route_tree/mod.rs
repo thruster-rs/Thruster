@@ -104,7 +104,7 @@ mod tests {
   use super::RouteTree;
   use super::Method;
   use std::collections::HashMap;
-  use context::BasicContext;
+  use builtins::basic_context::BasicContext;
   use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
   use futures::{future, Future};
   use std::boxed::Box;
@@ -123,7 +123,7 @@ mod tests {
     route_tree.add_route_with_method(Method::GET, "/a/b", smallvec![test_function as Middleware<BasicContext>]);
     let middleware = route_tree.match_route_with_params("__GET__/a/b", HashMap::new());
 
-    let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&smallvec![], &smallvec![]))
+    let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&smallvec![]))
       .wait()
       .unwrap();
 
@@ -147,7 +147,7 @@ mod tests {
     let mut context = BasicContext::new();
     context.params = middleware.1;
 
-    let result = middleware.0[0](context, &MiddlewareChain::new(&smallvec![], &smallvec![]))
+    let result = middleware.0[0](context, &MiddlewareChain::new(&smallvec![]))
       .wait()
       .unwrap();
 
@@ -176,7 +176,7 @@ mod tests {
 
     let middleware = route_tree1.match_route_with_params("__GET__/b/c", HashMap::new());
 
-    let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&smallvec![], &smallvec![]))
+    let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&smallvec![]))
       .wait()
       .unwrap();
 

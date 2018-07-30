@@ -23,6 +23,19 @@ pub struct Request {
 type Slice = (usize, usize);
 
 impl Request {
+    pub fn new() -> Self {
+      Request  {
+        body: (0,0),
+        method: (0,0),
+        path: (0,0),
+        version: 0,
+        headers: SmallVec::new(),
+        data: BytesMut::new(),
+        params: HashMap::new(),
+        query_params: HashMap::new()
+      }
+    }
+
     pub fn raw_body(&self) -> &str {
         str::from_utf8(self.slice(&self.body)).unwrap()
     }
