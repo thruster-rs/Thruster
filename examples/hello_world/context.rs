@@ -58,7 +58,6 @@ pub fn generate_context(request: Request) -> Ctx {
     method: method,
     path: path,
     params: request.params,
-    query_params: request.query_params,
     request_body: request_body,
     headers: SmallVec::new(),
     status_code: 200,

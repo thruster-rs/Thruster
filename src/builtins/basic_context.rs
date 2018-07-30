@@ -12,8 +12,8 @@ pub fn generate_context(request: Request) -> BasicContext {
   BasicContext {
     body: "".to_owned(),
     params: request.params().clone(),
-    query_params: request.query_params().clone(),
-    request: request
+    request: request,
+    query_params: HashMap::new()
   }
 }
 

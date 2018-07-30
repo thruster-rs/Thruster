@@ -65,7 +65,6 @@ fn generate_context(request: Request) -> Ctx {
   Ctx {
     body: "".to_owned(),
     params: request.params,
-    query_params: request.query_params
   }
 }
 
