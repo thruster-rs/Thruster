@@ -8,7 +8,6 @@ pub struct Ctx {
   pub path: String,
   pub request_body: String,
   pub params: HashMap<String, String>,
-  pub query_params: HashMap<String, String>,
   pub headers: SmallVec<[(String, String); 8]>,
   pub status_code: u32,
   response: Response
@@ -21,7 +20,6 @@ impl Ctx {
       method: context.method,
       path: context.path,
       params: context.params,
-      query_params: context.query_params,
       request_body: context.request_body,
       headers: SmallVec::new(),
       status_code: 200,

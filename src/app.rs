@@ -252,7 +252,7 @@ impl<T: Context + Send> App<T> {
     self
   }
 
-
+  #[inline]
   fn _req_to_matched_route(&self, request: &Request) -> MatchedRoute<T> {
     let path = request.path();
 
@@ -263,25 +263,19 @@ impl<T: Context + Send> App<T> {
   /// Resolves a request, returning a future that is processable into a Response
 
   pub fn resolve(&self, mut request: Request) -> impl Future<Item=Response, Error=io::Error> + Send {
-    // let matched_route = self._req_to_matched_route(&request);
-    // request.set_params(matched_route.params);
+    let matched_route = self._req_to_matched_route(&request);
+    request.set_params(matched_route.params);
 
-    // let context = (self.context_generator)(request);
-    // let middleware = matched_route.middleware;
-    // let middleware_chain = MiddlewareChain::new(middleware);
+    let context = (self.context_generator)(request);
+    let middleware = matched_route.middleware;
+    let middleware_chain = MiddlewareChain::new(middleware);
 
-    // let context_future = middleware_chain.next(context);
+    let context_future = middleware_chain.next(context);
 
-    // context_future
-    //     .and_then(|context| {
-    //       future::ok(context.get_response())
-    //     })
-    let mut response = Response::new();
-    response.status_code(200, "OK");
-    response.body("Hello, world!");
-    response.header("Content-Type", "text/plain");
-
-    Box::new(future::ok(response))
+    context_future
+        .and_then(|context| {
+          future::ok(context.get_response())
+        })
   }
 }
 

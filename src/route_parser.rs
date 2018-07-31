@@ -46,6 +46,7 @@ impl<T: Context + Send> RouteParser<T> {
     }
   }
 
+  #[inline]
   pub fn match_route(&self, route: &str) -> MatchedRoute<T> {
     let mut query_params = HashMap::new();
 
