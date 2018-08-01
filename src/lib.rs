@@ -1,3 +1,7 @@
+#![feature(await_macro)]
+#![feature(async_await)]
+#![feature(futures_api)]
+
 extern crate bytes;
 extern crate futures;
 extern crate httparse;

@@ -11,6 +11,9 @@ use tokio_codec::Framed;
 use tokio_proto::TcpServer;
 use tokio_service::Service;
 use num_cpus;
+use net2::TcpBuilder;
+use net2::unix::UnixTcpBuilderExt;
+use std::thread;
 
 use builtins::basic_context::{generate_context, BasicContext};
 use context::Context;
@@ -107,25 +110,43 @@ pub struct App<T: 'static + Context + Send> {
 
 impl<T: Context + Send> App<T> {
   pub fn start(mut app: App<T>, host: &str, port: u16) {
-    // let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-
-    // app._route_parser.optimize();
-    // let arc_app = Arc::new(app);
-
-    // let mut srv = TcpServer::new(HttpProto, addr);
-    // srv.threads(num_cpus::get());
-    // srv.serve(move || {
-    //     Ok(AppService {
-    //         app: arc_app.clone()
-    //     })
-    // })
-
     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-
+    let mut threads = Vec::new();
     app._route_parser.optimize();
-
-    let listener = TcpListener::bind(&addr).unwrap();
     let arc_app = Arc::new(app);
+
+    for _ in 0..num_cpus::get() {
+      let arc_app = arc_app.clone();
+      threads.push(thread::spawn(move || {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let server = future::lazy(move || {
+          let listener = {
+            let builder = TcpBuilder::new_v4().unwrap();
+            builder.reuse_address(true).unwrap();
+            builder.reuse_port(true).unwrap();
+            builder.bind(addr).unwrap();
+            builder.listen(2048).unwrap()
+          };
+          let listener = TcpListener::from_std(listener, &tokio::reactor::Handle::current()).unwrap();
+
+          listener.incoming().for_each(move |socket| {
+            process(Arc::clone(&arc_app), socket);
+            Ok(())
+          })
+          .map_err(|err| eprintln!("accept error = {:?}", err))
+        });
+
+        runtime.spawn(server);
+        runtime.run().unwrap();
+      }));
+    }
+
+    println!("Server running on {}", addr);
+
+    for thread in threads {
+      thread.join().unwrap();
+    }
 
     fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
       let framed = Framed::new(socket, Http);
@@ -140,15 +161,50 @@ impl<T: Context + Send> App<T> {
       tokio::spawn(task);
     }
 
-    let server = listener.incoming()
-        .map_err(|e| println!("error = {:?}", e))
-        .for_each(move |socket| {
-            socket.set_nodelay(true);
-            process(arc_app.clone(), socket);
-            Ok(())
-        });
+    // -- This is the code for the server proto version
+    // let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
-    tokio::run(server);
+    // app._route_parser.optimize();
+    // let arc_app = Arc::new(app);
+
+    // let mut srv = TcpServer::new(HttpProto, addr);
+    // srv.threads(num_cpus::get());
+    // srv.serve(move || {
+    //     Ok(AppService {
+    //         app: arc_app.clone()
+    //     })
+    // })
+
+    // -- This is the code for the tokio runtime version
+    // let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+
+    // app._route_parser.optimize();
+
+    // let listener = TcpListener::bind(&addr).unwrap();
+    // let arc_app = Arc::new(app);
+
+    // fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
+    //   let framed = Framed::new(socket, Http);
+    //   let (tx, rx) = framed.split();
+
+    //   let task = tx.send_all(rx.and_then(move |request: Request| {
+    //         app.resolve(request)
+    //       }))
+    //       .then(|_| future::ok(()));
+
+    //   // Spawn the task that handles the connection.
+    //   tokio::spawn(task);
+    // }
+
+    // let server = listener.incoming()
+    //     .map_err(|e| println!("error = {:?}", e))
+    //     .for_each(move |socket| {
+    //         socket.set_nodelay(true);
+    //         process(arc_app.clone(), socket);
+    //         Ok(())
+    //     });
+
+    // tokio::run(server);
   }
 
   /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
