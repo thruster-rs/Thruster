@@ -49,7 +49,7 @@ impl Context for Ctx {
 pub fn generate_context(request: Request) -> Ctx {
   let method = request.method().to_owned();
   let path = request.path().to_owned();
-  let request_body = request.raw_body().to_owned();
+  let request_body = request.body().to_owned();
 
   Ctx {
     body: "".to_owned(),
