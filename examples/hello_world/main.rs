@@ -61,7 +61,10 @@ fn main() {
   app.get("/plaintext", vec![plaintext]);
   app.post("/post-plaintext", vec![plaintext]);
 
-  app.set404(vec![not_found_404]);
+  app.get("/*", vec![not_found_404]);
+
+  app.get("/test/a/b", vec![plaintext]);
+  app.get("/test/a/c", vec![plaintext]);
 
   App::start(app, "0.0.0.0", 4321);
 }

@@ -91,11 +91,15 @@ impl<T: Context + Send> RouteTree<T> {
   }
 
   pub fn match_route(&self, route: &str) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
-    self.root_node.match_route(route.split("/"))
+    let results = self.root_node.match_route(route.split("/"));
+
+    (results.0, results.1)
   }
 
   pub fn match_route_with_params(&self, route: &str, params: HashMap<String, String>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
-    self.root_node.match_route_with_params(route.split("/"), params)
+    let results = self.root_node.match_route_with_params(route.split("/"), params);
+
+    (results.0, results.1)
   }
 }
 

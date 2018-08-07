@@ -353,7 +353,7 @@ mod tests {
   impl<T> TypedContext<T> {
     pub fn new<'a>(request: &'a Request) -> TypedContext<T>
       where T: serde::de::Deserialize<'a> {
-      match request.body_as::<T>(request.raw_body()) {
+      match request.body_as::<T>(request.body()) {
         Ok(val) => TypedContext {
           body: "".to_owned(),
           request_body: val
@@ -794,6 +794,34 @@ mod tests {
 
     let mut bytes = BytesMut::with_capacity(51);
     bytes.put(&b"GET /not_found HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request).wait().unwrap();
+
+    assert!(String::from_utf8(response.response).unwrap() == "not found");
+  }
+
+
+  #[test]
+  fn it_should_be_able_to_correctly_handle_deep_not_found_routes() {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "1".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    fn test_404(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "not found".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    app.get("/a/b", vec![test_fn_1]);
+    app.set404(vec![test_404]);
+
+    let mut bytes = BytesMut::with_capacity(51);
+    bytes.put(&b"GET /a/not_found HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
 
     let request = decode(&mut bytes).unwrap().unwrap();

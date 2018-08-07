@@ -11,7 +11,8 @@ pub struct Node<T: Context + Send> {
   wildcard_node: Option<Box<Node<T>>>,
   param_key: Option<String>,
   pub value: String,
-  pub is_wildcard: bool
+  pub is_wildcard: bool,
+  pub is_terminal_node: bool
 }
 
 impl<T: Context + Send> Clone for Node<T> {
@@ -33,7 +34,8 @@ impl<T: Context + Send> Clone for Node<T> {
       wildcard_node: wildcard,
       value: self.value.clone(),
       param_key: self.param_key.clone(),
-      is_wildcard: self.is_wildcard
+      is_wildcard: self.is_wildcard,
+      is_terminal_node: self.is_terminal_node
     }
   }
 }
@@ -46,7 +48,8 @@ impl<T: Context + Send> Node<T> {
       wildcard_node: Some(Box::new(Node::new_wildcard(None))),
       value: value.to_owned(),
       param_key: None,
-      is_wildcard: false
+      is_wildcard: false,
+      is_terminal_node: false
     }
   }
 
@@ -57,7 +60,8 @@ impl<T: Context + Send> Node<T> {
       wildcard_node: None,
       value: "*".to_owned(),
       param_key: param_name,
-      is_wildcard: true
+      is_wildcard: true,
+      is_terminal_node: false
     }
   }
 
@@ -70,12 +74,14 @@ impl<T: Context + Send> Node<T> {
 
     if let Some(piece) = split_iterator.next() {
       if piece.len() == 0 {
+        self.is_terminal_node = true;
         self.middleware = middleware
       } else {
         match piece.chars().next().unwrap() {
           ':' => {
             if !self.is_wildcard {
               let mut wildcard = Node::new_wildcard(Some(piece[1..].to_owned()));
+              wildcard.is_terminal_node = true;
 
               wildcard.add_route(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), middleware);
 
@@ -85,6 +91,7 @@ impl<T: Context + Send> Node<T> {
           '*' => {
             if !self.is_wildcard {
               let mut wildcard = Node::new_wildcard(None);
+              wildcard.is_terminal_node = true;
 
               wildcard.add_route(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), middleware);
 
@@ -124,6 +131,7 @@ impl<T: Context + Send> Node<T> {
 
                 new_wildcard_node.param_key = wildcard_node.param_key.clone();
                 new_wildcard_node.middleware = wildcard_node.middleware.clone();
+                new_wildcard_node.is_terminal_node = new_wildcard_node.is_terminal_node || wildcard_node.is_terminal_node;
 
                 Some(Box::new(new_wildcard_node))
               },
@@ -141,6 +149,7 @@ impl<T: Context + Send> Node<T> {
         let mut child = self.children.remove(piece)
           .unwrap_or_else(|| Node::new(piece));
 
+        child.is_terminal_node = subtree.is_terminal_node;
         child.middleware.insert_many(0, &mut subtree.middleware.clone().into_iter());
         child.add_subtree(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), subtree);
 
@@ -149,23 +158,30 @@ impl<T: Context + Send> Node<T> {
     }
   }
 
-  pub fn is_terminal(&self) -> bool {
-    self.middleware.len() > 0
-  }
-
-  pub fn match_route(&self, route: Split<&str>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
+  pub fn match_route(&self, route: Split<&str>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>, bool) {
     self.match_route_with_params(route, HashMap::new())
   }
 
-  pub fn match_route_with_params(&self, mut route: Split<&str>, mut params: HashMap<String, String>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
+  pub fn match_route_with_params(&self, mut route: Split<&str>, mut params: HashMap<String, String>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>, bool) {
     if let Some(piece) = route.next() {
       match self.children.get(piece) {
-        Some(child) => child.match_route_with_params(route, params),
+        Some(child) => {
+          let results = child.match_route_with_params(route, params);
+
+          if results.2 {
+            results
+          } else {
+            match &self.wildcard_node {
+              Some(wildcard_node) => (&wildcard_node.middleware, results.1, wildcard_node.is_terminal_node),
+              None => (&self.middleware, results.1, self.is_terminal_node)
+            }
+          }
+        },
         None => {
           match &self.wildcard_node {
             Some(wildcard_node) => {
               if piece.len() == 0 {
-                (&self.middleware, params)
+                (&self.middleware, params, self.is_terminal_node)
               } else {
                 if let Some(param_key) = &wildcard_node.param_key {
                   params.insert(param_key.to_owned(), piece.to_owned());
@@ -173,12 +189,12 @@ impl<T: Context + Send> Node<T> {
                 wildcard_node.match_route_with_params(route, params)
               }
             }
-            None => (&self.middleware, params)
+            None => (&self.middleware, params, self.is_terminal_node)
           }
         }
       }
     } else {
-      (&self.middleware, params)
+      (&self.middleware, params, self.is_terminal_node)
     }
   }
 
@@ -197,11 +213,12 @@ impl<T: Context + Send> Node<T> {
     let mut in_progress = "".to_owned();
     let value = self.param_key.clone().unwrap_or(self.value.to_owned());
 
-    in_progress = format!("{}\n{}{}: {}",
+    in_progress = format!("{}\n{}{}: {}, {}",
       in_progress,
       indent,
       value,
-      self.middleware.len());
+      self.middleware.len(),
+      self.is_terminal_node);
 
     for (_, child) in &self.children {
       in_progress = format!("{}{}", in_progress, child.to_string(&format!("{}  ", indent)));

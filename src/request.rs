@@ -34,7 +34,11 @@ impl Request {
       }
     }
 
-    pub fn raw_body(&self) -> &str {
+    pub fn raw_body(&self) -> &[u8] {
+        self.slice(&self.body)
+    }
+
+    pub fn body(&self) -> &str {
         str::from_utf8(self.slice(&self.body)).unwrap()
     }
 
