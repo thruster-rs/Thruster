@@ -57,7 +57,7 @@ pub fn encode(msg: Response, buf: &mut BytesMut) {
 
     write!(FastWrite(buf), "\
         HTTP/1.1 {}\r\n\
-        carServer: Thruster\r\n\
+        Server: Thruster\r\n\
         Content-Length: {}\r\n\
         Date: {}\r\n\
     ", msg.status_message, length, now).unwrap();

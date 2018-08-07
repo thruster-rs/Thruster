@@ -72,17 +72,8 @@ impl<T: Context + Send> Node<T> {
       if piece.len() == 0 {
         self.middleware = middleware
       } else {
-        let is_param = piece.chars().next().unwrap() == ':';
-         match is_param {
-          false => {
-            let mut child = self.children.remove(piece)
-              .unwrap_or_else(|| Node::new(piece));
-
-            child.add_route(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), middleware);
-
-            self.children.insert(piece.to_owned(), child);
-          },
-          true => {
+        match piece.chars().next().unwrap() {
+          ':' => {
             if !self.is_wildcard {
               let mut wildcard = Node::new_wildcard(Some(piece[1..].to_owned()));
 
@@ -90,6 +81,23 @@ impl<T: Context + Send> Node<T> {
 
               self.wildcard_node = Some(Box::new(wildcard));
             }
+          },
+          '*' => {
+            if !self.is_wildcard {
+              let mut wildcard = Node::new_wildcard(None);
+
+              wildcard.add_route(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), middleware);
+
+              self.wildcard_node = Some(Box::new(wildcard));
+            }
+          },
+          _ => {
+            let mut child = self.children.remove(piece)
+              .unwrap_or_else(|| Node::new(piece));
+
+            child.add_route(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), middleware);
+
+            self.children.insert(piece.to_owned(), child);
           }
         };
       }
