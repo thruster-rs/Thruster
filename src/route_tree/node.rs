@@ -180,8 +180,14 @@ impl<T: Context + Send> Node<T> {
         None => {
           match &self.wildcard_node {
             Some(wildcard_node) => {
-              if piece.len() == 0 {
-                (&self.middleware, params, self.is_terminal_node)
+              // Here we check if the current length of the node is 0 or not, if it's
+              // 0 and there is a param key, then this is actually a miss, so return
+              // a non-terminal node (this is the case where the defined route is like
+              // /a/:b, but the incoming route to match is /a/)
+              if piece.len() == 0 && wildcard_node.param_key.is_some() {
+                (&wildcard_node.middleware, params, false)
+              } else if piece.len() == 0 && !wildcard_node.param_key.is_some() {
+                (&wildcard_node.middleware, params, wildcard_node.is_terminal_node)
               } else {
                 if let Some(param_key) = &wildcard_node.param_key {
                   params.insert(param_key.to_owned(), piece.to_owned());
@@ -189,7 +195,7 @@ impl<T: Context + Send> Node<T> {
                 wildcard_node.match_route_with_params(route, params)
               }
             }
-            None => (&self.middleware, params, self.is_terminal_node)
+            None => (&self.middleware, params, false)
           }
         }
       }
@@ -275,6 +281,10 @@ impl<T: Context + Send> Node<T> {
     }
   }
 
+  ///
+  /// Pushes middleware down to the leaf nodes, accumulating along the way. This is helpful for
+  /// propagating generic middleware down the stack
+  ///
   pub fn push_middleware_to_populated_nodes(&mut self, other_node: &Node<T>, accumulated_middleware: SmallVec<[Middleware<T>; 8]>) {
     let fake_node = Node::new("");
     let mut _accumulated_middleware = SmallVec::new();
@@ -298,8 +308,9 @@ impl<T: Context + Send> Node<T> {
 
     // Match children, recurse if child match
     for (key, child) in self.children.iter_mut() {
-      // Travers the child tree, or else make a dummy node
+      // Traverse the child tree, or else make a dummy node
       let other_child = other_node.children.get(key).unwrap_or(&fake_node);
+
       child.push_middleware_to_populated_nodes(other_child, _accumulated_middleware.clone());
     }
 
