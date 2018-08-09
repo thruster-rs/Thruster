@@ -112,6 +112,8 @@ impl<T: Context + Send> Node<T> {
   }
 
   pub fn add_subtree(&mut self, route: &str, subtree: Node<T>) {
+    self.wildcard_node = subtree.wildcard_node.clone();
+
     // Strip a leading slash
     let mut split_iterator = match route.chars().next() {
       Some('/') => &route[1..],
