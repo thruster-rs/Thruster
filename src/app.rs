@@ -749,6 +749,29 @@ mod tests {
   }
 
   #[test]
+  fn it_should_be_able_to_correctly_route_sub_apps_with_wildcards() {
+    let mut app1 = App::<BasicContext>::new();
+
+    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "1".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    app1.get("/*", vec![test_fn_1]);
+
+    let mut app2 = App::<BasicContext>::new();
+    app2.use_sub_app("/", app1);
+
+    let mut bytes = BytesMut::with_capacity(38);
+    bytes.put(&b"GET /a HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app2.resolve(request).wait().unwrap();
+
+    assert!(String::from_utf8(response.response).unwrap() == "1");
+  }
+
+  #[test]
   fn it_should_be_able_to_correctly_prefix_route_sub_apps() {
     let mut app1 = App::<BasicContext>::new();
 
