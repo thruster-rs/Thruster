@@ -290,14 +290,14 @@ impl<T: Context + Send> App<T> {
     let middlewares_vec = SmallVec::from_vec(middlewares);
     self._route_parser.add_route(
       &_add_method_to_route(Method::GET, "/*"), middlewares_vec.clone());
-    self._route_parser.add_route(
-      &_add_method_to_route(Method::POST, "/*"), middlewares_vec.clone());
-    self._route_parser.add_route(
-      &_add_method_to_route(Method::PUT, "/*"), middlewares_vec.clone());
-    self._route_parser.add_route(
-      &_add_method_to_route(Method::UPDATE, "/*"), middlewares_vec.clone());
-    self._route_parser.add_route(
-      &_add_method_to_route(Method::DELETE, "/*"), middlewares_vec.clone());
+    // self._route_parser.add_route(
+    //   &_add_method_to_route(Method::POST, "/*"), middlewares_vec.clone());
+    // self._route_parser.add_route(
+    //   &_add_method_to_route(Method::PUT, "/*"), middlewares_vec.clone());
+    // self._route_parser.add_route(
+    //   &_add_method_to_route(Method::UPDATE, "/*"), middlewares_vec.clone());
+    // self._route_parser.add_route(
+    //   &_add_method_to_route(Method::DELETE, "/*"), middlewares_vec.clone());
 
     self
   }
@@ -547,6 +547,7 @@ mod tests {
     app2.use_sub_app("/test", app1);
     app2.set404(vec![test_fn_2]);
 
+    println!("app2: {}", app2._route_parser.route_tree.root_node.to_string(""));
     let mut bytes = BytesMut::with_capacity(42);
     bytes.put(&b"GET /test/ HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
@@ -804,6 +805,32 @@ mod tests {
 
 
   #[test]
+  fn it_should_be_able_to_correctly_handle_not_found_at_the_root() {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "1".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    fn test_404(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "not found".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    app.get("/a", vec![test_fn_1]);
+    app.set404(vec![test_404]);
+
+    let mut bytes = BytesMut::with_capacity(51);
+    bytes.put(&b"GET / HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request).wait().unwrap();
+
+    assert!(String::from_utf8(response.response).unwrap() == "not found");
+  }
+
+  #[test]
   fn it_should_be_able_to_correctly_handle_deep_not_found_routes() {
     let mut app = App::<BasicContext>::new();
 
@@ -823,6 +850,58 @@ mod tests {
     let mut bytes = BytesMut::with_capacity(51);
     bytes.put(&b"GET /a/not_found HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request).wait().unwrap();
+
+    assert!(String::from_utf8(response.response).unwrap() == "not found");
+  }
+
+  #[test]
+  fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramaterized_routes() {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "1".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    fn test_404(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "not found".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    app.get("/a/:b/c", vec![test_fn_1]);
+    app.set404(vec![test_404]);
+
+    let mut bytes = BytesMut::with_capacity(51);
+    bytes.put(&b"GET /a/1/d HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app.resolve(request).wait().unwrap();
+
+    assert!(String::from_utf8(response.response).unwrap() == "not found");
+  }
+
+  #[test]
+  fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramaterized_routes_with_extra_pieces() {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "1".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    fn test_404(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "not found".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    app.get("/a/:b/c", vec![test_fn_1]);
+    app.set404(vec![test_404]);
+
+    let mut bytes = BytesMut::with_capacity(51);
+    bytes.put(&b"GET /a/1/d/e/f/g HTTP/1.1\nHost: localhost:8080\n\n"[..]);
 
     let request = decode(&mut bytes).unwrap().unwrap();
     let response = app.resolve(request).wait().unwrap();

@@ -39,6 +39,11 @@ impl<T: Context + Send> RouteTree<T> {
     }
   }
 
+  ///
+  /// Updates the `root_node` of the tree by merging the generic tree into the specific tree. This
+  /// is necessary after adding any routes to ensure that the matching functions of the tree are
+  /// up to date.
+  ///
   pub fn update_root_node(&mut self) {
     let mut root_node = self.specific_root_node.clone();
 
@@ -69,14 +74,14 @@ impl<T: Context + Send> RouteTree<T> {
   fn _adopt_sub_app_method_to_self(&mut self, route: &str, mut route_tree: RouteTree<T>, method: Method) -> RouteTree<T> {
     let method_prefix = method_to_prefix(method);
 
-    let mut self_routes = self.root_node.children.remove(method_prefix)
+    let mut self_routes = self.specific_root_node.children.remove(method_prefix)
       .unwrap_or(Node::new(method_prefix));
 
     if let Some(tree_routes) = route_tree.root_node.children.remove(method_prefix) {
       self_routes.add_subtree(route, tree_routes);
     }
 
-    self.root_node.children.insert(method_prefix.to_owned(), self_routes);
+    self.specific_root_node.children.insert(method_prefix.to_owned(), self_routes);
 
     // Return ownership
     route_tree
@@ -88,6 +93,7 @@ impl<T: Context + Send> RouteTree<T> {
     route_tree = self._adopt_sub_app_method_to_self(route, route_tree, Method::POST);
     route_tree = self._adopt_sub_app_method_to_self(route, route_tree, Method::PUT);
     self._adopt_sub_app_method_to_self(route, route_tree, Method::UPDATE);
+    self.update_root_node();
   }
 
   pub fn match_route(&self, route: &str) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
