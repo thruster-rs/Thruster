@@ -50,10 +50,15 @@ impl<T: Context + Send> RouteParser<T> {
     let query_params = HashMap::new();
 
     let split_route = route.find('?');
-    let route = match split_route {
+    let mut route = match split_route {
       Some(index) => &route[0..index],
       None => route
     };
+
+    // Trim trailing slashes
+    while &route[route.len() - 1..route.len()] == "/" {
+      route = &route[0..route.len() - 1];
+    }
 
     if let Some(shortcut) = self.shortcuts.get(route) {
       MatchedRoute {
