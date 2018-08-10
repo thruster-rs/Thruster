@@ -68,21 +68,14 @@ impl<T: Context + Send> RouteTree<T> {
 
   pub fn add_route(&mut self, route: &str, middleware: SmallVec<[Middleware<T>; 8]>) {
     // We have to merge /* down into the root nodes so it applies as a wildcard
-    if route == format!("{}/*", method_to_prefix(Method::GET)) {
-      self.specific_root_node.add_route(method_to_prefix(Method::GET), middleware.clone());
-    }
-    if route == format!("{}/*", method_to_prefix(Method::POST)) {
-      self.specific_root_node.add_route(method_to_prefix(Method::POST), middleware.clone());
-    }
-    if route == format!("{}/*", method_to_prefix(Method::PUT)) {
-      self.specific_root_node.add_route(method_to_prefix(Method::PUT), middleware.clone());
-    }
-    if route == format!("{}/*", method_to_prefix(Method::UPDATE)) {
-      self.specific_root_node.add_route(method_to_prefix(Method::UPDATE), middleware.clone());
-    }
-    if route == format!("{}/*", method_to_prefix(Method::DELETE)) {
-      self.specific_root_node.add_route(method_to_prefix(Method::DELETE), middleware.clone());
-    }
+    match route {
+      "__GET__/*" => self.specific_root_node.add_route(method_to_prefix(Method::GET), middleware.clone()),
+      "__POST__/*" => self.specific_root_node.add_route(method_to_prefix(Method::POST), middleware.clone()),
+      "__PUT__/*" => self.specific_root_node.add_route(method_to_prefix(Method::PUT), middleware.clone()),
+      "__UPDATE__/*" => self.specific_root_node.add_route(method_to_prefix(Method::UPDATE), middleware.clone()),
+      "__DELETE__/*" => self.specific_root_node.add_route(method_to_prefix(Method::DELETE), middleware.clone()),
+      _ => ()
+    };
 
     self.specific_root_node.add_route(route, middleware);
     self.update_root_node();
