@@ -112,8 +112,6 @@ impl<T: Context + Send> Node<T> {
   }
 
   pub fn add_subtree(&mut self, route: &str, subtree: Node<T>) {
-    self.wildcard_node = subtree.wildcard_node.clone();
-
     // Strip a leading slash
     let mut split_iterator = match route.chars().next() {
       Some('/') => &route[1..],
@@ -147,11 +145,12 @@ impl<T: Context + Send> Node<T> {
             self.middleware = subtree.middleware.clone();
           }
         }
+        self.wildcard_node = subtree.wildcard_node.clone();
+        self.is_terminal_node = subtree.is_terminal_node;
       } else {
         let mut child = self.children.remove(piece)
           .unwrap_or_else(|| Node::new(piece));
 
-        child.is_terminal_node = subtree.is_terminal_node;
         child.middleware.insert_many(0, &mut subtree.middleware.clone().into_iter());
         child.add_subtree(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), subtree);
 
@@ -175,7 +174,13 @@ impl<T: Context + Send> Node<T> {
           } else {
             match &self.wildcard_node {
               Some(wildcard_node) => (&wildcard_node.middleware, results.1, wildcard_node.is_terminal_node),
-              None => (&self.middleware, results.1, self.is_terminal_node)
+              None => {
+                if !self.is_wildcard {
+                  results
+                } else {
+                  (&self.middleware, results.1, self.is_terminal_node)
+                }
+              }
             }
           }
         },
@@ -194,7 +199,16 @@ impl<T: Context + Send> Node<T> {
                 if let Some(param_key) = &wildcard_node.param_key {
                   params.insert(param_key.to_owned(), piece.to_owned());
                 }
-                wildcard_node.match_route_with_params(route, params)
+
+                let results = wildcard_node.match_route_with_params(route, params);
+
+                // If the wildcard isn't a terminal node, then try to return this
+                // wildcard
+                if results.2 {
+                  results
+                } else {
+                  (&self.middleware, results.1, self.is_terminal_node)
+                }
               }
             }
             None => (&self.middleware, params, false)
