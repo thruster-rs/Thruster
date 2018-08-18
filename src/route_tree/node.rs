@@ -81,7 +81,7 @@ impl<T: Context + Send> Node<T> {
           ':' => {
             if !self.is_wildcard {
               let mut wildcard = Node::new_wildcard(Some(piece[1..].to_owned()));
-              wildcard.is_terminal_node = true;
+              wildcard.is_terminal_node = false;
 
               wildcard.add_route(&split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"), middleware);
 
@@ -207,7 +207,7 @@ impl<T: Context + Send> Node<T> {
                 if results.2 {
                   results
                 } else {
-                  (&self.middleware, results.1, self.is_terminal_node)
+                  (&self.middleware, results.1, wildcard_node.is_terminal_node)
                 }
               }
             }
@@ -233,7 +233,10 @@ impl<T: Context + Send> Node<T> {
   /// ```
   pub fn to_string(&self, indent: &str) -> String {
     let mut in_progress = "".to_owned();
-    let value = self.param_key.clone().unwrap_or(self.value.to_owned());
+    let value = match self.param_key.clone() {
+      Some(key) => format!(":{}", key),
+      None => self.value.to_owned()
+    };
 
     in_progress = format!("{}\n{}{}: {}, {}",
       in_progress,
