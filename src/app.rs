@@ -955,6 +955,35 @@ mod tests {
     assert!(String::from_utf8(response.response).unwrap() == "not found");
   }
 
+#[test]
+  fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_root_route() {
+    let mut app1 = App::<BasicContext>::new();
+    let mut app2 = App::<BasicContext>::new();
+    let mut app3 = App::<BasicContext>::new();
+
+    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "1".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    fn test_404(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "not found".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    app1.get("/", vec![test_fn_1]);
+    app2.get("*", vec![test_404]);
+    app3.use_sub_app("/", app2);
+    app3.use_sub_app("/a", app1);
+
+    let mut bytes = BytesMut::with_capacity(45);
+    bytes.put(&b"GET /a/1/d HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+
+    let request = decode(&mut bytes).unwrap().unwrap();
+    let response = app3.resolve(request).wait().unwrap();
+
+    assert!(String::from_utf8(response.response).unwrap() == "not found");
+  }
 
   #[test]
   fn it_should_handle_routes_without_leading_slash() {
