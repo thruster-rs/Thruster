@@ -211,10 +211,7 @@ impl<T: Context + Send> App<T> {
   /// examples, likely not a good solution for real code bases. The advantage is that the
   /// context_generator is already supplied for the developer.
   pub fn new() -> App<BasicContext> {
-    App {
-      _route_parser: RouteParser::new(),
-      context_generator: generate_context
-    }
+    App::create(generate_context)
   }
 
   /// Create a new app with the given context generator. The app does not begin listening until start
