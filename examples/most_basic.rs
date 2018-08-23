@@ -1,20 +1,10 @@
 extern crate thruster;
 extern crate futures;
 
-use std::collections::HashMap;
 use std::boxed::Box;
 use futures::future;
 
-use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
-
-fn generate_context(request: Request) -> Ctx {
-  Ctx {
-    body: "".to_owned(),
-    params: HashMap::new(),
-    query_params: HashMap::new(),
-    request: request
-  }
-}
+use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue};
 
 fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
@@ -26,7 +16,7 @@ fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
 fn main() {
   println!("Starting server...");
 
-  let mut app = App::create(generate_context);
+  let mut app = App::<Ctx>::new();
 
   app.get("/plaintext", vec![plaintext]);
 
