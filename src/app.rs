@@ -333,7 +333,7 @@ impl<T: Context + Send> App<T> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use bytes::{BytesMut, BufMut};
+  use testing;
   use context::Context;
   use request::{decode, Request};
   use middleware::{MiddlewareChain, MiddlewareReturnValue};
@@ -389,14 +389,9 @@ mod tests {
     app.use_middleware("/", query_params::query_params);
     app.get("/test", vec![test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(41);
-    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/test");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "1");
+    assert!(response == "1");
   }
 
 
@@ -412,14 +407,9 @@ mod tests {
     app.use_middleware("/", query_params::query_params);
     app.get("/test", vec![test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(53);
-    bytes.put(&b"GET /test?hello=world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/test?hello=world");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "world");
+    assert!(response == "world");
   }
 
   #[test]
@@ -433,14 +423,9 @@ mod tests {
 
     app.get("/test/:id", vec![test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(45);
-    bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/test/123");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "123");
+    assert!(response == "123");
   }
 
   #[test]
@@ -457,14 +442,9 @@ mod tests {
     let mut app2 = App::<BasicContext>::new();
     app2.use_sub_app("/test", app1);
 
-    let mut bytes = BytesMut::with_capacity(45);
-    bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app2, "/test/123");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "123");
+    assert!(response == "123");
   }
 
   #[test]
@@ -481,14 +461,9 @@ mod tests {
     let mut app2 = App::<BasicContext>::new();
     app2.use_sub_app("/test", app1);
 
-    let mut bytes = BytesMut::with_capacity(45);
-    bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app2, "/test/123");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "123");
+    assert!(response == "123");
   }
 
   #[test]
@@ -511,21 +486,9 @@ mod tests {
     let mut app2 = App::<BasicContext>::new();
     app2.use_sub_app("/test", app1);
 
-    let mut bytes = BytesMut::with_capacity(45);
-    bytes.put(&b"GET /test/123 HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app2, "/test/123");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "123");
-
-    let mut bytes = BytesMut::with_capacity(41);
-    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "-1");
+    assert!(response == "123");
   }
 
   #[test]
@@ -548,13 +511,9 @@ mod tests {
     app2.use_sub_app("/test", app1);
     app2.set404(vec![test_fn_2]);
 
-    let mut bytes = BytesMut::with_capacity(42);
-    bytes.put(&b"GET /test/ HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app2, "/test/");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "-1");
+    assert!(response == "-1");
   }
 
   #[test]
@@ -568,13 +527,9 @@ mod tests {
 
     app.get("/test/:id", vec![test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(44);
-    bytes.put(&b"GET /test/1/ HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/test/1/");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "1");
+    assert!(response == "1");
   }
 
   #[test]
@@ -600,14 +555,10 @@ mod tests {
 
     app.post("/test", vec![test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(76);
-    bytes.put(&b"POST /test HTTP/1.1\nHost: localhost:8080\nContent-Length: 15\n\n{\"key\":\"value\"}"[..]);
+    let response = testing::post(app, "/test", "{\"key\":\"value\"}");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "value");
+    println!("response: {}", response);
+    assert!(response == "value");
   }
 
   #[test]
@@ -627,14 +578,9 @@ mod tests {
     app.get("/test", vec![test_fn_1]);
     app.post("/test", vec![test_fn_2]);
 
-    let mut bytes = BytesMut::with_capacity(41);
-    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/test");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "1");
+    assert!(response == "1");
   }
 
   #[test]
@@ -660,14 +606,9 @@ mod tests {
 
     app.get("/test", vec![test_fn_2, test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(41);
-    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/test");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "212");
+    assert!(response == "212");
   }
 
   #[test]
@@ -681,14 +622,9 @@ mod tests {
 
     app.get("/test", vec![test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(41);
-    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/test");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "Hello world");
+    assert!(response == "Hello world");
   }
 
   #[test]
@@ -715,14 +651,9 @@ mod tests {
     app.use_middleware("/", method_agnostic);
     app.get("/test", vec![test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(41);
-    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/test");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "agnostic-1");
+    assert!(response == "agnostic-1");
   }
 
   #[test]
@@ -739,14 +670,9 @@ mod tests {
     let mut app2 = App::<BasicContext>::new();
     app2.use_sub_app("/", app1);
 
-    let mut bytes = BytesMut::with_capacity(41);
-    bytes.put(&b"GET /test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app2, "/test");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "1");
+    assert!(response == "1");
   }
 
   #[test]
@@ -763,13 +689,9 @@ mod tests {
     let mut app2 = App::<BasicContext>::new();
     app2.use_sub_app("/", app1);
 
-    let mut bytes = BytesMut::with_capacity(38);
-    bytes.put(&b"GET /a HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app2, "/a");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "1");
+    assert!(response == "1");
   }
 
   #[test]
@@ -786,14 +708,9 @@ mod tests {
     let mut app2 = App::<BasicContext>::new();
     app2.use_sub_app("/sub", app1);
 
-    let mut bytes = BytesMut::with_capacity(45);
-    bytes.put(&b"GET /sub/test HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app2, "/sub/test");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "1");
+    assert!(response == "1");
   }
 
   #[test]
@@ -810,13 +727,9 @@ mod tests {
     let mut app2 = App::<BasicContext>::new();
     app2.use_sub_app("/sub", app1);
 
-    let mut bytes = BytesMut::with_capacity(45);
-    bytes.put(&b"GET /sub HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app2, "/sub");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "1");
+    assert!(response == "1");
   }
 
   #[test]
@@ -836,14 +749,9 @@ mod tests {
     app.get("/", vec![test_fn_1]);
     app.set404(vec![test_404]);
 
-    let mut bytes = BytesMut::with_capacity(51);
-    bytes.put(&b"GET /not_found HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/not_found");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "not found");
+    assert!(response == "not found");
   }
 
 
@@ -864,13 +772,9 @@ mod tests {
     app.get("/a", vec![test_fn_1]);
     app.set404(vec![test_404]);
 
-    let mut bytes = BytesMut::with_capacity(51);
-    bytes.put(&b"GET / HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "not found");
+    assert!(response == "not found");
   }
 
   #[test]
@@ -890,14 +794,9 @@ mod tests {
     app.get("/a/b", vec![test_fn_1]);
     app.set404(vec![test_404]);
 
-    let mut bytes = BytesMut::with_capacity(51);
-    bytes.put(&b"GET /a/not_found HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/a/not_found/");
 
-
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "not found");
+    assert!(response == "not found");
   }
 
   #[test]
@@ -917,13 +816,9 @@ mod tests {
     app.get("/a/:b/c", vec![test_fn_1]);
     app.set404(vec![test_404]);
 
-    let mut bytes = BytesMut::with_capacity(51);
-    bytes.put(&b"GET /a/1/d HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/a/1/d");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "not found");
+    assert!(response == "not found");
   }
 
   #[test]
@@ -943,13 +838,9 @@ mod tests {
     app.get("/a/:b/c", vec![test_fn_1]);
     app.set404(vec![test_404]);
 
-    let mut bytes = BytesMut::with_capacity(51);
-    bytes.put(&b"GET /a/1/d/e/f/g HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/a/1/d/e/f/g");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "not found");
+    assert!(response == "not found");
   }
 
 #[test]
@@ -973,13 +864,9 @@ mod tests {
     app3.use_sub_app("/", app2);
     app3.use_sub_app("/a", app1);
 
-    let mut bytes = BytesMut::with_capacity(45);
-    bytes.put(&b"GET /a/1/d HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app3, "/a/1/d");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app3.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "not found");
+    assert!(response == "not found");
   }
 
   #[test]
@@ -993,13 +880,9 @@ mod tests {
 
     app.get("*", vec![test_fn_1]);
 
-    let mut bytes = BytesMut::with_capacity(51);
-    bytes.put(&b"GET /a/1/d/e/f/g HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app, "/a/1/d/e/f/g");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "1");
+    assert!(response == "1");
   }
 
   #[test]
@@ -1015,13 +898,9 @@ mod tests {
     app1.get("*", vec![test_fn_1]);
     app2.use_sub_app("/", app1);
 
-    let mut bytes = BytesMut::with_capacity(51);
-    bytes.put(&b"GET /a/1/d/e/f/g HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app2, "/a/1/d/e/f/g");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app2.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "1");
+    assert!(response == "1");
   }
 
   #[test]
@@ -1045,12 +924,8 @@ mod tests {
     app3.use_sub_app("/", app1);
     app3.use_sub_app("/a/b", app2);
 
-    let mut bytes = BytesMut::with_capacity(51);
-    bytes.put(&b"GET /a/1/d/e/f/g HTTP/1.1\nHost: localhost:8080\n\n"[..]);
+    let response = testing::get(app3, "/a/1/d/e/f/g");
 
-    let request = decode(&mut bytes).unwrap().unwrap();
-    let response = app3.resolve(request).wait().unwrap();
-
-    assert!(String::from_utf8(response.response).unwrap() == "1");
+    assert!(response == "1");
   }
 }

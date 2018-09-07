@@ -39,3 +39,4 @@ pub use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
 pub use response::{encode, Response};
 pub use request::{decode, Request};
 pub use http::Http;
+pub mod testing;
