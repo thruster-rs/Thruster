@@ -114,3 +114,20 @@ postgres://postgres@localhost/<Your Project Name>
 ```
 
 This is all configurable and none of it is hidden from the developer. It's like seeing the magic trick and learning how it's done! Check out the docs for [thruster-cli here](https://github.com/trezm/thruster-cli).
+
+## Testing
+Thruster provides an easy test suite to test your endpoints, simply include the `testing` module as below:
+
+```rust
+let mut app = App::<Ctx>::new();
+
+...
+
+app.get("/plaintext", vec![plaintext]);
+
+...
+
+let result = testing::get(app, "/plaintext");
+
+assert!(result == "Hello, World!");
+```
