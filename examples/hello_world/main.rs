@@ -63,8 +63,5 @@ fn main() {
 
   app.get("/*", vec![not_found_404]);
 
-  app.get("/test/a/b", vec![plaintext]);
-  app.get("/test/a/c", vec![plaintext]);
-
   App::start(app, "0.0.0.0", 4321);
 }
