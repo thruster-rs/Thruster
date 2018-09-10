@@ -113,8 +113,6 @@ impl<T: Context + Send> App<T> {
     let arc_app = Arc::new(app);
 
     fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
-      println!("Processing...");
-
       let framed = Framed::new(socket, Http);
       let (tx, rx) = framed.split();
 
