@@ -94,31 +94,31 @@ impl fmt::Debug for Request {
 
 
 pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
+    println!("buf: {}", String::from_utf8(buf.to_vec()).unwrap());
+
     // TODO: we should grow this headers array if parsing fails and asks
     //       for more headers
     let (method, path, version, headers, amt, body_len) = {
-        let mut headers = [httparse::EMPTY_HEADER; 8];
+        let mut headers = [httparse::EMPTY_HEADER; 32];
         let mut r = httparse::Request::new(&mut headers);
         let mut body_len: usize = 0;
         let mut header_vec = SmallVec::new();
         let status = try!(r.parse(buf).map_err(|e| {
             let msg = format!("failed to parse http request: {:?}", e);
+            eprintln!("msg: {}", msg);
             io::Error::new(io::ErrorKind::Other, msg)
         }));
-
         let amt = match status {
             httparse::Status::Complete(amt) => amt,
             httparse::Status::Partial => {
                 return Ok(None)
             },
         };
-
         let toslice = |a: &[u8]| {
             let start = a.as_ptr() as usize - buf.as_ptr() as usize;
             assert!(start < buf.len());
             (start, start + a.len())
         };
-
         for header in r.headers.iter() {
             if header.name == httplib::header::CONTENT_LENGTH {
                 let value = str::from_utf8(header.value).unwrap_or("0");
