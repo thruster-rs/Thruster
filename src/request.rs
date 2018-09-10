@@ -94,8 +94,6 @@ impl fmt::Debug for Request {
 
 
 pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
-    println!("buf: {}", String::from_utf8(buf.to_vec()).unwrap());
-
     // TODO: we should grow this headers array if parsing fails and asks
     //       for more headers
     let (method, path, version, headers, amt, body_len) = {
