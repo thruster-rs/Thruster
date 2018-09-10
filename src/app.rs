@@ -335,7 +335,7 @@ mod tests {
   use super::*;
   use testing;
   use context::Context;
-  use request::{decode, Request};
+  use request::Request;
   use middleware::{MiddlewareChain, MiddlewareReturnValue};
   use response::Response;
   use serde;
@@ -391,7 +391,7 @@ mod tests {
 
     let response = testing::get(app, "/test");
 
-    assert!(response == "1");
+    assert!(response.body == "1");
   }
 
 
@@ -409,7 +409,7 @@ mod tests {
 
     let response = testing::get(app, "/test?hello=world");
 
-    assert!(response == "world");
+    assert!(response.body == "world");
   }
 
   #[test]
@@ -425,7 +425,7 @@ mod tests {
 
     let response = testing::get(app, "/test/123");
 
-    assert!(response == "123");
+    assert!(response.body == "123");
   }
 
   #[test]
@@ -444,7 +444,7 @@ mod tests {
 
     let response = testing::get(app2, "/test/123");
 
-    assert!(response == "123");
+    assert!(response.body == "123");
   }
 
   #[test]
@@ -463,7 +463,7 @@ mod tests {
 
     let response = testing::get(app2, "/test/123");
 
-    assert!(response == "123");
+    assert!(response.body == "123");
   }
 
   #[test]
@@ -488,7 +488,7 @@ mod tests {
 
     let response = testing::get(app2, "/test/123");
 
-    assert!(response == "123");
+    assert!(response.body == "123");
   }
 
   #[test]
@@ -513,7 +513,7 @@ mod tests {
 
     let response = testing::get(app2, "/test/");
 
-    assert!(response == "-1");
+    assert!(response.body == "-1");
   }
 
   #[test]
@@ -529,7 +529,7 @@ mod tests {
 
     let response = testing::get(app, "/test/1/");
 
-    assert!(response == "1");
+    assert!(response.body == "1");
   }
 
   #[test]
@@ -557,8 +557,7 @@ mod tests {
 
     let response = testing::post(app, "/test", "{\"key\":\"value\"}");
 
-    println!("response: {}", response);
-    assert!(response == "value");
+    assert!(response.body == "value");
   }
 
   #[test]
@@ -580,7 +579,7 @@ mod tests {
 
     let response = testing::get(app, "/test");
 
-    assert!(response == "1");
+    assert!(response.body == "1");
   }
 
   #[test]
@@ -608,7 +607,7 @@ mod tests {
 
     let response = testing::get(app, "/test");
 
-    assert!(response == "212");
+    assert!(response.body == "212");
   }
 
   #[test]
@@ -624,7 +623,7 @@ mod tests {
 
     let response = testing::get(app, "/test");
 
-    assert!(response == "Hello world");
+    assert!(response.body == "Hello world");
   }
 
   #[test]
@@ -653,7 +652,7 @@ mod tests {
 
     let response = testing::get(app, "/test");
 
-    assert!(response == "agnostic-1");
+    assert!(response.body == "agnostic-1");
   }
 
   #[test]
@@ -672,7 +671,7 @@ mod tests {
 
     let response = testing::get(app2, "/test");
 
-    assert!(response == "1");
+    assert!(response.body == "1");
   }
 
   #[test]
@@ -691,7 +690,7 @@ mod tests {
 
     let response = testing::get(app2, "/a");
 
-    assert!(response == "1");
+    assert!(response.body == "1");
   }
 
   #[test]
@@ -710,7 +709,7 @@ mod tests {
 
     let response = testing::get(app2, "/sub/test");
 
-    assert!(response == "1");
+    assert!(response.body == "1");
   }
 
   #[test]
@@ -729,7 +728,7 @@ mod tests {
 
     let response = testing::get(app2, "/sub");
 
-    assert!(response == "1");
+    assert!(response.body == "1");
   }
 
   #[test]
@@ -751,7 +750,7 @@ mod tests {
 
     let response = testing::get(app, "/not_found");
 
-    assert!(response == "not found");
+    assert!(response.body == "not found");
   }
 
 
@@ -774,7 +773,7 @@ mod tests {
 
     let response = testing::get(app, "/");
 
-    assert!(response == "not found");
+    assert!(response.body == "not found");
   }
 
   #[test]
@@ -796,7 +795,7 @@ mod tests {
 
     let response = testing::get(app, "/a/not_found/");
 
-    assert!(response == "not found");
+    assert!(response.body == "not found");
   }
 
   #[test]
@@ -818,7 +817,7 @@ mod tests {
 
     let response = testing::get(app, "/a/1/d");
 
-    assert!(response == "not found");
+    assert!(response.body == "not found");
   }
 
   #[test]
@@ -840,7 +839,7 @@ mod tests {
 
     let response = testing::get(app, "/a/1/d/e/f/g");
 
-    assert!(response == "not found");
+    assert!(response.body == "not found");
   }
 
 #[test]
@@ -866,7 +865,7 @@ mod tests {
 
     let response = testing::get(app3, "/a/1/d");
 
-    assert!(response == "not found");
+    assert!(response.body == "not found");
   }
 
   #[test]
@@ -882,7 +881,7 @@ mod tests {
 
     let response = testing::get(app, "/a/1/d/e/f/g");
 
-    assert!(response == "1");
+    assert!(response.body == "1");
   }
 
   #[test]
@@ -900,7 +899,7 @@ mod tests {
 
     let response = testing::get(app2, "/a/1/d/e/f/g");
 
-    assert!(response == "1");
+    assert!(response.body == "1");
   }
 
   #[test]
@@ -926,6 +925,6 @@ mod tests {
 
     let response = testing::get(app3, "/a/1/d/e/f/g");
 
-    assert!(response == "1");
+    assert!(response.body == "1");
   }
 }
