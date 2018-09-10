@@ -20,5 +20,5 @@ fn main() {
 
   let result = testing::get(app, "/plaintext");
 
-  assert!(result == "Hello, World!");
+  assert!(result.body == "Hello, World!");
 }
