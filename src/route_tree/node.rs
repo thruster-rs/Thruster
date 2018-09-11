@@ -167,21 +167,22 @@ impl<T: Context + Send> Node<T> {
     if let Some(piece) = route.next() {
       match self.children.get(piece) {
         Some(child) => {
-          let results = child.match_route_with_params(route, params);
+            let results = child.match_route_with_params(route, params);
 
-          if results.2 {
-            results
-          } else {
-            match &self.wildcard_node {
-              Some(wildcard_node) => (&wildcard_node.middleware, results.1, wildcard_node.is_terminal_node),
-              None => {
-                if !self.is_wildcard {
-                  results
-                } else {
-                  (&self.middleware, results.1, self.is_terminal_node)
+            if results.2 {
+              results
+            } else {
+              match &self.wildcard_node {
+                Some(wildcard_node) => (&wildcard_node.middleware, results.1, wildcard_node.is_terminal_node),
+                None => {
+                  if !self.is_wildcard {
+                    results
+                  } else {
+                    (&self.middleware, results.1, self.is_terminal_node)
+                  }
                 }
               }
-            }
+            // }
           }
         },
         None => {
@@ -211,12 +212,30 @@ impl<T: Context + Send> Node<T> {
                 }
               }
             }
-            None => (&self.middleware, params, false)
+            None => (&self.middleware, params, self.is_terminal_node)
           }
         }
       }
     } else {
-      (&self.middleware, params, self.is_terminal_node)
+      if self.is_terminal_node {
+        (&self.middleware, params, self.is_terminal_node)
+      } else if let Some(wildcard_node) = &self.wildcard_node {
+        if wildcard_node.param_key == None {
+          let results = wildcard_node.match_route_with_params(route, params);
+
+          // If the wildcard isn't a terminal node, then try to return this
+          // wildcard
+          if results.2 {
+            results
+          } else {
+            (&self.middleware, results.1, self.is_terminal_node)
+          }
+        } else {
+          (&self.middleware, params, self.is_terminal_node)
+        }
+      } else {
+        (&self.middleware, params, self.is_terminal_node)
+      }
     }
   }
 

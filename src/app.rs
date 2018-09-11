@@ -394,6 +394,28 @@ mod tests {
     assert!(response.body == "1");
   }
 
+  #[test]
+  fn it_should_correctly_differentiate_wildcards_and_valid_routes() {
+    let mut app = App::<BasicContext>::new();
+
+    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "1".to_owned();
+      Box::new(future::ok(context))
+    };
+
+    fn test_fn_404(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      context.body = "2".to_owned();
+      Box::new(future::ok(context))
+    };
+
+
+    app.get("/", vec![test_fn_1]);
+    app.get("/*", vec![test_fn_404]);
+
+    let response = testing::get(app, "/");
+
+    assert!(response.body == "1");
+  }
 
   #[test]
   fn it_should_handle_query_parameters() {
@@ -517,7 +539,7 @@ mod tests {
   }
 
   #[test]
-  fn it_should_trim_trailing_slashes_after_params() {
+  fn itz_should_trim_trailing_slashes_after_params() {
     let mut app = App::<BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
@@ -878,6 +900,11 @@ mod tests {
     };
 
     app.get("*", vec![test_fn_1]);
+
+    println!("app: {}", app._route_parser.route_tree.root_node.to_string(""));
+    for (route, middleware) in app._route_parser.route_tree.root_node.enumerate() {
+      println!("{}: {}", route, middleware.len());
+    }
 
     let response = testing::get(app, "/a/1/d/e/f/g");
 
