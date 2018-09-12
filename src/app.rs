@@ -10,6 +10,7 @@ use tokio::prelude::*;
 use tokio_codec::Framed;
 use num_cpus;
 use net2::TcpBuilder;
+#[cfg(not(windows))]
 use net2::unix::UnixTcpBuilderExt;
 use std::thread;
 
@@ -168,7 +169,9 @@ impl<T: Context + Send> App<T> {
         let server = future::lazy(move || {
           let listener = {
             let builder = TcpBuilder::new_v4().unwrap();
+            #[cfg(not(windows))]
             builder.reuse_address(true).unwrap();
+            #[cfg(not(windows))]
             builder.reuse_port(true).unwrap();
             builder.bind(addr).unwrap();
             builder.listen(2048).unwrap()
