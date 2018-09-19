@@ -1,8 +1,7 @@
 use std::collections::HashMap;
+use hyper::{Body, Response, Request, StatusCode};
 
 use context::Context;
-use response::Response;
-use request::Request;
 use builtins::retains_request::RetainsRequest;
 use builtins::query_params::HasQueryParams;
 
@@ -37,9 +36,8 @@ impl CookieOptions {
   }
 }
 
-pub fn generate_context(request: Request) -> BasicContext {
+pub fn generate_context(request: Request<Body>) -> BasicContext {
   let mut ctx = BasicContext::new();
-  ctx.params = request.params().clone();
   ctx.request = request;
 
   ctx
@@ -49,8 +47,8 @@ pub struct BasicContext {
   pub body: String,
   pub params: HashMap<String, String>,
   pub query_params: HashMap<String, String>,
-  pub request: Request,
-  pub status: u32,
+  pub request: Request<Body>,
+  pub status: u16,
   pub headers: HashMap<String, String>
 }
 
@@ -60,10 +58,17 @@ impl BasicContext {
       body: "".to_owned(),
       params: HashMap::new(),
       query_params: HashMap::new(),
-      request: Request::new(),
+      request: Request::builder().body(Body::empty()).unwrap(),
       headers: HashMap::new(),
       status: 200
     }
+  }
+
+  ///
+  /// Get a a parameter
+  ///
+  pub fn param(&self, key: &str) -> Option<&String> {
+    self.params.get(key)
   }
 
   ///
@@ -83,7 +88,7 @@ impl BasicContext {
   ///
   /// Set the response status code
   ///
-  pub fn status(&mut self, code: u32) {
+  pub fn status(&mut self, code: u16) {
     self.status = code;
   }
 
@@ -158,27 +163,31 @@ impl BasicContext {
 }
 
 impl Context for BasicContext {
-  fn get_response(self) -> Response {
-    let mut response = Response::new();
-
-    response.body(&self.body);
+  fn get_response(self) -> Response<Body> {
+    let mut response_builder = Response::builder();
 
     for (key, val) in self.headers {
-      response.header(&key, &val);
+      let key: &str = &key;
+      let val: &str = &val;
+      response_builder.header(key, val);
     }
 
-    response.status_code(self.status, "");
+    response_builder.status(StatusCode::from_u16(self.status).unwrap());
 
-    response
+    response_builder.body(Body::from(self.body)).unwrap()
   }
 
   fn set_body(&mut self, body: String) {
     self.body = body;
   }
+
+  fn set_params(&mut self, params: HashMap<String, String>) {
+    self.params = params;
+  }
 }
 
 impl RetainsRequest for BasicContext {
-  fn get_request<'a>(&'a self) -> &'a Request {
+  fn get_request<'a>(&'a self) -> &'a Request<Body> {
     &self.request
   }
 }

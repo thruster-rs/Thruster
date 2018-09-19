@@ -19,6 +19,7 @@ harness = false
 [dependencies]
 bytes = "0.4"
 futures = "0.1.23"
+hyper = "0.12.10"
 http = "0.1.7"
 httparse = "1.1.2"
 log = "0.3.6"

@@ -1,16 +1,18 @@
 use std::collections::{HashMap};
 use smallvec::SmallVec;
-use thruster::{Context, Request, Response};
+use thruster::{Context};
+use hyper::{Body, Request, Response, StatusCode};
+use http::response::Builder;
 
 pub struct Ctx {
   pub body: String,
   pub method: String,
   pub path: String,
-  pub request_body: String,
+  pub request_body: Body,
   pub params: HashMap<String, String>,
   pub headers: SmallVec<[(String, String); 8]>,
-  pub status_code: u32,
-  response: Response
+  pub status_code: u16,
+  response: Builder
 }
 
 impl Ctx {
@@ -23,7 +25,7 @@ impl Ctx {
       request_body: context.request_body,
       headers: SmallVec::new(),
       status_code: 200,
-      response: Response::new()
+      response: Response::builder()
     }
   }
 
@@ -33,32 +35,33 @@ impl Ctx {
 }
 
 impl Context for Ctx {
-  fn get_response(mut self) -> Response {
-    self.response.status_code(200, "OK");
-
-    self.response.body(&self.body);
-
-    self.response
+  fn get_response(self) -> Response<Body> {
+    let mut response_builder = Response::builder();
+    response_builder.status(StatusCode::from_u16(self.status_code).unwrap());
+    response_builder.body(Body::from(self.body)).unwrap()
   }
 
   fn set_body(&mut self, body: String) {
     self.body = body;
   }
+
+  fn set_params(&mut self, params: HashMap<String, String>) {
+    self.params = params;
+  }
 }
 
-pub fn generate_context(request: Request) -> Ctx {
-  let method = request.method().to_owned();
-  let path = request.path().to_owned();
-  let request_body = request.body().to_owned();
+pub fn generate_context(request: Request<Body>) -> Ctx {
+  let method = request.method().to_string();
+  let path = request.uri().to_string();
 
   Ctx {
     body: "".to_owned(),
     method: method,
     path: path,
-    params: request.params,
-    request_body: request_body,
+    params: HashMap::new(),
+    request_body: request.into_body(),
     headers: SmallVec::new(),
     status_code: 200,
-    response: Response::new()
+    response: Response::builder()
   }
 }

@@ -12,7 +12,7 @@ pub fn query_params<T: 'static + Context + HasQueryParams + RetainsRequest + Sen
   let mut query_param_hash = HashMap::new();
 
   {
-    let route: &str = &context.get_request().path();
+    let route: &str = &context.get_request().uri().to_string();
 
     let mut iter = route.split("?");
     // Get rid of first bit (the non-query string part)

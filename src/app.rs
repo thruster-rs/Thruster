@@ -5,20 +5,11 @@ use smallvec::SmallVec;
 use futures::future;
 use futures::Future;
 use tokio;
-use tokio::net::{TcpStream, TcpListener};
-use tokio::prelude::*;
-use tokio_codec::Framed;
-use num_cpus;
-use net2::TcpBuilder;
-#[cfg(not(windows))]
-use net2::unix::UnixTcpBuilderExt;
-use std::thread;
+use hyper::{Body, Response, Request, Server};
+use hyper::service::service_fn;
 
 use builtins::basic_context::{generate_context, BasicContext};
 use context::Context;
-use http::Http;
-use response::Response;
-use request::Request;
 use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
 use std::sync::Arc;
@@ -98,7 +89,7 @@ pub struct App<T: 'static + Context + Send> {
   /// that translates an acutal `Request` struct to your custom Context type. It should be noted that
   /// the context_generator should be as fast as possible as this is called with every request, including
   /// 404s.
-  pub context_generator: fn(Request) -> T
+  pub context_generator: fn(Request<Body>) -> T
 }
 
 impl<T: Context + Send> App<T> {
@@ -109,30 +100,18 @@ impl<T: Context + Send> App<T> {
     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
     app._route_parser.optimize();
-
-    let listener = TcpListener::bind(&addr).unwrap();
     let arc_app = Arc::new(app);
 
-    fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
-      let framed = Framed::new(socket, Http);
-      let (tx, rx) = framed.split();
+    let new_service = move || {
+      let clone = arc_app.clone();
+      service_fn(move |req: Request<Body>| {
+        clone.resolve(req)
+      })
+    };
 
-      let task = tx.send_all(rx.and_then(move |request: Request| {
-            app.resolve(request)
-          }))
-          .then(|_| future::ok(()));
-
-      // Spawn the task that handles the connection.
-      tokio::spawn(task);
-    }
-
-    let server = listener.incoming()
-        .map_err(|e| println!("error = {:?}", e))
-        .for_each(move |socket| {
-            let _ = socket.set_nodelay(true);
-            process(arc_app.clone(), socket);
-            Ok(())
-        });
+    let server = Server::bind(&addr)
+      .serve(new_service)
+      .map_err(|e| eprintln!("server error: {}", e));
 
     tokio::run(server);
   }
@@ -155,60 +134,60 @@ impl<T: Context + Send> App<T> {
   ///
   /// https://users.rust-lang.org/t/getting-tokio-to-match-actix-web-performance/18659/7
   ///
-  pub fn start_small_load_optimized(mut app: App<T>, host: &str, port: u16) {
-    let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-    let mut threads = Vec::new();
-    app._route_parser.optimize();
-    let arc_app = Arc::new(app);
+  // pub fn start_small_load_optimized(mut app: App<T>, host: &str, port: u16) {
+  //   let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+  //   let mut threads = Vec::new();
+  //   app._route_parser.optimize();
+  //   let arc_app = Arc::new(app);
 
-    for _ in 0..num_cpus::get() {
-      let arc_app = arc_app.clone();
-      threads.push(thread::spawn(move || {
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+  //   for _ in 0..num_cpus::get() {
+  //     let arc_app = arc_app.clone();
+  //     threads.push(thread::spawn(move || {
+  //       let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
 
-        let server = future::lazy(move || {
-          let listener = {
-            let builder = TcpBuilder::new_v4().unwrap();
-            #[cfg(not(windows))]
-            builder.reuse_address(true).unwrap();
-            #[cfg(not(windows))]
-            builder.reuse_port(true).unwrap();
-            builder.bind(addr).unwrap();
-            builder.listen(2048).unwrap()
-          };
-          let listener = TcpListener::from_std(listener, &tokio::reactor::Handle::current()).unwrap();
+  //       let server = future::lazy(move || {
+  //         let listener = {
+  //           let builder = TcpBuilder::new_v4().unwrap();
+  //           #[cfg(not(windows))]
+  //           builder.reuse_address(true).unwrap();
+  //           #[cfg(not(windows))]
+  //           builder.reuse_port(true).unwrap();
+  //           builder.bind(addr).unwrap();
+  //           builder.listen(2048).unwrap()
+  //         };
+  //         let listener = TcpListener::from_std(listener, &tokio::reactor::Handle::current()).unwrap();
 
-          listener.incoming().for_each(move |socket| {
-            process(Arc::clone(&arc_app), socket);
-            Ok(())
-          })
-          .map_err(|err| eprintln!("accept error = {:?}", err))
-        });
+  //         listener.incoming().for_each(move |socket| {
+  //           process(Arc::clone(&arc_app), socket);
+  //           Ok(())
+  //         })
+  //         .map_err(|err| eprintln!("accept error = {:?}", err))
+  //       });
 
-        runtime.spawn(server);
-        runtime.run().unwrap();
-      }));
-    }
+  //       runtime.spawn(server);
+  //       runtime.run().unwrap();
+  //     }));
+  //   }
 
-    println!("Server running on {}", addr);
+  //   println!("Server running on {}", addr);
 
-    for thread in threads {
-      thread.join().unwrap();
-    }
+  //   for thread in threads {
+  //     thread.join().unwrap();
+  //   }
 
-    fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
-      let framed = Framed::new(socket, Http);
-      let (tx, rx) = framed.split();
+  //   fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
+  //     let framed = Framed::new(socket, Http);
+  //     let (tx, rx) = framed.split();
 
-      let task = tx.send_all(rx.and_then(move |request: Request| {
-            app.resolve(request)
-          }))
-          .then(|_| future::ok(()));
+  //     let task = tx.send_all(rx.and_then(move |request: Request| {
+  //           app.resolve(request)
+  //         }))
+  //         .then(|_| future::ok(()));
 
-      // Spawn the task that handles the connection.
-      tokio::spawn(task);
-    }
-  }
+  //     // Spawn the task that handles the connection.
+  //     tokio::spawn(task);
+  //   }
+  // }
 
   /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
   /// examples, likely not a good solution for real code bases. The advantage is that the
@@ -219,7 +198,7 @@ impl<T: Context + Send> App<T> {
 
   /// Create a new app with the given context generator. The app does not begin listening until start
   /// is called.
-  pub fn create(generate_context: fn(Request) -> T) -> App<T> {
+  pub fn create(generate_context: fn(Request<Body>) -> T) -> App<T> {
     App {
       _route_parser: RouteParser::new(),
       context_generator: generate_context
@@ -307,20 +286,20 @@ impl<T: Context + Send> App<T> {
   }
 
   #[inline]
-  fn _req_to_matched_route(&self, request: &Request) -> MatchedRoute<T> {
-    let path = request.path();
+  fn _req_to_matched_route(&self, request: &Request<Body>) -> MatchedRoute<T> {
+    let path = request.uri().to_string();
 
     self._route_parser.match_route(
-      &_add_method_to_route_from_str(request.method(), path))
+      &_add_method_to_route_from_str(&request.method().to_string(), &path))
   }
 
   /// Resolves a request, returning a future that is processable into a Response
 
-  pub fn resolve(&self, mut request: Request) -> impl Future<Item=Response, Error=io::Error> + Send {
+  pub fn resolve(&self, request: Request<Body>) -> impl Future<Item=Response<Body>, Error=io::Error> + Send {
     let matched_route = self._req_to_matched_route(&request);
-    request.set_params(matched_route.params);
+    let mut context = (self.context_generator)(request);
+    context.set_params(matched_route.params);
 
-    let context = (self.context_generator)(request);
     let middleware = matched_route.middleware;
     let middleware_chain = MiddlewareChain::new(middleware);
 
@@ -337,48 +316,13 @@ impl<T: Context + Send> App<T> {
 mod tests {
   use super::*;
   use testing;
-  use context::Context;
-  use request::Request;
   use middleware::{MiddlewareChain, MiddlewareReturnValue};
-  use response::Response;
-  use serde;
   use futures::{future, Future};
   use std::boxed::Box;
   use std::io;
   use std::marker::Send;
   use builtins::query_params;
   use builtins::basic_context::BasicContext;
-
-  struct TypedContext<T> {
-    pub request_body: T,
-    pub body: String
-  }
-
-  impl<T> TypedContext<T> {
-    pub fn new<'a>(request: &'a Request) -> TypedContext<T>
-      where T: serde::de::Deserialize<'a> {
-      match request.body_as::<T>(request.body()) {
-        Ok(val) => TypedContext {
-          body: "".to_owned(),
-          request_body: val
-        },
-        Err(err) => panic!("Could not create context: {}", err)
-      }
-    }
-  }
-
-  impl<T> Context for TypedContext<T> {
-    fn get_response(self) -> Response {
-      let mut response = Response::new();
-      response.body(&self.body);
-
-      response
-    }
-
-    fn set_body(&mut self, body: String) {
-      self.body = body;
-    }
-  }
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request() {
@@ -555,34 +499,6 @@ mod tests {
     let response = testing::get(app, "/test/1/");
 
     assert!(response.body == "1");
-  }
-
-  #[test]
-  fn it_should_be_able_to_parse_an_incoming_body() {
-    fn generate_context_with_body(request: Request) -> TypedContext<TestStruct> {
-      TypedContext::<TestStruct>::new(&request)
-    }
-
-    let mut app = App::create(generate_context_with_body);
-
-    #[derive(Deserialize, Serialize)]
-    struct TestStruct {
-      key: String
-    };
-
-    fn test_fn_1(mut context: TypedContext<TestStruct>, _chain: &MiddlewareChain<TypedContext<TestStruct>>) -> Box<Future<Item=TypedContext<TestStruct>, Error=io::Error> + Send> {
-      let value = context.request_body.key.clone();
-
-      context.set_body(value);
-
-      Box::new(future::ok(context))
-    };
-
-    app.post("/test", vec![test_fn_1]);
-
-    let response = testing::post(app, "/test", "{\"key\":\"value\"}");
-
-    assert!(response.body == "value");
   }
 
   #[test]

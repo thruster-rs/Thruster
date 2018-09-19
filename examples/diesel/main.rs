@@ -1,3 +1,5 @@
+extern crate hyper;
+extern crate http;
 extern crate thruster;
 extern crate futures;
 extern crate serde;
