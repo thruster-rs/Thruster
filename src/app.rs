@@ -167,24 +167,24 @@ impl<T: Context + Send> App<T> {
     //     runtime.run().unwrap();
     //   }));
 
-    use http;
     use num_cpus;
     use net2::TcpBuilder;
     #[cfg(not(windows))]
     use net2::unix::UnixTcpBuilderExt;
     use std::thread;
-    use tokio::net::{TcpStream, TcpListener};
+    use tokio::net::TcpListener;
     use hyper::server::conn::Http;
     use futures::Stream;
+
+    let arc_app = Arc::new(app);
 
     for _ in 0..num_cpus::get() {
       let mut http = Http::new();
       http.pipeline_flush(true);
 
-      let arc_app = Arc::new(app);
-
+      let mini_clone = arc_app.clone();
       let new_service = move || {
-        let clone = arc_app.clone();
+        let clone = mini_clone.clone();
         service_fn(move |req: Request<Body>| {
           clone.resolve(req)
         })
@@ -192,6 +192,7 @@ impl<T: Context + Send> App<T> {
 
       threads.push(thread::spawn(move || {
         let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let handle = runtime.handle();
 
         let server = future::lazy(move || {
           let listener = {
@@ -209,14 +210,14 @@ impl<T: Context + Send> App<T> {
             let conn = http.serve_connection(socket, new_service())
                 .map_err(|e| eprintln!("connection error: {}", e));
 
-            runtime.handle().spawn(conn);
+            let _ = handle.spawn(conn);
 
             Ok(())
           })
           .map_err(|err| eprintln!("accept error = {:?}", err))
         });
 
-        runtime.spawn(server);
+        let _ = runtime.spawn(server);
         runtime.run().unwrap();
       }));
     }
