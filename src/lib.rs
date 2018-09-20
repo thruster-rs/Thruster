@@ -29,6 +29,7 @@ mod middleware;
 mod route_parser;
 mod route_tree;
 
+pub mod date;
 pub use app::App;
 pub use context::Context;
 pub use builtins::basic_context::BasicContext;
