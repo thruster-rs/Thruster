@@ -1,8 +1,6 @@
 use std::io;
 use std::net::ToSocketAddrs;
 use smallvec::SmallVec;
-use num_cpus;
-use std::thread;
 use std::sync::Arc;
 
 use futures::future;
@@ -140,22 +138,83 @@ impl<T: Context + Send> App<T> {
     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
     let mut threads = Vec::new();
     app._route_parser.optimize();
-    let arc_app = Arc::new(app);
+
+    // for _ in 0..num_cpus::get() {
+    //   let arc_app = arc_app.clone();
+    //   threads.push(thread::spawn(move || {
+    //     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+    //     let server = future::lazy(move || {
+    //       let listener = {
+    //         let builder = TcpBuilder::new_v4().unwrap();
+    //         #[cfg(not(windows))]
+    //         builder.reuse_address(true).unwrap();
+    //         #[cfg(not(windows))]
+    //         builder.reuse_port(true).unwrap();
+    //         builder.bind(addr).unwrap();
+    //         builder.listen(2048).unwrap()
+    //       };
+    //       let listener = TcpListener::from_std(listener, &tokio::reactor::Handle::current()).unwrap();
+
+    //       listener.incoming().for_each(move |socket| {
+    //         process(Arc::clone(&arc_app), socket);
+    //         Ok(())
+    //       })
+    //       .map_err(|err| eprintln!("accept error = {:?}", err))
+    //     });
+
+    //     runtime.spawn(server);
+    //     runtime.run().unwrap();
+    //   }));
+
+    use http;
+    use num_cpus;
+    use net2::TcpBuilder;
+    #[cfg(not(windows))]
+    use net2::unix::UnixTcpBuilderExt;
+    use std::thread;
+    use tokio::net::{TcpStream, TcpListener};
+    use hyper::server::conn::Http;
+    use futures::Stream;
 
     for _ in 0..num_cpus::get() {
-      let arc_app = arc_app.clone();
+      let mut http = Http::new();
+      http.pipeline_flush(true);
+
+      let arc_app = Arc::new(app);
+
+      let new_service = move || {
+        let clone = arc_app.clone();
+        service_fn(move |req: Request<Body>| {
+          clone.resolve(req)
+        })
+      };
+
       threads.push(thread::spawn(move || {
         let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-        let new_service = move || {
-          let clone = arc_app.clone();
-          service_fn(move |req: Request<Body>| {
-            clone.resolve(req)
-          })
-        };
 
-        let server = Server::bind(&addr)
-          .serve(new_service)
-          .map_err(|e| eprintln!("server error: {}", e));
+        let server = future::lazy(move || {
+          let listener = {
+            let builder = TcpBuilder::new_v4().unwrap();
+            #[cfg(not(windows))]
+            builder.reuse_address(true).unwrap();
+            #[cfg(not(windows))]
+            builder.reuse_port(true).unwrap();
+            builder.bind(addr).unwrap();
+            builder.listen(2048).unwrap()
+          };
+          let listener = TcpListener::from_std(listener, &tokio::reactor::Handle::current()).unwrap();
+
+          listener.incoming().for_each(move |socket| {
+            let conn = http.serve_connection(socket, new_service())
+                .map_err(|e| eprintln!("connection error: {}", e));
+
+            runtime.handle().spawn(conn);
+
+            Ok(())
+          })
+          .map_err(|err| eprintln!("accept error = {:?}", err))
+        });
 
         runtime.spawn(server);
         runtime.run().unwrap();
