@@ -1,6 +1,9 @@
 use std::io;
 use std::net::ToSocketAddrs;
 use smallvec::SmallVec;
+use num_cpus;
+use std::thread;
+use std::sync::Arc;
 
 use futures::future;
 use futures::Future;
@@ -12,7 +15,6 @@ use builtins::basic_context::{generate_context, BasicContext};
 use context::Context;
 use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
-use std::sync::Arc;
 
 enum Method {
   DELETE,
@@ -134,60 +136,38 @@ impl<T: Context + Send> App<T> {
   ///
   /// https://users.rust-lang.org/t/getting-tokio-to-match-actix-web-performance/18659/7
   ///
-  // pub fn start_small_load_optimized(mut app: App<T>, host: &str, port: u16) {
-  //   let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-  //   let mut threads = Vec::new();
-  //   app._route_parser.optimize();
-  //   let arc_app = Arc::new(app);
+  pub fn start_small_load_optimized(mut app: App<T>, host: &str, port: u16) {
+    let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+    let mut threads = Vec::new();
+    app._route_parser.optimize();
+    let arc_app = Arc::new(app);
 
-  //   for _ in 0..num_cpus::get() {
-  //     let arc_app = arc_app.clone();
-  //     threads.push(thread::spawn(move || {
-  //       let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+    for _ in 0..num_cpus::get() {
+      let arc_app = arc_app.clone();
+      threads.push(thread::spawn(move || {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let new_service = move || {
+          let clone = arc_app.clone();
+          service_fn(move |req: Request<Body>| {
+            clone.resolve(req)
+          })
+        };
 
-  //       let server = future::lazy(move || {
-  //         let listener = {
-  //           let builder = TcpBuilder::new_v4().unwrap();
-  //           #[cfg(not(windows))]
-  //           builder.reuse_address(true).unwrap();
-  //           #[cfg(not(windows))]
-  //           builder.reuse_port(true).unwrap();
-  //           builder.bind(addr).unwrap();
-  //           builder.listen(2048).unwrap()
-  //         };
-  //         let listener = TcpListener::from_std(listener, &tokio::reactor::Handle::current()).unwrap();
+        let server = Server::bind(&addr)
+          .serve(new_service)
+          .map_err(|e| eprintln!("server error: {}", e));
 
-  //         listener.incoming().for_each(move |socket| {
-  //           process(Arc::clone(&arc_app), socket);
-  //           Ok(())
-  //         })
-  //         .map_err(|err| eprintln!("accept error = {:?}", err))
-  //       });
+        runtime.spawn(server);
+        runtime.run().unwrap();
+      }));
+    }
 
-  //       runtime.spawn(server);
-  //       runtime.run().unwrap();
-  //     }));
-  //   }
+    println!("Server running on {}", addr);
 
-  //   println!("Server running on {}", addr);
-
-  //   for thread in threads {
-  //     thread.join().unwrap();
-  //   }
-
-  //   fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
-  //     let framed = Framed::new(socket, Http);
-  //     let (tx, rx) = framed.split();
-
-  //     let task = tx.send_all(rx.and_then(move |request: Request| {
-  //           app.resolve(request)
-  //         }))
-  //         .then(|_| future::ok(()));
-
-  //     // Spawn the task that handles the connection.
-  //     tokio::spawn(task);
-  //   }
-  // }
+    for thread in threads {
+      thread.join().unwrap();
+    }
+  }
 
   /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
   /// examples, likely not a good solution for real code bases. The advantage is that the
