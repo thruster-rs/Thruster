@@ -21,6 +21,8 @@ impl Ctx {
 }
 
 impl Context for Ctx {
+  type Response = Response;
+
   fn get_response(mut self) -> Response {
     self.response.status_code(200, "OK");
 

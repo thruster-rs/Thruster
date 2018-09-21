@@ -8,6 +8,11 @@ use smallvec::SmallVec;
 use httparse;
 use httplib;
 
+
+pub trait RequestWithParams {
+    fn set_params(&mut self, HashMap<String, String>);
+}
+
 pub struct Request {
     body: Slice,
     method: Slice,
@@ -80,8 +85,10 @@ impl Request {
     pub fn params(&self) -> &HashMap<String, String> {
         &self.params
     }
+}
 
-    pub fn set_params(&mut self, params: HashMap<String, String>) {
+impl RequestWithParams for Request {
+    fn set_params(&mut self, params: HashMap<String, String>) {
         self.params = params;
     }
 }

@@ -1,27 +1,14 @@
 use std::io;
-use std::net::ToSocketAddrs;
 use smallvec::SmallVec;
 
 use futures::future;
 use futures::Future;
-use tokio;
-use tokio::net::{TcpStream, TcpListener};
-use tokio::prelude::*;
-use tokio_codec::Framed;
-use num_cpus;
-use net2::TcpBuilder;
-#[cfg(not(windows))]
-use net2::unix::UnixTcpBuilderExt;
-use std::thread;
 
 use builtins::basic_context::{generate_context, BasicContext};
 use context::Context;
-use http::Http;
-use response::Response;
-use request::Request;
+use request::{Request, RequestWithParams};
 use route_parser::{MatchedRoute, RouteParser};
 use middleware::{Middleware, MiddlewareChain};
-use std::sync::Arc;
 
 enum Method {
   DELETE,
@@ -67,7 +54,7 @@ fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
 /// Subapp
 ///
 /// ```rust, ignore
-/// let mut app1 = App::<BasicContext>::new();
+/// let mut app1 = App::<Request, BasicContext>::new();
 ///
 /// fn test_fn_1(context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
 ///   Box::new(future::ok(BasicContext {
@@ -79,7 +66,7 @@ fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
 ///
 /// app1.get("/:id", vec![test_fn_1]);
 ///
-/// let mut app2 = App::<BasicContext>::new();
+/// let mut app2 = App::<Request, BasicContext>::new();
 /// app2.use_sub_app("/test", &app1);
 /// ```
 ///
@@ -91,135 +78,27 @@ fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
 /// useful if trying to integrate with a different type of load balancing system within the threads of the
 /// application.
 ///
-pub struct App<T: 'static + Context + Send> {
+pub struct App<R: RequestWithParams, T: 'static + Context + Send> {
   pub _route_parser: RouteParser<T>,
   ///
   /// Generate context is common to all `App`s. It's the function that's called upon receiving a request
   /// that translates an acutal `Request` struct to your custom Context type. It should be noted that
   /// the context_generator should be as fast as possible as this is called with every request, including
   /// 404s.
-  pub context_generator: fn(Request) -> T
+  pub context_generator: fn(R) -> T
 }
 
-impl<T: Context + Send> App<T> {
-  ///
-  /// Alias for start_work_stealing_optimized
-  ///
-  pub fn start(mut app: App<T>, host: &str, port: u16) {
-    let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-
-    app._route_parser.optimize();
-
-    let listener = TcpListener::bind(&addr).unwrap();
-    let arc_app = Arc::new(app);
-
-    fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
-      let framed = Framed::new(socket, Http);
-      let (tx, rx) = framed.split();
-
-      let task = tx.send_all(rx.and_then(move |request: Request| {
-            app.resolve(request)
-          }))
-          .then(|_| future::ok(()));
-
-      // Spawn the task that handles the connection.
-      tokio::spawn(task);
-    }
-
-    let server = listener.incoming()
-        .map_err(|e| println!("error = {:?}", e))
-        .for_each(move |socket| {
-            let _ = socket.set_nodelay(true);
-            process(arc_app.clone(), socket);
-            Ok(())
-        });
-
-    tokio::run(server);
-  }
-
-  ///
-  /// Starts the app with the default tokio runtime execution model
-  ///
-  pub fn start_work_stealing_optimized(app: App<T>, host: &str, port: u16) {
-    Self::start(app, host, port);
-  }
-
-  ///
-  /// Starts the app with a thread pool optimized for small requests and quick timeouts. This
-  /// is done internally by spawning a separate thread for each reactor core. This is valuable
-  /// if all server endpoints are similar in their load, as work is divided evenly among threads.
-  /// As seanmonstar points out though, this is a very specific use case and might not be useful
-  /// for everyday work loads.alloc
-  ///
-  /// See the discussion here for more information:
-  ///
-  /// https://users.rust-lang.org/t/getting-tokio-to-match-actix-web-performance/18659/7
-  ///
-  pub fn start_small_load_optimized(mut app: App<T>, host: &str, port: u16) {
-    let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-    let mut threads = Vec::new();
-    app._route_parser.optimize();
-    let arc_app = Arc::new(app);
-
-    for _ in 0..num_cpus::get() {
-      let arc_app = arc_app.clone();
-      threads.push(thread::spawn(move || {
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-
-        let server = future::lazy(move || {
-          let listener = {
-            let builder = TcpBuilder::new_v4().unwrap();
-            #[cfg(not(windows))]
-            builder.reuse_address(true).unwrap();
-            #[cfg(not(windows))]
-            builder.reuse_port(true).unwrap();
-            builder.bind(addr).unwrap();
-            builder.listen(2048).unwrap()
-          };
-          let listener = TcpListener::from_std(listener, &tokio::reactor::Handle::current()).unwrap();
-
-          listener.incoming().for_each(move |socket| {
-            process(Arc::clone(&arc_app), socket);
-            Ok(())
-          })
-          .map_err(|err| eprintln!("accept error = {:?}", err))
-        });
-
-        runtime.spawn(server);
-        runtime.run().unwrap();
-      }));
-    }
-
-    println!("Server running on {}", addr);
-
-    for thread in threads {
-      thread.join().unwrap();
-    }
-
-    fn process<T: Context + Send>(app: Arc<App<T>>, socket: TcpStream) {
-      let framed = Framed::new(socket, Http);
-      let (tx, rx) = framed.split();
-
-      let task = tx.send_all(rx.and_then(move |request: Request| {
-            app.resolve(request)
-          }))
-          .then(|_| future::ok(()));
-
-      // Spawn the task that handles the connection.
-      tokio::spawn(task);
-    }
-  }
-
+impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
   /// examples, likely not a good solution for real code bases. The advantage is that the
   /// context_generator is already supplied for the developer.
-  pub fn new() -> App<BasicContext> {
+  pub fn new() -> App<Request, BasicContext> {
     App::create(generate_context)
   }
 
   /// Create a new app with the given context generator. The app does not begin listening until start
   /// is called.
-  pub fn create(generate_context: fn(Request) -> T) -> App<T> {
+  pub fn create(generate_context: fn(R) -> T) -> App<R, T> {
     App {
       _route_parser: RouteParser::new(),
       context_generator: generate_context
@@ -228,7 +107,7 @@ impl<T: Context + Send> App<T> {
 
   /// Add method-agnostic middleware for a route. This is useful for applying headers, logging, and
   /// anything else that might not be sensitive to the HTTP method for the endpoint.
-  pub fn use_middleware(&mut self, path: &'static str, middleware: Middleware<T>) -> &mut App<T> {
+  pub fn use_middleware(&mut self, path: &'static str, middleware: Middleware<T>) -> &mut App<R, T> {
     self._route_parser.add_method_agnostic_middleware(path, middleware);
 
     self
@@ -237,7 +116,7 @@ impl<T: Context + Send> App<T> {
   /// Add an app as a predetermined set of routes and middleware. Will prefix whatever string is passed
   /// in to all of the routes. This is a main feature of Thruster, as it allows projects to be extermely
   /// modular and composeable in nature.
-  pub fn use_sub_app(&mut self, prefix: &'static str, app: App<T>) -> &mut App<T> {
+  pub fn use_sub_app(&mut self, prefix: &'static str, app: App<R, T>) -> &mut App<R, T> {
     self._route_parser.route_tree
       .add_route_tree(prefix, app._route_parser.route_tree);
 
@@ -250,7 +129,7 @@ impl<T: Context + Send> App<T> {
   }
 
   /// Add a route that responds to `GET`s to a given path
-  pub fn get(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
+  pub fn get(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     self._route_parser.add_route(
       &_add_method_to_route(Method::GET, path), SmallVec::from_vec(middlewares));
 
@@ -258,7 +137,7 @@ impl<T: Context + Send> App<T> {
   }
 
   /// Add a route that responds to `POST`s to a given path
-  pub fn post(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
+  pub fn post(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     self._route_parser.add_route(
       &_add_method_to_route(Method::POST, path), SmallVec::from_vec(middlewares));
 
@@ -266,7 +145,7 @@ impl<T: Context + Send> App<T> {
   }
 
   /// Add a route that responds to `PUT`s to a given path
-  pub fn put(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
+  pub fn put(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     self._route_parser.add_route(
       &_add_method_to_route(Method::PUT, path), SmallVec::from_vec(middlewares));
 
@@ -274,7 +153,7 @@ impl<T: Context + Send> App<T> {
   }
 
   /// Add a route that responds to `DELETE`s to a given path
-  pub fn delete(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
+  pub fn delete(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     self._route_parser.add_route(
       &_add_method_to_route(Method::DELETE, path), SmallVec::from_vec(middlewares));
 
@@ -282,7 +161,7 @@ impl<T: Context + Send> App<T> {
   }
 
   /// Add a route that responds to `UPDATE`s to a given path
-  pub fn update(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
+  pub fn update(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     self._route_parser.add_route(
       &_add_method_to_route(Method::UPDATE, path), SmallVec::from_vec(middlewares));
 
@@ -290,7 +169,7 @@ impl<T: Context + Send> App<T> {
   }
 
   /// Sets the middleware if no route is successfully matched.
-  pub fn set404(&mut self, middlewares: Vec<Middleware<T>>) -> &mut App<T> {
+  pub fn set404(&mut self, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     let middlewares_vec = SmallVec::from_vec(middlewares);
     self._route_parser.add_route(
       &_add_method_to_route(Method::GET, "/*"), middlewares_vec.clone());
@@ -306,18 +185,14 @@ impl<T: Context + Send> App<T> {
     self
   }
 
-  #[inline]
-  fn _req_to_matched_route(&self, request: &Request) -> MatchedRoute<T> {
-    let path = request.path();
+  pub fn resolve_from_method_and_path(&self, method: &str, path: &str) -> MatchedRoute<R, T> {
+    let path_with_method = &_add_method_to_route_from_str(method, path);
 
-    self._route_parser.match_route(
-      &_add_method_to_route_from_str(request.method(), path))
+    self._route_parser.match_route(path_with_method)
   }
 
   /// Resolves a request, returning a future that is processable into a Response
-
-  pub fn resolve(&self, mut request: Request) -> impl Future<Item=Response, Error=io::Error> + Send {
-    let matched_route = self._req_to_matched_route(&request);
+  pub fn resolve(&self, mut request: R, matched_route: MatchedRoute<R, T>) -> impl Future<Item=T::Response, Error=io::Error> + Send {
     request.set_params(matched_route.params);
 
     let context = (self.context_generator)(request);
@@ -368,7 +243,9 @@ mod tests {
   }
 
   impl<T> Context for TypedContext<T> {
-    fn get_response(self) -> Response {
+    type Response = Response;
+
+    fn get_response(self) -> Self::Response {
       let mut response = Response::new();
       response.body(&self.body);
 
@@ -382,7 +259,7 @@ mod tests {
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -399,7 +276,7 @@ mod tests {
 
   #[test]
   fn it_should_correctly_differentiate_wildcards_and_valid_routes() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -422,7 +299,7 @@ mod tests {
 
   #[test]
   fn it_should_handle_query_parameters() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = context.query_params.get("hello").unwrap().to_owned();
@@ -439,7 +316,7 @@ mod tests {
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request_with_params() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = context.params.get("id").unwrap().to_owned();
@@ -455,7 +332,7 @@ mod tests {
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request_with_params_in_a_subapp() {
-    let mut app1 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = context.params.get("id").unwrap().to_owned();
@@ -464,7 +341,7 @@ mod tests {
 
     app1.get("/:id", vec![test_fn_1]);
 
-    let mut app2 = App::<BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/test", app1);
 
     let response = testing::get(app2, "/test/123");
@@ -474,7 +351,7 @@ mod tests {
 
   #[test]
   fn it_should_correctly_parse_params_in_subapps() {
-    let mut app1 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = context.params.get("id").unwrap().to_owned();
@@ -483,7 +360,7 @@ mod tests {
 
     app1.get("/:id", vec![test_fn_1]);
 
-    let mut app2 = App::<BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/test", app1);
 
     let response = testing::get(app2, "/test/123");
@@ -493,7 +370,7 @@ mod tests {
 
   #[test]
   fn it_should_match_as_far_as_possible_in_a_subapp() {
-    let mut app1 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
       context.body = context.params.get("id").unwrap().to_owned();
@@ -508,7 +385,7 @@ mod tests {
     app1.get("/", vec![test_fn_2]);
     app1.get("/:id", vec![test_fn_1]);
 
-    let mut app2 = App::<BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/test", app1);
 
     let response = testing::get(app2, "/test/123");
@@ -518,7 +395,7 @@ mod tests {
 
   #[test]
   fn it_should_trim_trailing_slashes() {
-    let mut app1 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
       context.body = context.params.get("id").unwrap().to_owned();
@@ -532,7 +409,7 @@ mod tests {
 
     app1.get("/:id", vec![test_fn_1]);
 
-    let mut app2 = App::<BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/test", app1);
     app2.set404(vec![test_fn_2]);
 
@@ -543,7 +420,7 @@ mod tests {
 
   #[test]
   fn itz_should_trim_trailing_slashes_after_params() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
       context.body = context.params.get("id").unwrap().to_owned();
@@ -587,7 +464,7 @@ mod tests {
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request_based_on_method() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = format!("{}{}", context.body, "1");
@@ -609,7 +486,7 @@ mod tests {
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request_up_and_down() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = format!("{}{}", context.body, "1");
@@ -637,7 +514,7 @@ mod tests {
 
   #[test]
   fn it_should_return_whatever_was_set_as_the_body_of_the_context() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "Hello world".to_owned();
@@ -653,7 +530,7 @@ mod tests {
 
   #[test]
   fn it_should_first_run_use_then_methods() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn method_agnostic(mut context: BasicContext, chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "agnostic".to_owned();
@@ -682,7 +559,7 @@ mod tests {
 
   #[test]
   fn it_should_be_able_to_correctly_route_sub_apps() {
-    let mut app1 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -691,7 +568,7 @@ mod tests {
 
     app1.get("/test", vec![test_fn_1]);
 
-    let mut app2 = App::<BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/", app1);
 
     let response = testing::get(app2, "/test");
@@ -701,7 +578,7 @@ mod tests {
 
   #[test]
   fn it_should_be_able_to_correctly_route_sub_apps_with_wildcards() {
-    let mut app1 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -710,7 +587,7 @@ mod tests {
 
     app1.get("/*", vec![test_fn_1]);
 
-    let mut app2 = App::<BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/", app1);
 
     let response = testing::get(app2, "/a");
@@ -720,7 +597,7 @@ mod tests {
 
   #[test]
   fn it_should_be_able_to_correctly_prefix_route_sub_apps() {
-    let mut app1 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -729,7 +606,7 @@ mod tests {
 
     app1.get("/test", vec![test_fn_1]);
 
-    let mut app2 = App::<BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/sub", app1);
 
     let response = testing::get(app2, "/sub/test");
@@ -739,7 +616,7 @@ mod tests {
 
   #[test]
   fn it_should_be_able_to_correctly_prefix_the_root_of_sub_apps() {
-    let mut app1 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -748,7 +625,7 @@ mod tests {
 
     app1.get("/", vec![test_fn_1]);
 
-    let mut app2 = App::<BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/sub", app1);
 
     let response = testing::get(app2, "/sub");
@@ -758,7 +635,7 @@ mod tests {
 
   #[test]
   fn it_should_be_able_to_correctly_handle_not_found_routes() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -781,7 +658,7 @@ mod tests {
 
   #[test]
   fn it_should_be_able_to_correctly_handle_not_found_at_the_root() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -803,7 +680,7 @@ mod tests {
 
   #[test]
   fn it_should_be_able_to_correctly_handle_deep_not_found_routes() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -825,7 +702,7 @@ mod tests {
 
   #[test]
   fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramaterized_routes() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -847,7 +724,7 @@ mod tests {
 
   #[test]
   fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramaterized_routes_with_extra_pieces() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -869,9 +746,9 @@ mod tests {
 
 #[test]
   fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_root_route() {
-    let mut app1 = App::<BasicContext>::new();
-    let mut app2 = App::<BasicContext>::new();
-    let mut app3 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
+    let mut app3 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -895,7 +772,7 @@ mod tests {
 
   #[test]
   fn it_should_handle_routes_without_leading_slash() {
-    let mut app = App::<BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -916,8 +793,8 @@ mod tests {
 
   #[test]
   fn it_should_handle_routes_within_a_subapp_without_leading_slash() {
-    let mut app1 = App::<BasicContext>::new();
-    let mut app2 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();
@@ -934,9 +811,9 @@ mod tests {
 
   #[test]
   fn it_should_handle_multiple_subapps_with_wildcards() {
-    let mut app1 = App::<BasicContext>::new();
-    let mut app2 = App::<BasicContext>::new();
-    let mut app3 = App::<BasicContext>::new();
+    let mut app1 = App::<Request, BasicContext>::new();
+    let mut app2 = App::<Request, BasicContext>::new();
+    let mut app3 = App::<Request, BasicContext>::new();
 
     fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
       context.body = "1".to_owned();

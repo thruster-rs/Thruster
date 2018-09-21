@@ -59,7 +59,9 @@ extern crate futures;
 use std::boxed::Box;
 use futures::future;
 
-use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue};
+use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
+use thruster::builtins::server::Server;
+use thruster::server::ThrusterServer;
 
 fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
@@ -71,11 +73,46 @@ fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
 fn main() {
   println!("Starting server...");
 
-  let mut app = App::<Ctx>::new();
+  let mut app = App::<Request, Ctx>::new();
 
   app.get("/plaintext", vec![plaintext]);
 
-  App::start(app, "0.0.0.0", 4321);
+  let server = Server::new(app);
+  server.start("0.0.0.0", 4321);
+}
+```
+
+### The most basic example with Hyper
+```rust
+extern crate thruster;
+extern crate futures;
+extern crate hyper;
+
+use std::boxed::Box;
+use futures::future;
+
+use hyper::{Body, Request};
+use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
+use thruster::builtins::hyper_server::Server;
+use thruster::builtins::basic_hyper_context::{generate_context, BasicHyperContext as Ctx};
+use thruster::server::ThrusterServer;
+
+fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
+  let val = "Hello, World!".to_owned();
+  context.body = val;
+
+  Box::new(future::ok(context))
+}
+
+fn main() {
+  println!("Starting server...");
+
+  let mut app = App::<Request<Body>, Ctx>::create(generate_context);
+
+  app.get("/plaintext", vec![plaintext]);
+
+  let server = Server::new(app);
+  server.start("0.0.0.0", 4321);
 }
 ```
 
@@ -131,3 +168,27 @@ let result = testing::get(app, "/plaintext");
 
 assert!(result.body == "Hello, World!");
 ```
+
+## Other, or Custom Backends
+
+Thruster is capable of just providing the routing layer on top of a server of some sort, for example, in the Hyper snippet above. This can be applied broadly to any backend, as long as the server implements `ThrusterServer`.
+
+```rs
+pub trait ThrusterServer {
+  type Context: Context + Send;
+  type Response: Send;
+  type Request: RequestWithParams + Send;
+
+  fn new(App<Self::Request, Self::Context>) -> Self;
+  fn start(self, host: &str, port: u16);
+}
+```
+
+There needs to be:
+- An easy way to new up a server.
+- A function to start the server.
+
+Within the `start` function, the server implementation should:
+- Start up some sort of listener for connections
+- Call `let matched = app.resolve_from_method_and_path(<some method>, <some path>);` (This is providing the actual routing.)
+- Call `app.resolve(<incoming request>, matched)` (This runs the chained middleware.)
