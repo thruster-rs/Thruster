@@ -16,6 +16,8 @@ mod content_model;
 use futures::future;
 
 use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
+use thruster::builtins::server::Server;
+use thruster::server::ThrusterServer;
 use context::{Ctx, generate_context};
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
@@ -68,5 +70,6 @@ fn main() {
   app.get("/plaintext", vec![fetch_value]);
   app.get("/*", vec![not_found_404]);
 
-  App::start(app, "0.0.0.0", 4321);
+  let server = Server::new(app);
+  server.start("0.0.0.0", 4321);
 }

@@ -11,6 +11,9 @@ extern crate tokio;
 extern crate tokio_codec;
 extern crate tokio_io;
 
+#[cfg(feature="hyper_server")]
+extern crate hyper;
+
 #[macro_use] extern crate smallvec;
 #[macro_use] extern crate templatify;
 // For tests
@@ -23,6 +26,7 @@ extern crate tokio_core;
 
 mod app;
 pub mod builtins;
+pub mod server;
 mod context;
 mod date;
 mod http;
@@ -41,3 +45,6 @@ pub use response::{encode, Response};
 pub use request::{decode, Request};
 pub use http::Http;
 pub mod testing;
+
+#[cfg(feature="hyper_server")]
+pub use builtins::basic_hyper_context::BasicHyperContext;

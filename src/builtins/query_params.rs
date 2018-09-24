@@ -2,17 +2,17 @@ use std::collections::HashMap;
 
 use context::Context;
 use middleware::{MiddlewareChain, MiddlewareReturnValue};
-use builtins::retains_request::RetainsRequest;
 
 pub trait HasQueryParams {
   fn set_query_params(&mut self, query_params: HashMap<String, String>);
+  fn route(&self) -> &str;
 }
 
-pub fn query_params<T: 'static + Context + HasQueryParams + RetainsRequest + Send>(mut context: T, chain: &MiddlewareChain<T>) -> MiddlewareReturnValue<T> {
+pub fn query_params<T: 'static + Context + HasQueryParams + Send>(mut context: T, chain: &MiddlewareChain<T>) -> MiddlewareReturnValue<T> {
   let mut query_param_hash = HashMap::new();
 
   {
-    let route: &str = &context.get_request().path();
+    let route: &str = &context.route();
 
     let mut iter = route.split("?");
     // Get rid of first bit (the non-query string part)

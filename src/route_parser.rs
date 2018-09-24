@@ -5,13 +5,14 @@ use middleware::{Middleware};
 use route_tree::RouteTree;
 use context::Context;
 use app::App;
+use request::RequestWithParams;
 
-pub struct MatchedRoute<'a, T: 'static + Context + Send> {
+pub struct MatchedRoute<'a, R: RequestWithParams, T: 'static + Context + Send> {
   pub value: String,
   pub params: HashMap<String, String>,
   pub query_params: HashMap<String, String>,
   pub middleware: &'a SmallVec<[Middleware<T>; 8]>,
-  pub sub_app: Option<App<T>>
+  pub sub_app: Option<App<R, T>>
 }
 
 pub struct RouteParser<T: 'static + Context + Send> {
@@ -46,7 +47,7 @@ impl<T: Context + Send> RouteParser<T> {
   }
 
   #[inline]
-  pub fn match_route(&self, route: &str) -> MatchedRoute<T> {
+  pub fn match_route<R: RequestWithParams>(&self, route: &str) -> MatchedRoute<R, T> {
     let query_params = HashMap::new();
 
     let split_route = route.find('?');
@@ -86,6 +87,7 @@ impl<T: Context + Send> RouteParser<T> {
 mod tests {
   use super::RouteParser;
   use builtins::basic_context::BasicContext;
+  use request::Request;
   use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
   use futures::future;
   use std::boxed::Box;
@@ -96,7 +98,7 @@ mod tests {
     let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_route("1/2/3/4", SmallVec::new());
 
-    assert!(route_parser.match_route("1/2/3/4").value == "1/2/3/4");
+    assert!(route_parser.match_route::<Request>("1/2/3/4").value == "1/2/3/4");
   }
 
   #[test]
@@ -104,7 +106,7 @@ mod tests {
     let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_route("1/2/3/4", SmallVec::new());
 
-    assert!(route_parser.match_route("5").value == "5");
+    assert!(route_parser.match_route::<Request>("5").value == "5");
   }
 
   #[test]
@@ -114,7 +116,7 @@ mod tests {
     route_parser.add_route("1/2/3/4/5", SmallVec::new());
     route_parser.add_route("1/2/3/4", SmallVec::new());
 
-    assert!(route_parser.match_route("1/2/3/4").value == "1/2/3/4");
+    assert!(route_parser.match_route::<Request>("1/2/3/4").value == "1/2/3/4");
   }
 
   #[test]
@@ -122,7 +124,7 @@ mod tests {
     let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_route("1/:param/2", SmallVec::new());
 
-    let matched = route_parser.match_route("1/somevar/2");
+    let matched = route_parser.match_route::<Request>("1/somevar/2");
 
     assert!(matched.params.get("param").unwrap() == "somevar");
   }
@@ -136,7 +138,7 @@ mod tests {
     let mut route_parser = RouteParser::<BasicContext>::new();
     route_parser.add_route("1/2/3", smallvec![test_function as Middleware<BasicContext>]);
 
-    let matched = route_parser.match_route("1/2/3");
+    let matched = route_parser.match_route::<Request>("1/2/3");
     assert!(matched.middleware.len() == 1);
   }
 
@@ -154,7 +156,7 @@ mod tests {
     route_parser.add_method_agnostic_middleware("/", method_agnostic);
     route_parser.add_route("/__GET__/1/2/3", smallvec![test_function as Middleware<BasicContext>]);
 
-    let matched = route_parser.match_route("__GET__/1/2/3");
+    let matched = route_parser.match_route::<Request>("__GET__/1/2/3");
     assert!(matched.middleware.len() == 2);
   }
 }

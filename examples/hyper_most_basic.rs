@@ -1,23 +1,19 @@
 extern crate thruster;
 extern crate futures;
+extern crate hyper;
 
 use std::boxed::Box;
 use futures::future;
 
-use thruster::{App, BasicContext as Ctx, CookieOptions, MiddlewareChain, MiddlewareReturnValue, Request};
-use thruster::builtins::server::Server;
+use hyper::{Body, Request};
+use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
+use thruster::builtins::hyper_server::Server;
+use thruster::builtins::basic_hyper_context::{generate_context, BasicHyperContext as Ctx};
 use thruster::server::ThrusterServer;
 
 fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
   context.body = val;
-  context.cookie("SomeCookie", "Some Value!", CookieOptions::default());
-
-  Box::new(future::ok(context))
-}
-
-fn redirect(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
-  context.redirect("/plaintext");
 
   Box::new(future::ok(context))
 }
@@ -25,10 +21,9 @@ fn redirect(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturn
 fn main() {
   println!("Starting server...");
 
-  let mut app = App::<Request, Ctx>::new();
+  let mut app = App::<Request<Body>, Ctx>::create(generate_context);
 
   app.get("/plaintext", vec![plaintext]);
-  app.get("*", vec![redirect]);
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);

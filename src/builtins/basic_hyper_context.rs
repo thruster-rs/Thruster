@@ -1,8 +1,7 @@
 use std::collections::HashMap;
+use hyper::{Body, Response, Request, StatusCode};
 
 use context::Context;
-use response::Response;
-use request::Request;
 use builtins::query_params::HasQueryParams;
 
 pub enum SameSite {
@@ -36,33 +35,48 @@ impl CookieOptions {
   }
 }
 
-pub fn generate_context(request: Request) -> BasicContext {
-  let mut ctx = BasicContext::new();
-  ctx.params = request.params().clone();
+pub fn generate_context(request: Request<Body>) -> BasicHyperContext {
+  let mut ctx = BasicHyperContext::new();
   ctx.request = request;
 
   ctx
 }
 
-pub struct BasicContext {
+pub struct BasicHyperContext {
   pub body: String,
-  pub params: HashMap<String, String>,
   pub query_params: HashMap<String, String>,
-  pub request: Request,
-  pub status: u32,
+  pub request: Request<Body>,
+  pub status: u16,
   pub headers: HashMap<String, String>
 }
 
-impl BasicContext {
-  pub fn new() -> BasicContext {
-    BasicContext {
+impl BasicHyperContext {
+  pub fn new() -> BasicHyperContext {
+    let mut req = Request::builder()
+      .body(Body::empty()).unwrap();
+
+    let param_map: HashMap<String, String> = HashMap::new();
+    req.extensions_mut().insert(param_map);
+
+    BasicHyperContext {
       body: "".to_owned(),
-      params: HashMap::new(),
       query_params: HashMap::new(),
-      request: Request::new(),
+      request: req,
       headers: HashMap::new(),
       status: 200
     }
+  }
+
+  ///
+  /// Get a a parameter
+  ///
+  pub fn param(&mut self, key: &str) -> Option<&String> {
+    let params = self.request
+      .extensions_mut()
+      .get_mut::<HashMap<String, String>>()
+      .unwrap();
+
+    params.get(key)
   }
 
   ///
@@ -82,7 +96,7 @@ impl BasicContext {
   ///
   /// Set the response status code
   ///
-  pub fn status(&mut self, code: u32) {
+  pub fn status(&mut self, code: u16) {
     self.status = code;
   }
 
@@ -156,21 +170,21 @@ impl BasicContext {
   }
 }
 
-impl Context for BasicContext {
-  type Response = Response;
+impl Context for BasicHyperContext {
+  type Response = Response<Body>;
 
   fn get_response(self) -> Self::Response {
-    let mut response = Response::new();
-
-    response.body(&self.body);
+    let mut response_builder = Response::builder();
 
     for (key, val) in self.headers {
-      response.header(&key, &val);
+      let key: &str = &key;
+      let val: &str = &val;
+      response_builder.header(key, val);
     }
 
-    response.status_code(self.status, "");
+    response_builder.status(StatusCode::from_u16(self.status).unwrap());
 
-    response
+    response_builder.body(Body::from(self.body)).unwrap()
   }
 
   fn set_body(&mut self, body: String) {
@@ -178,12 +192,15 @@ impl Context for BasicContext {
   }
 }
 
-impl HasQueryParams for BasicContext {
+impl HasQueryParams for BasicHyperContext {
   fn set_query_params(&mut self, query_params: HashMap<String, String>) {
     self.query_params = query_params;
   }
 
   fn route(&self) -> &str {
-    self.request.path()
+    match self.request.uri().path_and_query() {
+      Some(val) => val.as_str(),
+      None => self.request.uri().path()
+    }
   }
 }

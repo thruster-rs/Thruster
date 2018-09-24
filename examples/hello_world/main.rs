@@ -12,6 +12,8 @@ mod context;
 use futures::future;
 
 use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
+use thruster::builtins::server::Server;
+use thruster::server::ThrusterServer;
 use context::{generate_context, Ctx};
 
 fn not_found_404(context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
@@ -63,5 +65,6 @@ fn main() {
 
   app.get("/*", vec![not_found_404]);
 
-  App::start(app, "0.0.0.0", 4321);
+  let server = Server::new(app);
+  server.start("0.0.0.0", 4321);
 }

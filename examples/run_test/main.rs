@@ -4,7 +4,7 @@ extern crate futures;
 use std::boxed::Box;
 use futures::future;
 
-use thruster::{testing, App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue};
+use thruster::{testing, App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
 
 fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
@@ -14,7 +14,7 @@ fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
 }
 
 fn main() {
-  let mut app = App::<Ctx>::new();
+  let mut app = App::<Request, Ctx>::new();
 
   app.get("/plaintext", vec![plaintext]);
 
