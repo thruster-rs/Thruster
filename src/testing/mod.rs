@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use response::{Response, StatusMessage};
 use request::Request;
 
-pub fn get<T: Context<Response = Response> + Send>(app: App<Request, T>, route: &str) -> TestResponse {
+pub fn get<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str) -> TestResponse {
   let body = format!("GET {} HTTP/1.1\nHost: localhost:8080\n\n", route);
 
   let mut bytes = BytesMut::with_capacity(body.len());
@@ -21,7 +21,7 @@ pub fn get<T: Context<Response = Response> + Send>(app: App<Request, T>, route: 
   TestResponse::new(response)
 }
 
-pub fn delete<T: Context<Response = Response> + Send>(app: App<Request, T>, route: &str) -> TestResponse {
+pub fn delete<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str) -> TestResponse {
   let body = format!("DELETE {} HTTP/1.1\nHost: localhost:8080\n\n", route);
 
   let mut bytes = BytesMut::with_capacity(body.len());
@@ -36,7 +36,7 @@ pub fn delete<T: Context<Response = Response> + Send>(app: App<Request, T>, rout
   TestResponse::new(response)
 }
 
-pub fn post<T: Context<Response = Response> + Send>(app: App<Request, T>, route: &str, content: &str) -> TestResponse {
+pub fn post<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
   let body = format!("POST {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
 
   let mut bytes = BytesMut::with_capacity(body.len());
@@ -51,7 +51,7 @@ pub fn post<T: Context<Response = Response> + Send>(app: App<Request, T>, route:
   TestResponse::new(response)
 }
 
-pub fn put<T: Context<Response = Response> + Send>(app: App<Request, T>, route: &str, content: &str) -> TestResponse {
+pub fn put<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
   let body = format!("PUT {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
 
   let mut bytes = BytesMut::with_capacity(body.len());
@@ -66,7 +66,7 @@ pub fn put<T: Context<Response = Response> + Send>(app: App<Request, T>, route: 
   TestResponse::new(response)
 }
 
-pub fn update<T: Context<Response = Response> + Send>(app: App<Request, T>, route: &str, content: &str) -> TestResponse {
+pub fn update<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
   let body = format!("UPDATE {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
 
   let mut bytes = BytesMut::with_capacity(body.len());
@@ -93,8 +93,8 @@ impl TestResponse {
     let header_string = String::from_utf8(response.header_raw.to_vec()).unwrap();
 
     for header_pair in header_string.split("\r\n") {
-      if header_pair.len() > 0 {
-        let mut split = header_pair.split(":");
+      if !header_pair.is_empty() {
+        let mut split = header_pair.split(':');
         let key = split.next().unwrap().trim().to_owned();
         let value = split.next().unwrap().trim().to_owned();
 
@@ -104,7 +104,7 @@ impl TestResponse {
 
     TestResponse {
       body: String::from_utf8(response.response).unwrap(),
-      headers: headers,
+      headers,
       status: match response.status_message {
         StatusMessage::Ok => ("Ok".to_owned(), 200),
         StatusMessage::Custom(code, message) => (message, code)

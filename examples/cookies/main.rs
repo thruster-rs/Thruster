@@ -11,7 +11,7 @@ use thruster::server::ThrusterServer;
 fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
   context.body = val;
-  context.cookie("SomeCookie", "Some Value!", CookieOptions::default());
+  context.cookie("SomeCookie", "Some Value!", &CookieOptions::default());
 
   Box::new(future::ok(context))
 }

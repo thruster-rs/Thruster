@@ -10,6 +10,7 @@ extern crate time;
 extern crate tokio;
 extern crate tokio_codec;
 extern crate tokio_io;
+extern crate tokio_core;
 
 #[cfg(feature="hyper_server")]
 extern crate hyper;
@@ -21,8 +22,6 @@ extern crate hyper;
 #[macro_use] extern crate serde_derive;
 #[allow(unused_imports)]
 #[macro_use] extern crate serde_json;
-#[allow(unused_imports)]
-extern crate tokio_core;
 
 mod app;
 pub mod builtins;

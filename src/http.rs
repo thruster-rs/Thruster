@@ -13,9 +13,7 @@ impl Decoder for Http {
 
 
     fn decode(&mut self, buf: &mut BytesMut) -> io::Result<Option<Request>> {
-        let res = request::decode(buf);
-
-        res
+        request::decode(buf)
     }
 }
 
@@ -25,7 +23,7 @@ impl Encoder for Http {
 
 
     fn encode(&mut self, msg: Response, buf: &mut BytesMut) -> io::Result<()> {
-        response::encode(msg, buf);
+        response::encode(&msg, buf);
 
         Ok(())
     }

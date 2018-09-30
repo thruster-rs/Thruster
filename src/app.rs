@@ -19,7 +19,7 @@ enum Method {
 }
 
 // Warning, this method is slow and shouldn't be used for route matching, only for route adding
-fn _add_method_to_route(method: Method, path: &str) -> String {
+fn _add_method_to_route(method: &Method, path: &str) -> String {
   let prefix = match method {
     Method::DELETE => "__DELETE__",
     Method::GET => "__GET__",
@@ -131,7 +131,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   /// Add a route that responds to `GET`s to a given path
   pub fn get(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::GET, path), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(&Method::GET, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -139,7 +139,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   /// Add a route that responds to `POST`s to a given path
   pub fn post(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::POST, path), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(&Method::POST, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -147,7 +147,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   /// Add a route that responds to `PUT`s to a given path
   pub fn put(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::PUT, path), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(&Method::PUT, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -155,7 +155,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   /// Add a route that responds to `DELETE`s to a given path
   pub fn delete(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::DELETE, path), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(&Method::DELETE, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -163,7 +163,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   /// Add a route that responds to `UPDATE`s to a given path
   pub fn update(&mut self, path: &'static str, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     self._route_parser.add_route(
-      &_add_method_to_route(Method::UPDATE, path), SmallVec::from_vec(middlewares));
+      &_add_method_to_route(&Method::UPDATE, path), SmallVec::from_vec(middlewares));
 
     self
   }
@@ -172,15 +172,15 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   pub fn set404(&mut self, middlewares: Vec<Middleware<T>>) -> &mut App<R, T> {
     let middlewares_vec = SmallVec::from_vec(middlewares);
     self._route_parser.add_route(
-      &_add_method_to_route(Method::GET, "/*"), middlewares_vec.clone());
+      &_add_method_to_route(&Method::GET, "/*"), middlewares_vec.clone());
     self._route_parser.add_route(
-      &_add_method_to_route(Method::POST, "/*"), middlewares_vec.clone());
+      &_add_method_to_route(&Method::POST, "/*"), middlewares_vec.clone());
     self._route_parser.add_route(
-      &_add_method_to_route(Method::PUT, "/*"), middlewares_vec.clone());
+      &_add_method_to_route(&Method::PUT, "/*"), middlewares_vec.clone());
     self._route_parser.add_route(
-      &_add_method_to_route(Method::UPDATE, "/*"), middlewares_vec.clone());
+      &_add_method_to_route(&Method::UPDATE, "/*"), middlewares_vec.clone());
     self._route_parser.add_route(
-      &_add_method_to_route(Method::DELETE, "/*"), middlewares_vec.clone());
+      &_add_method_to_route(&Method::DELETE, "/*"), middlewares_vec.clone());
 
     self
   }
@@ -269,7 +269,7 @@ mod tests {
     app.use_middleware("/", query_params::query_params);
     app.get("/test", vec![test_fn_1]);
 
-    let response = testing::get(app, "/test");
+    let response = testing::get(&app, "/test");
 
     assert!(response.body == "1");
   }
@@ -292,7 +292,7 @@ mod tests {
     app.get("/", vec![test_fn_1]);
     app.get("/*", vec![test_fn_404]);
 
-    let response = testing::get(app, "/");
+    let response = testing::get(&app, "/");
 
     assert!(response.body == "1");
   }
@@ -309,7 +309,7 @@ mod tests {
     app.use_middleware("/", query_params::query_params);
     app.get("/test", vec![test_fn_1]);
 
-    let response = testing::get(app, "/test?hello=world");
+    let response = testing::get(&app, "/test?hello=world");
 
     assert!(response.body == "world");
   }
@@ -325,7 +325,7 @@ mod tests {
 
     app.get("/test/:id", vec![test_fn_1]);
 
-    let response = testing::get(app, "/test/123");
+    let response = testing::get(&app, "/test/123");
 
     assert!(response.body == "123");
   }
@@ -344,7 +344,7 @@ mod tests {
     let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/test", app1);
 
-    let response = testing::get(app2, "/test/123");
+    let response = testing::get(&app2, "/test/123");
 
     assert!(response.body == "123");
   }
@@ -363,7 +363,7 @@ mod tests {
     let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/test", app1);
 
-    let response = testing::get(app2, "/test/123");
+    let response = testing::get(&app2, "/test/123");
 
     assert!(response.body == "123");
   }
@@ -388,7 +388,7 @@ mod tests {
     let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/test", app1);
 
-    let response = testing::get(app2, "/test/123");
+    let response = testing::get(&app2, "/test/123");
 
     assert!(response.body == "123");
   }
@@ -413,7 +413,7 @@ mod tests {
     app2.use_sub_app("/test", app1);
     app2.set404(vec![test_fn_2]);
 
-    let response = testing::get(app2, "/test/");
+    let response = testing::get(&app2, "/test/");
 
     assert!(response.body == "-1");
   }
@@ -429,7 +429,7 @@ mod tests {
 
     app.get("/test/:id", vec![test_fn_1]);
 
-    let response = testing::get(app, "/test/1/");
+    let response = testing::get(&app, "/test/1/");
 
     assert!(response.body == "1");
   }
@@ -457,7 +457,7 @@ mod tests {
 
     app.post("/test", vec![test_fn_1]);
 
-    let response = testing::post(app, "/test", "{\"key\":\"value\"}");
+    let response = testing::post(&app, "/test", "{\"key\":\"value\"}");
 
     assert!(response.body == "value");
   }
@@ -479,7 +479,7 @@ mod tests {
     app.get("/test", vec![test_fn_1]);
     app.post("/test", vec![test_fn_2]);
 
-    let response = testing::get(app, "/test");
+    let response = testing::get(&app, "/test");
 
     assert!(response.body == "1");
   }
@@ -507,7 +507,7 @@ mod tests {
 
     app.get("/test", vec![test_fn_2, test_fn_1]);
 
-    let response = testing::get(app, "/test");
+    let response = testing::get(&app, "/test");
 
     assert!(response.body == "212");
   }
@@ -523,7 +523,7 @@ mod tests {
 
     app.get("/test", vec![test_fn_1]);
 
-    let response = testing::get(app, "/test");
+    let response = testing::get(&app, "/test");
 
     assert!(response.body == "Hello world");
   }
@@ -552,7 +552,7 @@ mod tests {
     app.use_middleware("/", method_agnostic);
     app.get("/test", vec![test_fn_1]);
 
-    let response = testing::get(app, "/test");
+    let response = testing::get(&app, "/test");
 
     assert!(response.body == "agnostic-1");
   }
@@ -571,7 +571,7 @@ mod tests {
     let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/", app1);
 
-    let response = testing::get(app2, "/test");
+    let response = testing::get(&app2, "/test");
 
     assert!(response.body == "1");
   }
@@ -590,7 +590,7 @@ mod tests {
     let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/", app1);
 
-    let response = testing::get(app2, "/a");
+    let response = testing::get(&app2, "/a");
 
     assert!(response.body == "1");
   }
@@ -609,7 +609,7 @@ mod tests {
     let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/sub", app1);
 
-    let response = testing::get(app2, "/sub/test");
+    let response = testing::get(&app2, "/sub/test");
 
     assert!(response.body == "1");
   }
@@ -628,7 +628,7 @@ mod tests {
     let mut app2 = App::<Request, BasicContext>::new();
     app2.use_sub_app("/sub", app1);
 
-    let response = testing::get(app2, "/sub");
+    let response = testing::get(&app2, "/sub");
 
     assert!(response.body == "1");
   }
@@ -650,7 +650,7 @@ mod tests {
     app.get("/", vec![test_fn_1]);
     app.set404(vec![test_404]);
 
-    let response = testing::get(app, "/not_found");
+    let response = testing::get(&app, "/not_found");
 
     assert!(response.body == "not found");
   }
@@ -673,7 +673,7 @@ mod tests {
     app.get("/a", vec![test_fn_1]);
     app.set404(vec![test_404]);
 
-    let response = testing::get(app, "/");
+    let response = testing::get(&app, "/");
 
     assert!(response.body == "not found");
   }
@@ -695,7 +695,7 @@ mod tests {
     app.get("/a/b", vec![test_fn_1]);
     app.set404(vec![test_404]);
 
-    let response = testing::get(app, "/a/not_found/");
+    let response = testing::get(&app, "/a/not_found/");
 
     assert!(response.body == "not found");
   }
@@ -717,7 +717,7 @@ mod tests {
     app.get("/a/:b/c", vec![test_fn_1]);
     app.set404(vec![test_404]);
 
-    let response = testing::get(app, "/a/1/d");
+    let response = testing::get(&app, "/a/1/d");
 
     assert!(response.body == "not found");
   }
@@ -739,7 +739,7 @@ mod tests {
     app.get("/a/:b/c", vec![test_fn_1]);
     app.set404(vec![test_404]);
 
-    let response = testing::get(app, "/a/1/d/e/f/g");
+    let response = testing::get(&app, "/a/1/d/e/f/g");
 
     assert!(response.body == "not found");
   }
@@ -765,7 +765,7 @@ mod tests {
     app3.use_sub_app("/", app2);
     app3.use_sub_app("/a", app1);
 
-    let response = testing::get(app3, "/a/1/d");
+    let response = testing::get(&app3, "/a/1/d");
 
     assert!(response.body == "not found");
   }
@@ -786,7 +786,7 @@ mod tests {
       println!("{}: {}", route, middleware.len());
     }
 
-    let response = testing::get(app, "/a/1/d/e/f/g");
+    let response = testing::get(&app, "/a/1/d/e/f/g");
 
     assert!(response.body == "1");
   }
@@ -804,7 +804,7 @@ mod tests {
     app1.get("*", vec![test_fn_1]);
     app2.use_sub_app("/", app1);
 
-    let response = testing::get(app2, "/a/1/d/e/f/g");
+    let response = testing::get(&app2, "/a/1/d/e/f/g");
 
     assert!(response.body == "1");
   }
@@ -830,7 +830,7 @@ mod tests {
     app3.use_sub_app("/", app1);
     app3.use_sub_app("/a/b", app2);
 
-    let response = testing::get(app3, "/a/1/d/e/f/g");
+    let response = testing::get(&app3, "/a/1/d/e/f/g");
 
     assert!(response.body == "1");
   }

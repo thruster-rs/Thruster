@@ -27,7 +27,7 @@ impl<'a, T: 'static + Context + Send> MiddlewareChain<'a, T> {
   /// Create a new `MiddlewareChain` with a vector of middleware to be executed.
   pub fn new(middleware: &'a SmallVec<[Middleware<T>; 8]>) -> MiddlewareChain<'a, T> {
     MiddlewareChain {
-      middleware: middleware,
+      middleware,
       _chain_index: Cell::new(0)
     }
   }

@@ -13,6 +13,7 @@ pub trait RequestWithParams {
     fn set_params(&mut self, HashMap<String, String>);
 }
 
+#[derive(Default)]
 pub struct Request {
     body: Slice,
     method: Slice,
@@ -125,7 +126,9 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
             (start, start + a.len())
         };
         for header in r.headers.iter() {
-            if header.name == httplib::header::CONTENT_LENGTH {
+            let header_name = httplib::header::CONTENT_LENGTH;
+
+            if header.name == header_name {
                 let value = str::from_utf8(header.value).unwrap_or("0");
                 body_len = value.parse::<usize>().unwrap_or(0);
             }
@@ -142,10 +145,10 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
     };
 
     Ok(Request {
-        method: method,
-        path: path,
-        version: version,
-        headers: headers,
+        method,
+        path,
+        version,
+        headers,
         data: buf.split_to(amt + body_len),
         body: (amt, amt + body_len),
         params: HashMap::new()

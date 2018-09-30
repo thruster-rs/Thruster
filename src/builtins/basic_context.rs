@@ -44,6 +44,7 @@ pub fn generate_context(request: Request) -> BasicContext {
   ctx
 }
 
+#[derive(Default)]
 pub struct BasicContext {
   pub body: String,
   pub params: HashMap<String, String>,
@@ -115,16 +116,16 @@ impl BasicContext {
   ///
   /// Sets a cookie on the response
   ///
-  pub fn cookie(&mut self, name: &str, value: &str, options: CookieOptions) {
+  pub fn cookie(&mut self, name: &str, value: &str, options: &CookieOptions) {
     let cookie_value = match self.headers.get("Set-Cookie") {
-      Some(val) => format!("{}, {}", val, self.cookify_options(name, value, options)),
-      None => self.cookify_options(name, value, options)
+      Some(val) => format!("{}, {}", val, self.cookify_options(name, value, &options)),
+      None => self.cookify_options(name, value, &options)
     };
 
     self.set("Set-Cookie", &cookie_value);
   }
 
-  fn cookify_options(&self, name: &str, value: &str, options: CookieOptions) -> String {
+  fn cookify_options(&self, name: &str, value: &str, options: &CookieOptions) -> String {
     let mut pieces = vec![format!("Path={}", options.path)];
 
     if options.expires > 0 {
@@ -135,7 +136,7 @@ impl BasicContext {
       pieces.push(format!("Max-Age={}", options.max_age));
     }
 
-    if options.domain.len() > 0 {
+    if !options.domain.is_empty() {
       pieces.push(format!("Domain={}", options.domain));
     }
 

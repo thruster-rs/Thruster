@@ -112,7 +112,7 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for Server<T> {
 
   fn new(app: App<Self::Request, T>) -> Self {
     Server {
-      app: app
+      app
     }
   }
 

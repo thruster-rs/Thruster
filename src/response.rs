@@ -51,7 +51,7 @@ impl Response {
     }
 }
 
-pub fn encode(msg: Response, buf: &mut BytesMut) {
+pub fn encode(msg: &Response, buf: &mut BytesMut) {
     let length = msg.response.len();
     let now = ::date::now();
 
@@ -63,8 +63,14 @@ pub fn encode(msg: Response, buf: &mut BytesMut) {
     ", msg.status_message, length, now).unwrap();
 
     buf.extend_from_slice(&msg.header_raw);
-    buf.extend_from_slice("\r\n".as_bytes());
+    buf.extend_from_slice(b"\r\n");
     buf.extend_from_slice(msg.response.as_slice());
+}
+
+impl Default for Response {
+    fn default() -> Response {
+        Response::new()
+    }
 }
 
 // TODO: impl fmt::Write for Vec<u8>

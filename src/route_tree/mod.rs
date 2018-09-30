@@ -20,7 +20,7 @@ pub struct RouteTree<T: Context + Send> {
   pub specific_root_node: Node<T>
 }
 
-fn method_to_prefix<'a>(method: Method) -> &'a str {
+fn method_to_prefix<'a>(method: &Method) -> &'a str {
   match method {
     Method::DELETE => "__DELETE__",
     Method::GET => "__GET__",
@@ -57,8 +57,8 @@ impl<T: Context + Send> RouteTree<T> {
     self.update_root_node();
   }
 
-  pub fn add_route_with_method(&mut self, method: Method, route: &str, middleware: SmallVec<[Middleware<T>; 8]>) {
-    let prefix = method_to_prefix(method);
+  pub fn add_route_with_method(&mut self, method: &Method, route: &str, middleware: SmallVec<[Middleware<T>; 8]>) {
+    let prefix = method_to_prefix(&method);
 
     let full_route = format!("{}{}", prefix, route);
 
@@ -81,11 +81,11 @@ impl<T: Context + Send> RouteTree<T> {
     self.update_root_node();
   }
 
-  fn _adopt_sub_app_method_to_self(&mut self, route: &str, mut route_tree: RouteTree<T>, method: Method) -> RouteTree<T> {
-    let method_prefix = method_to_prefix(method);
+  fn _adopt_sub_app_method_to_self(&mut self, route: &str, mut route_tree: RouteTree<T>, method: &Method) -> RouteTree<T> {
+    let method_prefix = method_to_prefix(&method);
 
     let mut self_routes = self.specific_root_node.children.remove(method_prefix)
-      .unwrap_or(Node::new(method_prefix));
+      .unwrap_or_else(|| Node::new(method_prefix));
 
     if let Some(tree_routes) = route_tree.root_node.children.remove(method_prefix) {
       self_routes.add_subtree(route, tree_routes);
@@ -98,24 +98,30 @@ impl<T: Context + Send> RouteTree<T> {
   }
 
   pub fn add_route_tree(&mut self, route: &str, mut route_tree: RouteTree<T>) {
-    route_tree = self._adopt_sub_app_method_to_self(route, route_tree, Method::DELETE);
-    route_tree = self._adopt_sub_app_method_to_self(route, route_tree, Method::GET);
-    route_tree = self._adopt_sub_app_method_to_self(route, route_tree, Method::POST);
-    route_tree = self._adopt_sub_app_method_to_self(route, route_tree, Method::PUT);
-    self._adopt_sub_app_method_to_self(route, route_tree, Method::UPDATE);
+    route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::DELETE);
+    route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::GET);
+    route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::POST);
+    route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::PUT);
+    self._adopt_sub_app_method_to_self(route, route_tree, &Method::UPDATE);
     self.update_root_node();
   }
 
   pub fn match_route(&self, route: &str) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
-    let results = self.root_node.match_route(route.split("/"));
+    let results = self.root_node.match_route(route.split('/'));
 
     (results.0, results.1)
   }
 
   pub fn match_route_with_params(&self, route: &str, params: HashMap<String, String>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>) {
-    let results = self.root_node.match_route_with_params(route.split("/"), params);
+    let results = self.root_node.match_route_with_params(route.split('/'), params);
 
     (results.0, results.1)
+  }
+}
+
+impl<T: Context + Send> Default for RouteTree<T> {
+  fn default() -> RouteTree<T> {
+    RouteTree::new()
   }
 }
 
@@ -140,7 +146,7 @@ mod tests {
       Box::new(future::ok(context))
     }
 
-    route_tree.add_route_with_method(Method::GET, "/a/b", smallvec![test_function as Middleware<BasicContext>]);
+    route_tree.add_route_with_method(&Method::GET, "/a/b", smallvec![test_function as Middleware<BasicContext>]);
     let middleware = route_tree.match_route_with_params("__GET__/a/b", HashMap::new());
 
     let result = middleware.0[0](BasicContext::new(), &MiddlewareChain::new(&smallvec![]))
@@ -161,7 +167,7 @@ mod tests {
       Box::new(future::ok(context))
     }
 
-    route_tree.add_route_with_method(Method::GET, "/:key", smallvec![test_function as Middleware<BasicContext>]);
+    route_tree.add_route_with_method(&Method::GET, "/:key", smallvec![test_function as Middleware<BasicContext>]);
     let middleware = route_tree.match_route("__GET__/value");
 
     let mut context = BasicContext::new();
@@ -188,10 +194,10 @@ mod tests {
     }
 
     let mut route_tree2 = RouteTree::new();
-    route_tree2.add_route_with_method(Method::GET, "/c", smallvec![test_function2 as Middleware<BasicContext>]);
+    route_tree2.add_route_with_method(&Method::GET, "/c", smallvec![test_function2 as Middleware<BasicContext>]);
 
     let mut route_tree1 = RouteTree::new();
-    route_tree1.add_route_with_method(Method::GET, "/a", smallvec![test_function1 as Middleware<BasicContext>]);
+    route_tree1.add_route_with_method(&Method::GET, "/a", smallvec![test_function1 as Middleware<BasicContext>]);
     route_tree1.add_route_tree("/b", route_tree2);
 
     let middleware = route_tree1.match_route_with_params("__GET__/b/c", HashMap::new());
