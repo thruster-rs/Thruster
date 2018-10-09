@@ -5,6 +5,10 @@ use std::str::Split;
 use middleware::{Middleware};
 use context::Context;
 
+// A route with params that may or may not be a terminal node.
+type RouteNodeWithParams<'a, T> = (&'a SmallVec<[Middleware<T>; 8]>, HashMap<String, String>, bool);
+type RouteNodeEnumeration<T> = SmallVec<[(String, SmallVec<[Middleware<T>; 8]>); 8]>;
+
 pub struct Node<T: Context + Send> {
   middleware: SmallVec<[Middleware<T>; 8]>,
   pub children: HashMap<String, Node<T>>,
@@ -20,17 +24,18 @@ impl<T: Context + Send> Clone for Node<T> {
     let children = self.children.clone();
     let middleware = self.middleware.clone();
 
-    let wildcard = match self.is_wildcard {
-      false => Some(Box::new(match &self.wildcard_node {
+    let wildcard = if self.is_wildcard {
+      None
+    } else {
+      Some(Box::new(match &self.wildcard_node {
         Some(wildcard) => (**wildcard).clone(),
         None => Node::new_wildcard(None)
-      })),
-      true => None
+      }))
     };
 
     Node {
-      children: children,
-      middleware: middleware,
+      children,
+      middleware,
       wildcard_node: wildcard,
       value: self.value.clone(),
       param_key: self.param_key.clone(),
@@ -41,6 +46,7 @@ impl<T: Context + Send> Clone for Node<T> {
 }
 
 impl<T: Context + Send> Node<T> {
+
   pub fn new(value: &str) -> Node<T> {
     Node {
       children: HashMap::new(),
@@ -70,10 +76,10 @@ impl<T: Context + Send> Node<T> {
     let mut split_iterator = match route.chars().next() {
       Some('/') => &route[1..],
       _ => route
-    }.split("/");
+    }.split('/');
 
     if let Some(piece) = split_iterator.next() {
-      if piece.len() == 0 {
+      if piece.is_empty() {
         self.is_terminal_node = true;
         self.middleware = middleware
       } else {
@@ -116,10 +122,10 @@ impl<T: Context + Send> Node<T> {
     let mut split_iterator = match route.chars().next() {
       Some('/') => &route[1..],
       _ => route
-    }.split("/");
+    }.split('/');
 
     if let Some(piece) = split_iterator.next() {
-      if piece.len() == 0 {
+      if piece.is_empty() {
         if let Some(wildcard_node) = &subtree.wildcard_node {
           if wildcard_node.param_key.is_some() {
             self.wildcard_node = match &self.wildcard_node {
@@ -159,11 +165,11 @@ impl<T: Context + Send> Node<T> {
     }
   }
 
-  pub fn match_route(&self, route: Split<&str>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>, bool) {
+  pub fn match_route(&self, route: Split<char>) -> RouteNodeWithParams<T> {
     self.match_route_with_params(route, HashMap::new())
   }
 
-  pub fn match_route_with_params(&self, mut route: Split<&str>, mut params: HashMap<String, String>) -> (&SmallVec<[Middleware<T>; 8]>, HashMap<String, String>, bool) {
+  pub fn match_route_with_params(&self, mut route: Split<char>, mut params: HashMap<String, String>) -> RouteNodeWithParams<T> {
     if let Some(piece) = route.next() {
       match self.children.get(piece) {
         Some(child) => {
@@ -192,9 +198,9 @@ impl<T: Context + Send> Node<T> {
               // 0 and there is a param key, then this is actually a miss, so return
               // a non-terminal node (this is the case where the defined route is like
               // /a/:b, but the incoming route to match is /a/)
-              if piece.len() == 0 && wildcard_node.param_key.is_some() {
+              if piece.is_empty() && wildcard_node.param_key.is_some() {
                 (&wildcard_node.middleware, params, false)
-              } else if piece.len() == 0 && !wildcard_node.param_key.is_some() {
+              } else if piece.is_empty() && wildcard_node.param_key.is_none() {
                 (&wildcard_node.middleware, params, wildcard_node.is_terminal_node)
               } else {
                 if let Some(param_key) = &wildcard_node.param_key {
@@ -216,26 +222,24 @@ impl<T: Context + Send> Node<T> {
           }
         }
       }
-    } else {
-      if self.is_terminal_node {
+    } else if self.is_terminal_node {
         (&self.middleware, params, self.is_terminal_node)
-      } else if let Some(wildcard_node) = &self.wildcard_node {
-        if wildcard_node.param_key == None {
-          let results = wildcard_node.match_route_with_params(route, params);
+    } else if let Some(wildcard_node) = &self.wildcard_node {
+      if wildcard_node.param_key == None {
+        let results = wildcard_node.match_route_with_params(route, params);
 
-          // If the wildcard isn't a terminal node, then try to return this
-          // wildcard
-          if results.2 {
-            results
-          } else {
-            (&self.middleware, results.1, self.is_terminal_node)
-          }
+        // If the wildcard isn't a terminal node, then try to return this
+        // wildcard
+        if results.2 {
+          results
         } else {
-          (&self.middleware, params, self.is_terminal_node)
+          (&self.middleware, results.1, self.is_terminal_node)
         }
       } else {
         (&self.middleware, params, self.is_terminal_node)
       }
+    } else {
+      (&self.middleware, params, self.is_terminal_node)
     }
   }
 
@@ -264,7 +268,7 @@ impl<T: Context + Send> Node<T> {
       self.middleware.len(),
       self.is_terminal_node);
 
-    for (_, child) in &self.children {
+    for child in self.children.values() {
       in_progress = format!("{}{}", in_progress, child.to_string(&format!("{}  ", indent)));
     }
 
@@ -275,10 +279,10 @@ impl<T: Context + Send> Node<T> {
     in_progress
   }
 
-  pub fn enumerate(&self) -> SmallVec<[(String, SmallVec<[Middleware<T>; 8]>); 8]> {
+  pub fn enumerate(&self) -> RouteNodeEnumeration<T> {
     let mut children = SmallVec::new();
 
-    for (_key, child) in &self.children {
+    for child in self.children.values() {
       let piece = match &self.param_key {
         Some(param_key) => format!(":{}", param_key),
         None => self.value.clone()
@@ -286,7 +290,7 @@ impl<T: Context + Send> Node<T> {
 
       let child_enumeration = child.enumerate();
 
-      if child_enumeration.len() > 0 {
+      if !child_enumeration.is_empty() {
         for child_route in child_enumeration {
           children.push((format!("{}/{}", piece, child_route.0), child_route.1));
         }
@@ -304,7 +308,7 @@ impl<T: Context + Send> Node<T> {
     self.middleware.insert_many(len, &mut other_node.middleware.clone().into_iter());
 
     // Match children, recurse if child match
-    for (key, child) in self.children.iter_mut() {
+    for (key, child) in &mut self.children {
       if let Some(other_child) = other_node.children.get(key) {
         child.copy_node_middleware(other_child);
       }
@@ -333,7 +337,7 @@ impl<T: Context + Send> Node<T> {
     _accumulated_middleware.insert_many(len, &mut accumulated_middleware.into_iter());
 
     // Copy the other node's middleware over to self
-    if self.middleware.len() > 0 {
+    if !self.middleware.is_empty() {
       let old_middleware = self.middleware.clone();
       self.middleware = SmallVec::new();
 
@@ -345,7 +349,7 @@ impl<T: Context + Send> Node<T> {
     }
 
     // Match children, recurse if child match
-    for (key, child) in self.children.iter_mut() {
+    for (key, child) in &mut self.children {
       // Traverse the child tree, or else make a dummy node
       let other_child = other_node.children.get(key).unwrap_or(&fake_node);
 

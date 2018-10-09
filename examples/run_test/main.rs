@@ -18,7 +18,7 @@ fn main() {
 
   app.get("/plaintext", vec![plaintext]);
 
-  let result = testing::get(app, "/plaintext");
+  let result = testing::get(&app, "/plaintext");
 
   assert!(result.body == "Hello, World!");
 }

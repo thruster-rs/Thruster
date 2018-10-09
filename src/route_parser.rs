@@ -22,12 +22,10 @@ pub struct RouteParser<T: 'static + Context + Send> {
 
 impl<T: Context + Send> RouteParser<T> {
   pub fn new() -> RouteParser<T> {
-    let parser = RouteParser {
+    RouteParser {
       route_tree: RouteTree::new(),
       shortcuts: HashMap::new()
-    };
-
-    parser
+    }
   }
 
   pub fn add_method_agnostic_middleware(&mut self, route: &str, middleware: Middleware<T>) {
@@ -65,7 +63,7 @@ impl<T: Context + Send> RouteParser<T> {
       MatchedRoute {
         value: route.to_owned(),
         params: HashMap::new(),
-        query_params: query_params,
+        query_params,
         middleware: shortcut,
         sub_app: None
       }
@@ -75,11 +73,17 @@ impl<T: Context + Send> RouteParser<T> {
       MatchedRoute {
         value: route.to_owned(),
         params: matched.1,
-        query_params: query_params,
+        query_params,
         middleware: matched.0,
         sub_app: None
       }
     }
+  }
+}
+
+impl<T: Context + Send> Default for RouteParser<T> {
+  fn default() -> RouteParser<T> {
+    RouteParser::new()
   }
 }
 
