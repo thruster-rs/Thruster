@@ -6,6 +6,8 @@
 
 [Documentation](https://docs.rs/thruster/0.4.5/thruster/)
 
+## Motivation
+
 Thruster is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:
 - Opinionated
 - Fast
@@ -50,6 +52,12 @@ Transfer/sec:      7.57MB
 Based on frameworks like Koa, and Express, thruster aims to be a pleasure to develop with.
 
 ## Getting Started
+
+If you have `cargo generate` installed, you can simply run the [cargo generator](https://github.com/ami44/thruster-basic-template)
+
+```
+cargo generate --git https://github.com/ami44/thruster-basic-template.git --name myproject
+```
 
 ### The most basic example
 
