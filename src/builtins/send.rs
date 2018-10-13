@@ -7,9 +7,9 @@ use context::Context;
 pub fn file<T: Context>(mut context: T, file_name: &str) -> T {
   let file = File::open(file_name).unwrap();
   let mut buf_reader = BufReader::new(file);
-  let mut contents = String::new();
+  let mut contents = Vec::new();
 
-  buf_reader.read_to_string(&mut contents).unwrap();
+  let _ = buf_reader.read_to_end(&mut contents);
 
   context.set_body(contents);
   context
