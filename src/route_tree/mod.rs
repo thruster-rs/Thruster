@@ -134,6 +134,7 @@ mod tests {
   use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
   use futures::{future, Future};
   use std::boxed::Box;
+  use smallvec::SmallVec;
 
   #[test]
   fn it_should_match_a_simple_route() {

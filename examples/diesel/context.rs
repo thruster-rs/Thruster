@@ -1,4 +1,5 @@
 use std::collections::{HashMap};
+use std::str;
 use smallvec::SmallVec;
 
 use thruster::{Context, Response, Request};
@@ -31,8 +32,8 @@ impl Context for Ctx {
     self.response
   }
 
-  fn set_body(&mut self, body: String) {
-    self.body = body;
+  fn set_body(&mut self, body: Vec<u8>) {
+    self.body = str::from_utf8(&body).unwrap_or("").to_owned();
   }
 }
 

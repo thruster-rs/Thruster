@@ -220,6 +220,7 @@ mod tests {
   use futures::{future, Future};
   use std::boxed::Box;
   use std::io;
+  use std::str;
   use std::marker::Send;
   use builtins::query_params;
   use builtins::basic_context::BasicContext;
@@ -252,8 +253,8 @@ mod tests {
       response
     }
 
-    fn set_body(&mut self, body: String) {
-      self.body = body;
+    fn set_body(&mut self, body: Vec<u8>) {
+      self.body = str::from_utf8(&body).unwrap_or("").to_owned();
     }
   }
 
@@ -450,7 +451,7 @@ mod tests {
     fn test_fn_1(mut context: TypedContext<TestStruct>, _chain: &MiddlewareChain<TypedContext<TestStruct>>) -> Box<Future<Item=TypedContext<TestStruct>, Error=io::Error> + Send> {
       let value = context.request_body.key.clone();
 
-      context.set_body(value);
+      context.set_body(value.as_bytes().to_vec());
 
       Box::new(future::ok(context))
     };
