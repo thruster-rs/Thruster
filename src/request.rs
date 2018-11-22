@@ -19,7 +19,6 @@ pub struct Request {
     method: Slice,
     path: Slice,
     version: u8,
-    // TODO: use a small vec to avoid this unconditional allocation
     pub headers: SmallVec<[(Slice, Slice); 8]>,
     data: BytesMut,
     pub params: HashMap<String, String>

@@ -1,4 +1,3 @@
-extern crate thruster;
 extern crate futures;
 extern crate serde;
 extern crate serde_json;
@@ -8,6 +7,7 @@ extern crate dotenv;
 
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate lazy_static;
+#[macro_use] extern crate thruster;
 
 mod context;
 mod schema;
@@ -38,7 +38,7 @@ lazy_static! {
     };
 }
 
-fn fetch_value(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
+fn fetch_value(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
   let conn = psql.get().unwrap();
 
   let results = content
@@ -52,7 +52,7 @@ fn fetch_value(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRet
   Box::new(future::ok(context))
 }
 
-fn not_found_404(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
+fn not_found_404(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
   context.body = "<html>
   ( ͡° ͜ʖ ͡°) What're you looking for here?
 </html>".to_owned();
@@ -65,10 +65,10 @@ fn not_found_404(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareR
 fn main() {
   println!("Starting server...");
 
-  let mut app = App::create(generate_context);
+  let app = App::create(generate_context);
 
-  app.get("/plaintext", vec![fetch_value]);
-  app.get("/*", vec![not_found_404]);
+  // app.get("/plaintext", middleware![Ctx => fetch_value]);
+  // app.get("/*", middleware![Ctx => not_found_404]);
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);

@@ -72,7 +72,7 @@ use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue,
 use thruster::builtins::server::Server;
 use thruster::server::ThrusterServer;
 
-fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
+fn plaintext(mut context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
   context.body = val;
 
@@ -82,9 +82,9 @@ fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
 fn main() {
   println!("Starting server...");
 
-  let mut app = App::<Request, Ctx>::new();
+  let mut app = App::<Request, Ctx>::new_basic();
 
-  app.get("/plaintext", vec![plaintext]);
+  app.get("/plaintext", middleware![plaintext]);
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);
@@ -106,7 +106,7 @@ use thruster::builtins::hyper_server::Server;
 use thruster::builtins::basic_hyper_context::{generate_context, BasicHyperContext as Ctx};
 use thruster::server::ThrusterServer;
 
-fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
+fn plaintext(mut context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
   context.body = val;
 
@@ -118,7 +118,7 @@ fn main() {
 
   let mut app = App::<Request<Body>, Ctx>::create(generate_context);
 
-  app.get("/plaintext", vec![plaintext]);
+  app.get("/plaintext", middleware![plaintext]);
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);
@@ -165,11 +165,11 @@ This is all configurable and none of it is hidden from the developer. It's like 
 Thruster provides an easy test suite to test your endpoints, simply include the `testing` module as below:
 
 ```rust
-let mut app = App::<Ctx>::new();
+let mut app = App::<Request, Ctx>::new_basic();
 
 ...
 
-app.get("/plaintext", vec![plaintext]);
+app.get("/plaintext", middleware![plaintext]);
 
 ...
 

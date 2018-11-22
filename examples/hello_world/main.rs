@@ -1,4 +1,4 @@
-extern crate thruster;
+#[macro_use] extern crate thruster;
 extern crate futures;
 extern crate serde;
 extern crate serde_json;
@@ -16,7 +16,7 @@ use thruster::builtins::server::Server;
 use thruster::server::ThrusterServer;
 use context::{generate_context, Ctx};
 
-fn not_found_404(context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
+fn not_found_404(context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
   let mut context = Ctx::new(context);
 
   context.body = "<html>
@@ -32,7 +32,7 @@ fn not_found_404(context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareRetur
 struct JsonStruct<'a> {
   message: &'a str
 }
-fn json(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
+fn json(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
   let json = JsonStruct {
     message: "Hello, World!"
   };
@@ -45,7 +45,7 @@ fn json(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValu
   Box::new(future::ok(context))
 }
 
-fn plaintext(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
+fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
 
   context.body = val;
@@ -59,11 +59,11 @@ fn main() {
 
   let mut app = App::create(generate_context);
 
-  app.get("/json", vec![json]);
-  app.get("/plaintext", vec![plaintext]);
-  app.post("/post-plaintext", vec![plaintext]);
+  app.get("/json", middleware![Ctx => json]);
+  app.get("/plaintext", middleware![Ctx => plaintext]);
+  app.post("/post-plaintext", middleware![Ctx => plaintext]);
 
-  app.get("/*", vec![not_found_404]);
+  app.get("/*", middleware![Ctx => not_found_404]);
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);

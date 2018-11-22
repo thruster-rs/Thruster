@@ -1,8 +1,8 @@
 extern crate bytes;
-extern crate thruster;
 extern crate futures;
 
 #[macro_use] extern crate criterion;
+#[macro_use] extern crate thruster;
 
 use std::boxed::Box;
 use futures::{future, Future};
@@ -47,21 +47,21 @@ fn bench_remove(c: &mut Criterion) {
     bench.iter(|| {
       let mut v = vec!["a"];
 
-      let a = v.remove(0);
+      let _a = v.remove(0);
     });
   });
 }
 
 fn bench_route_match(c: &mut Criterion) {
   c.bench_function("Route match", |bench| {
-    let mut app = App::<Request, BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
       context.body = "world".to_owned();
       Box::new(future::ok(context))
     };
 
-    app.get("/test/hello", vec![test_fn_1]);
+    app.get("/test/hello", middleware![BasicContext => test_fn_1]);
 
     bench.iter(|| {
       let mut bytes = BytesMut::with_capacity(47);
@@ -75,14 +75,14 @@ fn bench_route_match(c: &mut Criterion) {
 
 fn optimized_bench_route_match(c: &mut Criterion) {
   c.bench_function("Optimized route match", |bench| {
-    let mut app = App::<Request, BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
       context.body = "world".to_owned();
       Box::new(future::ok(context))
     };
 
-    app.get("/test/hello", vec![test_fn_1]);
+    app.get("/test/hello", middleware![BasicContext => test_fn_1]);
     app._route_parser.optimize();
 
     bench.iter(|| {
@@ -97,14 +97,14 @@ fn optimized_bench_route_match(c: &mut Criterion) {
 
 fn bench_route_match_with_param(c: &mut Criterion) {
   c.bench_function("Route match with route params", |bench| {
-    let mut app = App::<Request, BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
       context.body = context.params.get("hello").unwrap().to_owned();
       Box::new(future::ok(context))
     };
 
-    app.get("/test/:hello", vec![test_fn_1]);
+    app.get("/test/:hello", middleware![BasicContext => test_fn_1]);
 
     bench.iter(|| {
       let mut bytes = BytesMut::with_capacity(48);
@@ -118,15 +118,15 @@ fn bench_route_match_with_param(c: &mut Criterion) {
 
 fn bench_route_match_with_query_param(c: &mut Criterion) {
   c.bench_function("Route match with query params", |bench| {
-    let mut app = App::<Request, BasicContext>::new();
+    let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _chain: &MiddlewareChain<BasicContext>) -> MiddlewareReturnValue<BasicContext> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
       context.body = context.query_params.get("hello").unwrap().to_owned();
       Box::new(future::ok(context))
     };
 
-    app.use_middleware("/", query_params);
-    app.get("/test", vec![test_fn_1]);
+    app.use_middleware("/", middleware![BasicContext => query_params]);
+    app.get("/test", middleware![BasicContext => test_fn_1]);
 
     bench.iter(|| {
       let mut bytes = BytesMut::with_capacity(54);

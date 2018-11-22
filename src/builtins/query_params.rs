@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use context::Context;
-use middleware::{MiddlewareChain, MiddlewareReturnValue};
+use middleware::{MiddlewareReturnValue};
 
 pub trait HasQueryParams {
   fn set_query_params(&mut self, query_params: HashMap<String, String>);
   fn route(&self) -> &str;
 }
 
-pub fn query_params<T: 'static + Context + HasQueryParams + Send>(mut context: T, chain: &MiddlewareChain<T>) -> MiddlewareReturnValue<T> {
+pub fn query_params<T: 'static + Context + HasQueryParams + Send>(mut context: T, next: impl Fn(T) -> MiddlewareReturnValue<T>  + Send + Sync) -> MiddlewareReturnValue<T> {
   let mut query_param_hash = HashMap::new();
 
   {
@@ -33,5 +33,5 @@ pub fn query_params<T: 'static + Context + HasQueryParams + Send>(mut context: T
 
   context.set_query_params(query_param_hash);
 
-  chain.next(context)
+  next(context)
 }
