@@ -13,6 +13,11 @@ pub trait RequestWithParams {
     fn set_params(&mut self, HashMap<String, String>);
 }
 
+///
+/// The request object is the default request object provied by Thruster. If a different
+/// server is used, such as Hyper, then you'll need to reference that server's "request"
+/// documentation instead.
+///
 #[derive(Default)]
 pub struct Request {
     body: Slice,
@@ -27,6 +32,9 @@ pub struct Request {
 type Slice = (usize, usize);
 
 impl Request {
+    ///
+    /// Create a new, blank, request.
+    ///
     pub fn new() -> Self {
       Request  {
         body: (0,0),
@@ -39,26 +47,45 @@ impl Request {
       }
     }
 
+    ///
+    /// Get the raw pointer to the byte array of the request
+    ///
     pub fn raw_body(&self) -> &[u8] {
         self.slice(&self.body)
     }
 
+    ///
+    /// Get the body as a utf8 encoded string
+    ///
     pub fn body(&self) -> &str {
         str::from_utf8(self.slice(&self.body)).unwrap()
     }
 
+    ///
+    /// Get the method as a string
+    ///
     pub fn method(&self) -> &str {
         str::from_utf8(self.slice(&self.method)).unwrap()
     }
 
+    ///
+    /// Get the path as a string ("/some/path")
+    ///
     pub fn path(&self) -> &str {
         str::from_utf8(self.slice(&self.path)).unwrap()
     }
 
+    ///
+    /// Get the HTTP version
+    ///
     pub fn version(&self) -> u8 {
         self.version
     }
 
+    ///
+    /// Get an HashMap of the provided headers. The HashMap is lazily computed, so
+    /// avoid this method unless you need to access headers.
+    ///
     pub fn headers(&self) -> HashMap<String, String> {
         let mut header_map = HashMap::new();
 
@@ -72,16 +99,26 @@ impl Request {
         header_map
     }
 
+    ///
+    /// Automatically apply a serde deserialization to the body
+    ///
     pub fn body_as<'a, T>(&self, body: &'a str) -> serde_json::Result<T>
         where T: serde::de::Deserialize<'a>
     {
         serde_json::from_str(body)
     }
 
+    ///
+    /// Fetch a piece of the raw body
+    ///
     fn slice(&self, slice: &Slice) -> &[u8] {
         &self.data[slice.0..slice.1]
     }
 
+    ///
+    /// Fetch the params from the route, e.g. The route "/some/:key" when applied to an incoming
+    /// request for "/some/value" will populate `params` with `{ key: "value" }`
+    ///
     pub fn params(&self) -> &HashMap<String, String> {
         &self.params
     }

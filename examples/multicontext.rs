@@ -2,7 +2,6 @@
 extern crate futures;
 
 use futures::future;
-use futures::Future;
 
 use thruster::{App, BasicContext, Context, MiddlewareChain, MiddlewareReturnValue, Response};
 use thruster::builtins::server::Server;
