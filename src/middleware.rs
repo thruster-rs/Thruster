@@ -1,42 +1,150 @@
-use context::{Context};
-use smallvec::SmallVec;
-use std::cell::Cell;
 use std::boxed::Box;
+use std::sync::Arc;
 use futures::Future;
 use std::io;
 
-/// `MiddlewareReturnValue`s are the values that Thruster expects middleware to return. It's
-/// shorthand for a Future, where the Item is a Context associated with the app, and the
-/// error is an io::Error.
 pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error> + Send>;
+pub type Middleware<T, M> = fn(T, next: M) -> MiddlewareReturnValue<T>;
+pub type Runnable<T> = Box<Fn(T, &Option<Box<MiddlewareChain<T>>>) -> MiddlewareReturnValue<T> + Send + Sync>;
 
-/// The `Middleware` type simply defines the signature of a thruster middleware function.
-/// It takes a context of the type of the thruster app, followed by a MiddlewareChain.
-pub type Middleware<T> = fn(T, chain: &MiddlewareChain<T>) -> MiddlewareReturnValue<T>;
-
-/// The `MiddlewareChain` represents a chain of futures that is every piece of middleware
-/// following the current one. If you wish to not continue down the chain, simply do not call
-/// `chain.next`, otherwise, you can call it and wait for the return value of the future and
-/// proceed with work accordingly.
-pub struct MiddlewareChain<'a, T: 'a + Context> {
-  _chain_index: Cell<usize>,
-  pub middleware: &'a SmallVec<[Middleware<T>; 8]>
+pub struct MiddlewareChain<T: 'static> {
+  pub runnable: Arc<Runnable<T>>,
+  is_assigned: bool,
+  chained: Option<Box<MiddlewareChain<T>>>
 }
 
-impl<'a, T: 'static + Context + Send> MiddlewareChain<'a, T> {
-  /// Create a new `MiddlewareChain` with a vector of middleware to be executed.
-  pub fn new(middleware: &'a SmallVec<[Middleware<T>; 8]>) -> MiddlewareChain<'a, T> {
+impl<T: 'static> MiddlewareChain<T> {
+  pub fn new() -> Self {
     MiddlewareChain {
-      middleware,
-      _chain_index: Cell::new(0)
+      runnable: Arc::new(Box::new(|_: T, _: &Option<Box<MiddlewareChain<T>>>| panic!("Use of unassigned middleware chain, be sure to run `assign` first."))),
+      is_assigned: false,
+      chained: None
     }
   }
 
-  pub fn next(&self, context: T) -> MiddlewareReturnValue<T> {
-    let next_middleware = self.middleware.get(self._chain_index.get());
-    self._chain_index.set(self._chain_index.get() + 1);
-
-    assert!(next_middleware.is_some());
-    next_middleware.unwrap()(context, self)
+  pub fn assign(&mut self, chain: Runnable<T>) {
+    self.runnable = Arc::new(chain);
+    self.is_assigned = true;
   }
+
+  pub fn run(&self, context: T) -> MiddlewareReturnValue<T> {
+    if self.is_assigned {
+      (self.runnable)(context, &self.chained)
+    } else if let Some(ref chain) = self.chained {
+      chain.run(context)
+    } else {
+      (self.runnable)(context, &self.chained)
+    }
+  }
+
+  // pub fn chain(&mut self, chain: Arc<Box<MiddlewareChain<T>>>) {
+  pub fn chain(&mut self, chain: MiddlewareChain<T>) {
+    match self.chained {
+      Some(ref mut existing_chain) => existing_chain.chain(chain),
+      None => self.chained = Some(Box::new(chain))
+    };
+  }
+
+  pub fn is_assigned(&self) -> bool {
+    if self.is_assigned {
+      true
+    } else {
+      match self.chained {
+        Some(ref chained) => chained.is_assigned(),
+        None => false
+      }
+    }
+  }
+}
+
+impl<T: 'static> Default for MiddlewareChain<T> {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+impl<T: 'static> Clone for MiddlewareChain<T> {
+  fn clone(&self) -> Self {
+    MiddlewareChain {
+      runnable: self.runnable.clone(),
+      is_assigned: self.is_assigned,
+      chained: self.chained.clone()
+    }
+  }
+}
+
+#[macro_export]
+macro_rules! internal_middleware {
+  [ $ctx:ty => $head:expr, $ender:expr ] => (
+    |context: $ctx| {
+      Box::new(
+        $head(
+          context.into(), |ctx| {
+            $ender(ctx.into())
+          })
+          .map(|ctx| ctx.into()))
+    }
+  );
+  [ $ctx:ty => $head:expr, $($tail_t:ty => $tail_e:expr),+ , $ender:expr ] => (
+    |context: $ctx| {
+      Box::new(
+        $head(
+          context.into(), |ctx: $ctx| {
+            internal_middleware![$( $tail_t => $tail_e ),*, $ender](ctx.into())
+          })
+          .map(|ctx| ctx.into()))
+    }
+  );
+}
+
+#[macro_export]
+macro_rules! middleware {
+  [ @tailtype $ctx:ty => $head:expr ] => { $ctx };
+  [ @tailtype $ctx:ty => $head:expr, $($tail_t:ty => $tail_e:expr),+ ] => { middleware![@tailtype $( $tail_t => $tail_e ),*] };
+  [ $ctx:ty => $head:expr ] => {{
+    use std::boxed::Box;
+    use futures::future::Future;
+
+    let mut chain: MiddlewareChain<$ctx> = MiddlewareChain::new();
+
+    fn dummy(context: $ctx, next: impl Fn($ctx) -> MiddlewareReturnValue<$ctx>  + Send + Sync) -> MiddlewareReturnValue<$ctx> {
+      next(context)
+    }
+
+    chain.assign(Box::new(|context, chain| {
+      internal_middleware![$ctx => $head,
+        $ctx => dummy,
+        |ctx| {
+          match chain {
+            Some(val) => val.run(ctx),
+            None => panic!("End of chain")
+          }
+        }](context)
+      }));
+
+    chain
+  }};
+  [ $ctx:ty => $head:expr, $($tail_t:ty => $tail_e:expr),+ ] => {{
+    use std::boxed::Box;
+    use futures::future::Future;
+
+    let mut chain = MiddlewareChain::new();
+
+    fn dummy(context: $ctx, next: impl Fn($ctx) -> MiddlewareReturnValue<$ctx>  + Send + Sync) -> MiddlewareReturnValue<$ctx> {
+      next(context)
+    }
+
+    chain.assign(Box::new(|context, chain| {
+      internal_middleware![$ctx => $head, $( $tail_t => $tail_e ),* ,
+        $ctx => dummy,
+        |ctx| {
+          match chain {
+            Some(val) => val.run(ctx),
+            None => panic!("End of chain")
+          }
+        }](context)
+      }));
+
+    chain
+  }};
 }

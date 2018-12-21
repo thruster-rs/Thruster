@@ -1,41 +1,71 @@
-extern crate thruster;
+#[macro_use] extern crate thruster;
 extern crate futures;
 
 use futures::future;
+use futures::Future;
 
-use thruster::{App, BasicContext, Context, MiddlewareChain, MiddlewareReturnValue};
+use thruster::{App, BasicContext, Context, MiddlewareChain, MiddlewareReturnValue, Response};
 use thruster::builtins::server::Server;
 use thruster::builtins::basic_context::generate_context;
 use thruster::server::ThrusterServer;
 
-trait Ctx1 {
-  fn set_hello_world(&mut self);
+use std::str;
+
+
+pub struct Ctx {
+  pub body: String
 }
 
-trait Ctx2 {
-  fn set_goodbye_world(&mut self);
-}
-
-impl Ctx1 for BasicContext {
-  fn set_hello_world(&mut self) {
-    self.body = "Hello, World!".to_owned();
+impl Ctx {
+  pub fn new(context: Ctx) -> Ctx {
+    Ctx {
+      body: context.body
+    }
   }
 }
 
-impl Ctx2 for BasicContext {
-  fn set_goodbye_world(&mut self) {
-    self.body = "Goodbye, cruel world!".to_owned();
+impl Context for Ctx {
+  type Response = Response;
+
+  fn get_response(self) -> Response {
+    let mut response = Response::new();
+
+    response.status_code(200, "OK");
+    response.body(&self.body);
+    response
+  }
+
+  fn set_body(&mut self, body: Vec<u8>) {
+    self.body = str::from_utf8(&body).unwrap_or("").to_owned();
   }
 }
 
-fn hello<Ctx: 'static + Ctx1 + Context + Send>(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
-  context.set_hello_world();
-
-  Box::new(future::ok(context))
+impl From<BasicContext> for Ctx {
+  fn from(basic: BasicContext) -> Ctx {
+    Ctx {
+      body: basic.body
+    }
+  }
 }
 
-fn goodbye<Ctx: 'static + Ctx2 + Context + Send>(mut context: Ctx, _chain: &MiddlewareChain<Ctx>) -> MiddlewareReturnValue<Ctx> {
-  context.set_goodbye_world();
+impl Into<BasicContext> for Ctx {
+  fn into(self: Self) -> BasicContext {
+    let mut b = BasicContext::new();
+
+    b.body = self.body;
+
+    b
+  }
+}
+
+fn log(context: BasicContext, next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+  println!("[{}] {}", context.request.method(), context.request.path());
+
+  next(context)
+}
+
+fn goodbye(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+  context.body = "Goodbye, world!".to_owned();
 
   Box::new(future::ok(context))
 }
@@ -44,12 +74,8 @@ fn main() {
   println!("Starting server...");
 
   let mut app = App::create(generate_context);
-  let mut sub_app = App::create(generate_context);
 
-  sub_app.get("/", vec![goodbye]);
-
-  app.get("/hello", vec![hello]);
-  app.use_sub_app("/goodbye", sub_app);
+  app.get("/hello", middleware![BasicContext => log, Ctx => goodbye]);
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);

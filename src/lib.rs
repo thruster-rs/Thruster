@@ -15,7 +15,7 @@ extern crate tokio_core;
 #[cfg(feature="hyper_server")]
 extern crate hyper;
 
-#[macro_use] extern crate smallvec;
+extern crate smallvec;
 #[macro_use] extern crate templatify;
 // For tests
 #[allow(unused_imports)]
@@ -23,13 +23,13 @@ extern crate hyper;
 #[allow(unused_imports)]
 #[macro_use] extern crate serde_json;
 
+#[macro_use] mod middleware;
 mod app;
 pub mod builtins;
 pub mod server;
 mod context;
 mod date;
 mod http;
-mod middleware;
 mod response;
 mod request;
 mod route_parser;
