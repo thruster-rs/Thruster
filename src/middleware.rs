@@ -7,6 +7,11 @@ pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error> + Send>;
 pub type Middleware<T, M> = fn(T, next: M) -> MiddlewareReturnValue<T>;
 pub type Runnable<T> = Box<Fn(T, &Option<Box<MiddlewareChain<T>>>) -> MiddlewareReturnValue<T> + Send + Sync>;
 
+///
+/// The MiddlewareChain is used to wrap a series of middleware functions in such a way that the tail can
+/// be accessed and modified later on. This allows Thruster to properly compose pieces of middleware
+/// into a single long chain rather than relying on disperate parts.
+///
 pub struct MiddlewareChain<T: 'static> {
   pub runnable: Arc<Runnable<T>>,
   is_assigned: bool,
@@ -14,6 +19,9 @@ pub struct MiddlewareChain<T: 'static> {
 }
 
 impl<T: 'static> MiddlewareChain<T> {
+  ///
+  /// Creates a new, blank (i.e. will panic if run,) MiddlewareChain
+  ///
   pub fn new() -> Self {
     MiddlewareChain {
       runnable: Arc::new(Box::new(|_: T, _: &Option<Box<MiddlewareChain<T>>>| panic!("Use of unassigned middleware chain, be sure to run `assign` first."))),
@@ -22,11 +30,17 @@ impl<T: 'static> MiddlewareChain<T> {
     }
   }
 
+  ///
+  /// Assign a runnable function to this middleware chain
+  ///
   pub fn assign(&mut self, chain: Runnable<T>) {
     self.runnable = Arc::new(chain);
     self.is_assigned = true;
   }
 
+  ///
+  /// Run the middleware chain once
+  ///
   pub fn run(&self, context: T) -> MiddlewareReturnValue<T> {
     if self.is_assigned {
       (self.runnable)(context, &self.chained)
@@ -37,7 +51,11 @@ impl<T: 'static> MiddlewareChain<T> {
     }
   }
 
-  // pub fn chain(&mut self, chain: Arc<Box<MiddlewareChain<T>>>) {
+  ///
+  /// Concatenate two middleware chains. This will make this chains tail point
+  /// to the next chain. That means that calling `next` in the final piece of
+  /// this chain will invoke the next chain rather than an "End of chain" panic
+  ///
   pub fn chain(&mut self, chain: MiddlewareChain<T>) {
     match self.chained {
       Some(ref mut existing_chain) => existing_chain.chain(chain),
@@ -45,6 +63,11 @@ impl<T: 'static> MiddlewareChain<T> {
     };
   }
 
+  ///
+  /// Tells if the chain has been assigned OR whether it is unassigned but has
+  /// an assigned tail. If is only chained but has no assigned runnable, then
+  /// this chain acts as a passthrough to the next one.
+  ///
   pub fn is_assigned(&self) -> bool {
     if self.is_assigned {
       true
@@ -73,9 +96,16 @@ impl<T: 'static> Clone for MiddlewareChain<T> {
   }
 }
 
+
+///
+/// The middleware macro takes a series of functions whose contexts all have `into` implemented,
+/// and then links them together to run in series. The result of this macro is a single `MiddlewareChain`.
+///
 #[macro_export]
-macro_rules! internal_middleware {
-  [ $ctx:ty => $head:expr, $ender:expr ] => (
+macro_rules! middleware {
+  [ @tailtype $ctx:ty => $head:expr ] => { $ctx };
+  [ @tailtype $ctx:ty => $head:expr, $($tail_t:ty => $tail_e:expr),+ ] => { middleware![@tailtype $( $tail_t => $tail_e ),*] };
+  [ @internal $ctx:ty => $head:expr, $ender:expr ] => (
     |context: $ctx| {
       Box::new(
         $head(
@@ -85,22 +115,16 @@ macro_rules! internal_middleware {
           .map(|ctx| ctx.into()))
     }
   );
-  [ $ctx:ty => $head:expr, $($tail_t:ty => $tail_e:expr),+ , $ender:expr ] => (
+  [ @internal $ctx:ty => $head:expr, $($tail_t:ty => $tail_e:expr),+ , $ender:expr ] => (
     |context: $ctx| {
       Box::new(
         $head(
           context.into(), |ctx: $ctx| {
-            internal_middleware![$( $tail_t => $tail_e ),*, $ender](ctx.into())
+            middleware![@internal $( $tail_t => $tail_e ),*, $ender](ctx.into())
           })
           .map(|ctx| ctx.into()))
     }
   );
-}
-
-#[macro_export]
-macro_rules! middleware {
-  [ @tailtype $ctx:ty => $head:expr ] => { $ctx };
-  [ @tailtype $ctx:ty => $head:expr, $($tail_t:ty => $tail_e:expr),+ ] => { middleware![@tailtype $( $tail_t => $tail_e ),*] };
   [ $ctx:ty => $head:expr ] => {{
     use std::boxed::Box;
     use futures::future::Future;
@@ -112,7 +136,7 @@ macro_rules! middleware {
     }
 
     chain.assign(Box::new(|context, chain| {
-      internal_middleware![$ctx => $head,
+      middleware![@internal $ctx => $head,
         $ctx => dummy,
         |ctx| {
           match chain {
@@ -135,7 +159,7 @@ macro_rules! middleware {
     }
 
     chain.assign(Box::new(|context, chain| {
-      internal_middleware![$ctx => $head, $( $tail_t => $tail_e ),* ,
+      middleware![@internal $ctx => $head, $( $tail_t => $tail_e ),* ,
         $ctx => dummy,
         |ctx| {
           match chain {
