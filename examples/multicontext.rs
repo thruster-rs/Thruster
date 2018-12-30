@@ -42,7 +42,7 @@ impl Context for Ctx {
 impl From<BasicContext> for Ctx {
   fn from(basic: BasicContext) -> Ctx {
     Ctx {
-      body: basic.body
+      body: basic.get_body()
     }
   }
 }
@@ -51,7 +51,7 @@ impl Into<BasicContext> for Ctx {
   fn into(self: Self) -> BasicContext {
     let mut b = BasicContext::new();
 
-    b.body = self.body;
+    b.body(&self.body);
 
     b
   }

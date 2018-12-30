@@ -262,7 +262,7 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
@@ -279,12 +279,12 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
     fn test_fn_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "2".to_owned();
+      context.body("2");
       Box::new(future::ok(context))
     };
 
@@ -302,7 +302,9 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = context.query_params.get("hello").unwrap().to_owned();
+      let body = &context.query_params.get("hello").unwrap().clone();
+
+      context.body(body);
       Box::new(future::ok(context))
     };
 
@@ -319,8 +321,9 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      println!("Running through function");
-      context.body = context.params.get("id").unwrap().to_owned();
+      let body = &context.params.get("id").unwrap().clone();
+
+      context.body(body);
       Box::new(future::ok(context))
     };
 
@@ -336,7 +339,9 @@ mod tests {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = context.params.get("id").unwrap().to_owned();
+      let body = &context.params.get("id").unwrap().clone();
+
+      context.body(body);
       Box::new(future::ok(context))
     };
 
@@ -355,7 +360,9 @@ mod tests {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = context.params.get("id").unwrap().to_owned();
+      let body = &context.params.get("id").unwrap().clone();
+
+      context.body(body);
       Box::new(future::ok(context))
     };
 
@@ -374,12 +381,14 @@ mod tests {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = context.params.get("id").unwrap().to_owned();
+      let body = &context.params.get("id").unwrap().clone();
+
+      context.body(body);
       Box::new(future::ok(context))
     };
 
     fn test_fn_2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = "-1".to_owned();
+      context.body("-1");
       Box::new(future::ok(context))
     }
 
@@ -399,12 +408,14 @@ mod tests {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = context.params.get("id").unwrap().to_owned();
+      let body = &context.params.get("id").unwrap().clone();
+
+      context.body(body);
       Box::new(future::ok(context))
     };
 
     fn test_fn_2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = "-1".to_owned();
+      context.body("-1");
       Box::new(future::ok(context))
     }
 
@@ -424,7 +435,9 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = context.params.get("id").unwrap().to_owned();
+      let body = &context.params.get("id").unwrap().clone();
+
+      context.body(body);
       Box::new(future::ok(context))
     };
 
@@ -468,12 +481,16 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = format!("{}{}", context.body, "1");
+      let existing_body = context.get_body().clone();
+
+      context.body(&format!("{}{}", existing_body, "1"));
       Box::new(future::ok(context))
     };
 
     fn test_fn_2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = format!("{}{}", context.body, "2");
+      let existing_body = context.get_body().clone();
+
+      context.body(&format!("{}{}", existing_body, "2"));
       Box::new(future::ok(context))
     };
 
@@ -490,16 +507,22 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = format!("{}{}", context.body, "1");
+      let existing_body = context.get_body().clone();
+
+      context.body(&format!("{}{}", existing_body, "1"));
       Box::new(future::ok(context))
     };
 
     fn test_fn_2(mut context: BasicContext, next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = format!("{}{}", context.body, "2");
+      let existing_body = context.get_body().clone();
+
+      context.body(&format!("{}{}", existing_body, "2"));
 
       let context_with_body = next(context)
         .and_then(|mut _context| {
-          _context.body = format!("{}{}", _context.body, "2");
+          let _existing_body = _context.get_body().clone();
+
+          _context.body(&format!("{}{}", _existing_body, "2"));
           future::ok(_context)
         });
 
@@ -518,7 +541,7 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "Hello world".to_owned();
+      context.body("Hello world");
       Box::new(future::ok(context))
     };
 
@@ -534,7 +557,7 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn method_agnostic(mut context: BasicContext, next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "agnostic".to_owned();
+      context.body("agnostic");
       let updated_context = next(context);
 
       let body_with_copied_context = updated_context
@@ -546,7 +569,9 @@ mod tests {
     }
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = format!("{}-1", context.body);
+      let body = context.get_body().clone();
+
+      context.body(&format!("{}-1", body));
       Box::new(future::ok(context))
     };
 
@@ -564,7 +589,7 @@ mod tests {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
@@ -583,7 +608,7 @@ mod tests {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
@@ -602,7 +627,7 @@ mod tests {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
@@ -621,7 +646,7 @@ mod tests {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
@@ -644,12 +669,12 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
     fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "not found".to_owned();
+      context.body("not found");
       Box::new(future::ok(context))
     };
 
@@ -667,12 +692,12 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
     fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "not found".to_owned();
+      context.body("not found");
       Box::new(future::ok(context))
     };
 
@@ -689,12 +714,12 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
     fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "not found".to_owned();
+      context.body("not found");
       Box::new(future::ok(context))
     };
 
@@ -711,12 +736,12 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
     fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "not found".to_owned();
+      context.body("not found");
       Box::new(future::ok(context))
     };
 
@@ -733,12 +758,12 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
     fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "not found".to_owned();
+      context.body("not found");
       Box::new(future::ok(context))
     };
 
@@ -757,12 +782,12 @@ mod tests {
     let mut app3 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
     fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "not found".to_owned();
+      context.body("not found");
       Box::new(future::ok(context))
     };
 
@@ -781,7 +806,7 @@ mod tests {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
@@ -803,7 +828,7 @@ mod tests {
     let mut app2 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
@@ -822,12 +847,12 @@ mod tests {
     let mut app3 = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "1".to_owned();
+      context.body("1");
       Box::new(future::ok(context))
     };
 
     fn test_fn_2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
-      context.body = "2".to_owned();
+      context.body("2");
       Box::new(future::ok(context))
     };
 

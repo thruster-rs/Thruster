@@ -134,7 +134,7 @@ mod tests {
     let mut route_tree = RouteTree::new();
 
     fn test_function(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = "Hello".to_string();
+      context.body("Hello");
 
       Box::new(future::ok(context))
     }
@@ -146,7 +146,7 @@ mod tests {
       .wait()
       .unwrap();
 
-    assert!(result.body == "Hello");
+    assert!(result.get_body() == "Hello");
   }
 
   #[test]
@@ -154,7 +154,9 @@ mod tests {
     let mut route_tree = RouteTree::new();
 
     fn test_function(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = context.params.get("key").unwrap().to_owned();
+      let body = &context.params.get("key").unwrap().clone();
+
+      context.body(body);
 
       Box::new(future::ok(context))
     }
@@ -169,7 +171,7 @@ mod tests {
       .wait()
       .unwrap();
 
-    assert!(result.body == "value");
+    assert!(result.get_body() == "value");
   }
 
   #[test]
@@ -179,7 +181,7 @@ mod tests {
     }
 
     fn test_function2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = "Hello".to_string();
+      context.body("Hello");
 
       Box::new(future::ok(context))
     }
@@ -197,6 +199,6 @@ mod tests {
       .wait()
       .unwrap();
 
-    assert!(result.body == "Hello");
+    assert!(result.get_body() == "Hello");
   }
 }

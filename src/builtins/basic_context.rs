@@ -47,7 +47,7 @@ pub fn generate_context(request: Request) -> BasicContext {
 
 #[derive(Default)]
 pub struct BasicContext {
-  pub body: String,
+  body_bytes: Vec<u8>,
   pub params: HashMap<String, String>,
   pub query_params: HashMap<String, String>,
   pub request: Request,
@@ -58,13 +58,24 @@ pub struct BasicContext {
 impl BasicContext {
   pub fn new() -> BasicContext {
     BasicContext {
-      body: "".to_owned(),
+      body_bytes: Vec::new(),
       params: HashMap::new(),
       query_params: HashMap::new(),
       request: Request::new(),
       headers: HashMap::new(),
       status: 200
     }
+  }
+
+  ///
+  /// Set the body as a string
+  ///
+  pub fn body(&mut self, body_string: &str) {
+    self.body_bytes = body_string.as_bytes().to_vec();
+  }
+
+  pub fn get_body(&self) -> String {
+    str::from_utf8(&self.body_bytes).unwrap_or("").to_owned()
   }
 
   ///
@@ -164,7 +175,7 @@ impl Context for BasicContext {
   fn get_response(self) -> Self::Response {
     let mut response = Response::new();
 
-    response.body(&self.body);
+    response.body_bytes(&self.body_bytes);
 
     for (key, val) in self.headers {
       response.header(&key, &val);
@@ -176,7 +187,7 @@ impl Context for BasicContext {
   }
 
   fn set_body(&mut self, body: Vec<u8>) {
-    self.body = str::from_utf8(&body).unwrap_or("").to_owned();
+    self.body_bytes = body;
   }
 }
 
