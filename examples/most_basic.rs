@@ -9,8 +9,8 @@ use thruster::builtins::server::Server;
 use thruster::server::ThrusterServer;
 
 fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
-  let val = "Hello, World!".to_owned();
-  context.body = val;
+  let val = "Hello, World!";
+  context.body(val);
 
   Box::new(future::ok(context))
 }
