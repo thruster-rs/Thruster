@@ -78,11 +78,7 @@ impl<T: 'static + Context + Send> RouteTree<T> {
       .unwrap_or_else(|| Node::new(method_prefix));
 
     if let Some(tree_routes) = route_tree.root_node.children.remove(method_prefix) {
-      println!("tree_routes: {}", tree_routes.to_string(""));
-
       self_routes.add_subtree(route, tree_routes);
-
-      println!("self_routes: {}", self_routes.to_string(""));
     }
 
     self.specific_root_node.children.insert(method_prefix.to_owned(), self_routes);

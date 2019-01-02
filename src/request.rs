@@ -91,8 +91,8 @@ impl Request {
 
         for slice_pair in self.headers.iter() {
             header_map.insert(
-                str::from_utf8(self.slice(&slice_pair.0)).unwrap().to_owned(),
-                str::from_utf8(self.slice(&slice_pair.1)).unwrap().to_owned()
+                str::from_utf8(self.slice(&slice_pair.0)).unwrap().to_owned().to_lowercase(),
+                str::from_utf8(self.slice(&slice_pair.1)).unwrap().to_owned().to_lowercase()
             );
         }
 
