@@ -222,6 +222,7 @@ mod tests {
   use std::str;
   use std::marker::Send;
   use builtins::query_params;
+  use builtins::cookies;
   use builtins::basic_context::BasicContext;
 
   struct TypedContext<T> {
@@ -312,6 +313,32 @@ mod tests {
     app.get("/test", middleware![BasicContext => test_fn_1]);
 
     let response = testing::get(&app, "/test?hello=world");
+
+    assert!(response.body == "world");
+  }
+
+  #[test]
+  fn it_should_handle_cookies() {
+    let mut app = App::<Request, BasicContext>::new_basic();
+
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> Box<Future<Item=BasicContext, Error=io::Error> + Send> {
+      let body = match context.cookies.get(0) {
+        Some(cookie) => {
+          assert!(cookie.options.same_site.is_some());
+          assert!(cookie.options.same_site.as_ref().unwrap() == &cookies::SameSite::Strict);
+          cookie.value.clone()
+        },
+        None => "".to_owned()
+      };
+
+      context.body(&body);
+      Box::new(future::ok(context))
+    };
+
+    app.use_middleware("/", middleware![BasicContext => cookies::cookies]);
+    app.get("/test", middleware![BasicContext => test_fn_1]);
+
+    let response = testing::request(&app, "GET", "/test", &vec![("Set-Cookie", "hello=world; SameSite=Strict")], "");
 
     assert!(response.body == "world");
   }
@@ -577,7 +604,6 @@ mod tests {
 
     app.use_middleware("/", middleware![BasicContext => method_agnostic]);
     app.get("/test", middleware![BasicContext => test_fn_1]);
-    println!("app: {}", app._route_parser.route_tree.root_node.to_string(""));
 
     let response = testing::get(&app, "/test");
 
@@ -652,12 +678,8 @@ mod tests {
 
     app1.get("/", middleware![BasicContext => test_fn_1]);
 
-    println!("app: {}", app1._route_parser.route_tree.root_node.to_string(""));
-
     let mut app2 = App::<Request, BasicContext>::new_basic();
     app2.use_sub_app("/sub", app1);
-
-    println!("app: {}", app2._route_parser.route_tree.root_node.to_string(""));
 
     let response = testing::get(&app2, "/sub");
 
@@ -811,11 +833,6 @@ mod tests {
     };
 
     app.get("*", middleware![BasicContext => test_fn_1]);
-
-    println!("app: {}", app._route_parser.route_tree.root_node.to_string(""));
-    // for (route, middleware) in app._route_parser.route_tree.root_node.enumerate() {
-      // println!("{}: {}", route, middleware.len());
-    // }
 
     let response = testing::get(&app, "/a/1/d/e/f/g");
 

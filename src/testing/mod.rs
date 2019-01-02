@@ -7,6 +7,27 @@ use std::collections::HashMap;
 use response::{Response, StatusMessage};
 use request::Request;
 
+pub fn request<T: Context<Response = Response> + Send>(app: &App<Request, T>, method: &str, route: &str, headers: &[(&str, &str)], body: &str) -> TestResponse {
+  let headers_mapped: Vec<String> = headers
+    .iter()
+    .map(|val| format!("{}: {}", val.0, val.1))
+    .collect();
+  let headers = headers_mapped
+    .join("\n");
+  let body = format!("{} {} HTTP/1.1\nHost: localhost:8080\n{}\n\n{}", method, route, headers, body);
+
+  let mut bytes = BytesMut::with_capacity(body.len());
+  bytes.put(&body);
+
+
+  let request = decode(&mut bytes).unwrap().unwrap();
+  let matched_route = app.resolve_from_method_and_path("GET", route);
+  let response = app.resolve(request, matched_route).wait().unwrap();
+
+  TestResponse::new(response)
+}
+
+
 pub fn get<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str) -> TestResponse {
   let body = format!("GET {} HTTP/1.1\nHost: localhost:8080\n\n", route);
 

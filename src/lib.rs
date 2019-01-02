@@ -38,7 +38,7 @@ mod route_tree;
 pub use app::App;
 pub use context::Context;
 pub use builtins::basic_context::BasicContext;
-pub use builtins::basic_context::CookieOptions;
+pub use builtins::cookies::{Cookie, CookieOptions, SameSite};
 pub use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
 pub use response::{encode, Response};
 pub use request::{decode, Request};

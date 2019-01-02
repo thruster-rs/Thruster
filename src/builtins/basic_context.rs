@@ -5,37 +5,7 @@ use context::Context;
 use response::Response;
 use request::Request;
 use builtins::query_params::HasQueryParams;
-
-pub enum SameSite {
-  Strict,
-  Lax
-}
-
-pub struct CookieOptions {
-  pub domain: String,
-  pub path: String,
-  pub expires: u64,
-  pub http_only: bool,
-  pub max_age: u64,
-  pub secure: bool,
-  pub signed: bool,
-  pub same_site: SameSite
-}
-
-impl CookieOptions {
-  pub fn default() -> CookieOptions {
-    CookieOptions {
-      domain: "".to_owned(),
-      path: "/".to_owned(),
-      expires: 0,
-      http_only: false,
-      max_age: 0,
-      secure: false,
-      signed: false,
-      same_site: SameSite::Strict
-    }
-  }
-}
+use builtins::cookies::{Cookie, HasCookies, CookieOptions, SameSite};
 
 pub fn generate_context(request: Request) -> BasicContext {
   let mut ctx = BasicContext::new();
@@ -48,17 +18,19 @@ pub fn generate_context(request: Request) -> BasicContext {
 #[derive(Default)]
 pub struct BasicContext {
   body_bytes: Vec<u8>,
+  pub cookies: Vec<Cookie>,
   pub params: HashMap<String, String>,
   pub query_params: HashMap<String, String>,
   pub request: Request,
   pub status: u32,
-  pub headers: HashMap<String, String>
+  pub headers: HashMap<String, String>,
 }
 
 impl BasicContext {
   pub fn new() -> BasicContext {
     BasicContext {
       body_bytes: Vec::new(),
+      cookies: Vec::new(),
       params: HashMap::new(),
       query_params: HashMap::new(),
       request: Request::new(),
@@ -160,10 +132,12 @@ impl BasicContext {
       pieces.push("HttpOnly".to_owned());
     }
 
-    match options.same_site {
-      SameSite::Strict => pieces.push("SameSite=Strict".to_owned()),
-      SameSite::Lax => pieces.push("SameSite=Lax".to_owned())
-    };
+    if let Some(ref same_site) = options.same_site {
+      match same_site {
+        SameSite::Strict => pieces.push("SameSite=Strict".to_owned()),
+        SameSite::Lax => pieces.push("SameSite=Lax".to_owned())
+      };
+    }
 
     format!("{}={}; {}", name, value, pieces.join(", "))
   }
@@ -198,5 +172,15 @@ impl HasQueryParams for BasicContext {
 
   fn route(&self) -> &str {
     self.request.path()
+  }
+}
+
+impl HasCookies for BasicContext {
+  fn set_cookies(&mut self, cookies: Vec<Cookie>) {
+    self.cookies = cookies;
+  }
+
+  fn headers(&self) -> HashMap<String, String> {
+    self.request.headers()
   }
 }

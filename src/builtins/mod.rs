@@ -1,3 +1,4 @@
+pub mod cookies;
 pub mod send;
 pub mod query_params;
 pub mod basic_context;
