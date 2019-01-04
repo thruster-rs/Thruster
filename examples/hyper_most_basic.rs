@@ -6,14 +6,14 @@ use std::boxed::Box;
 use futures::future;
 
 use hyper::{Body, Request};
-use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
+use thruster::{App, Context, MiddlewareChain, MiddlewareReturnValue};
 use thruster::builtins::hyper_server::Server;
 use thruster::builtins::basic_hyper_context::{generate_context, BasicHyperContext as Ctx};
 use thruster::server::ThrusterServer;
 
 fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
-  let val = "Hello, World!".to_owned();
-  context.body = val;
+  let val = "Hello, World!".as_bytes().to_vec();
+  context.set_body(val);
 
   Box::new(future::ok(context))
 }
