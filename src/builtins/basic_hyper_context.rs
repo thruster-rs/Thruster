@@ -45,7 +45,7 @@ pub fn generate_context(request: Request<Body>) -> BasicHyperContext {
 
 #[derive(Default)]
 pub struct BasicHyperContext {
-  pub body: String,
+  pub body: Body,
   pub query_params: HashMap<String, String>,
   pub request: Request<Body>,
   pub status: u16,
@@ -61,7 +61,7 @@ impl BasicHyperContext {
     req.extensions_mut().insert(param_map);
 
     BasicHyperContext {
-      body: "".to_owned(),
+      body: Body::empty(),
       query_params: HashMap::new(),
       request: req,
       headers: HashMap::new(),
@@ -186,11 +186,11 @@ impl Context for BasicHyperContext {
 
     response_builder.status(StatusCode::from_u16(self.status).unwrap());
 
-    response_builder.body(Body::from(self.body)).unwrap()
+    response_builder.body(self.body).unwrap()
   }
 
   fn set_body(&mut self, body: Vec<u8>) {
-    self.body = str::from_utf8(&body).unwrap_or("").to_owned();
+    self.body = Body::from(body);
   }
 }
 
