@@ -338,9 +338,9 @@ mod tests {
     app.use_middleware("/", middleware![BasicContext => cookies::cookies]);
     app.get("/test", middleware![BasicContext => test_fn_1]);
 
-    let response = testing::request(&app, "GET", "/test", &vec![("Set-Cookie", "hello=world; SameSite=Strict")], "");
+    let response = testing::request(&app, "GET", "/test", &vec![("Set-Cookie", "Hello=World; SameSite=Strict")], "");
 
-    assert!(response.body == "world");
+    assert!(response.body == "World");
   }
 
   #[test]
