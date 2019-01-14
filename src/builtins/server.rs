@@ -67,7 +67,7 @@ impl<T: 'static + Context<Response = Response> + Send> Server<T> {
             builder.bind(addr).unwrap();
             builder.listen(2048).unwrap()
           };
-          let listener = TcpListener::from_std(listener, &tokio::reactor::Handle::current()).unwrap();
+          let listener = TcpListener::from_std(listener, &tokio::reactor::Handle::default()).unwrap();
 
           listener.incoming().for_each(move |socket| {
             process(Arc::clone(&arc_app), socket);
