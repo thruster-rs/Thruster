@@ -9,6 +9,7 @@ keywords = ["thruster", "router", "fast", "http", "hyper"]
 documentation = "https://thruster.github.com"
 homepage = "https://thruster.github.com"
 repository = "https://github.com/trezm/thruster"
+edition = "2018"
 
 [profile.release]
 debug = true
@@ -18,18 +19,20 @@ name = "app"
 harness = false
 
 [features]
+# default = []
 default = ["hyper_server"]
 hyper_server = ["hyper"]
 
 [dependencies]
 bytes = "0.4"
-futures = "0.1.23"
+futures = "0.1.25"
 http = "0.1.7"
 httparse = "1.1.2"
-hyper = { version = "0.12.10", optional = true }
+hyper = { version = "0.12.24", optional = true }
 log = "0.3.6"
 net2 = "0.2"
 num_cpus = "1.0"
+middleware-proc = { path = "./middleware-proc" }
 regex = "0.2"
 serde = "1.0.24"
 serde_json = "1.0.8"
@@ -37,10 +40,12 @@ serde_derive = "1.0.24"
 smallvec = "0.6.2"
 templatify = "0.2.3"
 time = "0.1"
-tokio = "0.1.6"
-tokio-codec = "0.1.0"
-tokio-core = "0.1.17"
-tokio-io = "0.1"
+# tokio = "0.1.6"
+tokio = { git = "https://github.com/tokio-rs/tokio", features = ["async-await-preview"] }
+tokio-async-await = { git = "https://github.com/tokio-rs/tokio" }
+tokio-codec = { git = "https://github.com/tokio-rs/tokio" }
+tokio-core = { git = "https://github.com/tokio-rs/tokio-core" }
+tokio-io = { git = "https://github.com/tokio-rs/tokio" }
 
 [dev-dependencies]
 criterion = "0.2"

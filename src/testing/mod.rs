@@ -1,11 +1,11 @@
-use app::App;
-use context::Context;
+use crate::app::App;
+use crate::context::Context;
 use bytes::{BytesMut, BufMut};
-use request::decode;
+use crate::request::decode;
 use futures::Future;
 use std::collections::HashMap;
-use response::{Response, StatusMessage};
-use request::Request;
+use crate::response::{Response, StatusMessage};
+use crate::request::Request;
 
 pub fn request<T: Context<Response = Response> + Send>(app: &App<Request, T>, method: &str, route: &str, headers: &[(&str, &str)], body: &str) -> TestResponse {
   let headers_mapped: Vec<String> = headers

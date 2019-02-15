@@ -18,11 +18,11 @@ use futures::future;
 use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
 use thruster::builtins::server::Server;
 use thruster::server::ThrusterServer;
-use context::{Ctx, generate_context};
+use crate::context::{Ctx, generate_context};
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool};
-use schema::content::dsl::*;
+use crate::schema::content::dsl::*;
 use dotenv::dotenv;
 use std::env;
 

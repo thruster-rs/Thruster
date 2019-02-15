@@ -1,7 +1,10 @@
+#![feature(plugin_registrar, rustc_private)]
+
 extern crate bytes;
 extern crate futures;
 extern crate httparse;
 extern crate http as httplib;
+extern crate middleware_proc;
 extern crate net2;
 extern crate num_cpus;
 extern crate regex;
@@ -35,15 +38,16 @@ mod request;
 mod route_parser;
 mod route_tree;
 
-pub use app::App;
-pub use context::Context;
-pub use builtins::basic_context::BasicContext;
-pub use builtins::cookies::{Cookie, CookieOptions, SameSite};
-pub use middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
-pub use response::{encode, Response};
-pub use request::{decode, Request};
-pub use http::Http;
+pub use crate::app::App;
+pub use crate::context::Context;
+pub use crate::builtins::basic_context::BasicContext;
+pub use crate::builtins::cookies::{Cookie, CookieOptions, SameSite};
+pub use crate::middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
+pub use crate::response::{encode, Response};
+pub use crate::request::{decode, Request};
+pub use crate::http::Http;
 pub mod testing;
+pub use middleware_proc::async_middleware;
 
 #[cfg(feature="hyper_server")]
-pub use builtins::basic_hyper_context::BasicHyperContext;
+pub use crate::builtins::basic_hyper_context::BasicHyperContext;

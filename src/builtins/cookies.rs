@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use context::Context;
-use middleware::{MiddlewareReturnValue};
+use crate::context::Context;
+use crate::middleware::{MiddlewareReturnValue};
 
 #[derive(Debug)]
 pub struct Cookie {

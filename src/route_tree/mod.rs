@@ -3,8 +3,8 @@ mod node;
 use std::collections::HashMap;
 
 pub use self::node::Node;
-use context::Context;
-use middleware::{MiddlewareChain};
+use crate::context::Context;
+use crate::middleware::{MiddlewareChain};
 
 pub enum Method {
   DELETE,
@@ -120,8 +120,8 @@ mod tests {
   use super::RouteTree;
   use super::Method;
   use std::collections::HashMap;
-  use builtins::basic_context::BasicContext;
-  use middleware::{MiddlewareChain, MiddlewareReturnValue};
+  use crate::builtins::basic_context::BasicContext;
+  use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
   use futures::{future, Future};
   use std::boxed::Box;
 

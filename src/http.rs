@@ -1,8 +1,8 @@
 use bytes::BytesMut;
 use tokio_io::codec::{Encoder, Decoder};
 
-use response::{self, Response};
-use request::{self, Request};
+use crate::response::{self, Response};
+use crate::request::{self, Request};
 use std::io;
 
 pub struct Http;

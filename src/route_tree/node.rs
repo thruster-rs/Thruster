@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use smallvec::SmallVec;
 use std::str::Split;
 
-use middleware::{MiddlewareChain};
-use context::Context;
+use crate::middleware::{MiddlewareChain};
+use crate::context::Context;
 
 // A route with params that may or may not be a terminal node.
 type RouteNodeWithParams<'a, T> = (HashMap<String, String>, bool, &'a MiddlewareChain<T>);

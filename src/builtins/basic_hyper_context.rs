@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::str;
 use hyper::{Body, Response, Request, StatusCode};
 
-use context::Context;
-use builtins::query_params::HasQueryParams;
+use crate::context::Context;
+use crate::builtins::query_params::HasQueryParams;
 
 pub enum SameSite {
   Strict,

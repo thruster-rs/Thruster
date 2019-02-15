@@ -14,12 +14,12 @@ use std::thread;
 
 use std::sync::Arc;
 
-use app::App;
-use context::Context;
-use http::Http;
-use response::Response;
-use request::Request;
-use server::ThrusterServer;
+use crate::app::App;
+use crate::context::Context;
+use crate::http::Http;
+use crate::response::Response;
+use crate::request::Request;
+use crate::server::ThrusterServer;
 
 pub struct Server<T: 'static + Context<Response = Response> + Send> {
   app: App<Request, T>
@@ -30,7 +30,7 @@ impl<T: 'static + Context<Response = Response> + Send> Server<T> {
   /// Starts the app with the default tokio runtime execution model
   ///
   pub fn start_work_stealing_optimized(self, host: &str, port: u16) {
-    use server::ThrusterServer;
+    use crate::server::ThrusterServer;
 
     self.start(host, port);
   }
@@ -87,8 +87,8 @@ impl<T: 'static + Context<Response = Response> + Send> Server<T> {
       thread.join().unwrap();
     }
 
-    use request::Request;
-    use response::Response;
+    use crate::request::Request;
+    use crate::response::Response;
     fn process<T: Context<Response = Response> + Send>(app: Arc<App<Request, T>>, socket: TcpStream) {
       let framed = Framed::new(socket, Http);
       let (tx, rx) = framed.split();
@@ -127,8 +127,8 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for Server<T> {
     let listener = TcpListener::bind(&addr).unwrap();
     let arc_app = Arc::new(self.app);
 
-    use request::Request;
-    use response::Response;
+    use crate::request::Request;
+    use crate::response::Response;
     fn process<T: Context<Response = Response> + Send>(app: Arc<App<Request, T>>, socket: TcpStream) {
       let framed = Framed::new(socket, Http);
       let (tx, rx) = framed.split();

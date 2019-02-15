@@ -20,7 +20,7 @@ fn main() {
 
   let mut app = App::<Request, Ctx>::new_basic();
 
-  app.get("/plaintext", middleware![Ctx => plaintext]);
+  app.get("/plaintext", async_middleware![Ctx => plaintext]);
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);

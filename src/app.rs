@@ -3,11 +3,11 @@ use std::io;
 use futures::future;
 use futures::Future;
 
-use builtins::basic_context::{generate_context, BasicContext};
-use context::Context;
-use request::{Request, RequestWithParams};
-use route_parser::{MatchedRoute, RouteParser};
-use middleware::{MiddlewareChain};
+use crate::builtins::basic_context::{generate_context, BasicContext};
+use crate::context::Context;
+use crate::request::{Request, RequestWithParams};
+use crate::route_parser::{MatchedRoute, RouteParser};
+use crate::middleware::{MiddlewareChain};
 
 enum Method {
   DELETE,
@@ -210,20 +210,20 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use testing;
-  use context::Context;
-  use request::Request;
-  use middleware::{MiddlewareChain, MiddlewareReturnValue};
-  use response::Response;
+  use crate::testing;
+  use crate::context::Context;
+  use crate::request::Request;
+  use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
+  use crate::response::Response;
   use serde;
   use futures::{future, Future};
   use std::boxed::Box;
   use std::io;
   use std::str;
   use std::marker::Send;
-  use builtins::query_params;
-  use builtins::cookies;
-  use builtins::basic_context::BasicContext;
+  use crate::builtins::query_params;
+  use crate::builtins::cookies;
+  use crate::builtins::basic_context::BasicContext;
 
   struct TypedContext<T> {
     pub request_body: T,

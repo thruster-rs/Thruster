@@ -96,7 +96,6 @@ impl<T: 'static> Clone for MiddlewareChain<T> {
   }
 }
 
-
 ///
 /// The middleware macro takes a series of functions whose contexts all have `into` implemented,
 /// and then links them together to run in series. The result of this macro is a single `MiddlewareChain`.
