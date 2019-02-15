@@ -1,9 +1,9 @@
 use std::boxed::Box;
 use std::sync::Arc;
-use futures_legacy::Future;
+use futures::Future;
 use std::io;
 
-pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error> + Send>;
+pub type MiddlewareReturnValue<T> = Box<Future<Output=T> + Send>;
 pub type Middleware<T, M> = fn(T, next: M) -> MiddlewareReturnValue<T>;
 pub type Runnable<T> = Box<Fn(T, &Option<Box<MiddlewareChain<T>>>) -> MiddlewareReturnValue<T> + Send + Sync>;
 
@@ -33,7 +33,7 @@ impl<T: 'static> MiddlewareChain<T> {
   ///
   /// Assign a runnable function to this middleware chain
   ///
-  pub fn assign(&mut self, chain: Runnable<T>) {
+  pub fn assign_legacy(&mut self, chain: Runnable<T>) {
     self.runnable = Arc::new(chain);
     self.is_assigned = true;
   }
@@ -96,7 +96,6 @@ impl<T: 'static> Clone for MiddlewareChain<T> {
   }
 }
 
-
 ///
 /// The middleware macro takes a series of functions whose contexts all have `into` implemented,
 /// and then links them together to run in series. The result of this macro is a single `MiddlewareChain`.
@@ -127,7 +126,7 @@ macro_rules! middleware {
   );
   [ $ctx:ty => $head:expr ] => {{
     use std::boxed::Box;
-    use futures_legacy::future::Future;
+    use futures::future::Future;
 
     let mut chain: MiddlewareChain<$ctx> = MiddlewareChain::new();
 
@@ -135,7 +134,7 @@ macro_rules! middleware {
       next(context)
     }
 
-    chain.assign(Box::new(|context, chain| {
+    chain.assign_legacy(Box::new(|context, chain| {
       middleware![@internal $ctx => $head,
         $ctx => dummy,
         |ctx| {
@@ -150,7 +149,7 @@ macro_rules! middleware {
   }};
   [ $ctx:ty => $head:expr, $($tail_t:ty => $tail_e:expr),+ ] => {{
     use std::boxed::Box;
-    use futures_legacy::future::Future;
+    use futures::future::Future;
 
     let mut chain = MiddlewareChain::new();
 
@@ -158,7 +157,7 @@ macro_rules! middleware {
       next(context)
     }
 
-    chain.assign(Box::new(|context, chain| {
+    chain.assign_legacy(Box::new(|context, chain| {
       middleware![@internal $ctx => $head, $( $tail_t => $tail_e ),* ,
         $ctx => dummy,
         |ctx| {

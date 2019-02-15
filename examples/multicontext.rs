@@ -1,7 +1,7 @@
 #[macro_use] extern crate thruster;
-extern crate futures;
+extern crate futures_legacy;
 
-use futures::future;
+use futures_legacy::future;
 
 use thruster::{App, BasicContext, Context, MiddlewareChain, MiddlewareReturnValue, Response};
 use thruster::builtins::server::Server;

@@ -1,9 +1,9 @@
 #[macro_use] extern crate thruster;
-extern crate futures;
+extern crate futures_legacy;
 extern crate serde_json;
 
 use std::boxed::Box;
-use futures::future;
+use futures_legacy::future;
 use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
 use thruster::builtins::server::Server;
 use thruster::builtins::query_params::query_params;

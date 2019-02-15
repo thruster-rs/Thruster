@@ -9,27 +9,36 @@ keywords = ["thruster", "router", "fast", "http", "hyper"]
 documentation = "https://thruster.github.com"
 homepage = "https://thruster.github.com"
 repository = "https://github.com/trezm/thruster"
+edition = "2018"
 
 [profile.release]
 debug = true
+
+[[example]]
+name = "most_basic_async"
+required-features = ["async_await"]
 
 [[bench]]
 name = "app"
 harness = false
 
 [features]
+# default = []
 default = ["hyper_server"]
 hyper_server = ["hyper"]
+async_await = []
 
 [dependencies]
 bytes = "0.4"
-futures = "0.1.23"
+futures-legacy = { version = "0.1.23", package = "futures" }
+futures-preview = "0.3.0-alpha.13"
 http = "0.1.7"
 httparse = "1.1.2"
-hyper = { version = "0.12.10", optional = true }
+hyper = { version = "0.12.25", optional = true }
 log = "0.3.6"
 net2 = "0.2"
 num_cpus = "1.0"
+middleware-proc = { path = "./middleware-proc" }
 regex = "0.2"
 serde = "1.0.24"
 serde_json = "1.0.8"
@@ -37,7 +46,9 @@ serde_derive = "1.0.24"
 smallvec = "0.6.2"
 templatify = "0.2.3"
 time = "0.1"
-tokio = "0.1.6"
+# Not bleeding edge
+tokio = { version = "0.1.15", features = ["async-await-preview"] }
+tokio-async-await = "0.1.6"
 tokio-codec = "0.1.0"
 tokio-core = "0.1.17"
 tokio-io = "0.1"

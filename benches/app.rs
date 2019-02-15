@@ -1,11 +1,11 @@
 extern crate bytes;
-extern crate futures;
+extern crate futures_legacy;
 
 #[macro_use] extern crate criterion;
 #[macro_use] extern crate thruster;
 
 use std::boxed::Box;
-use futures::{future, Future};
+use futures_legacy::{future, Future};
 use std::collections::HashMap;
 use bytes::{BytesMut, BufMut};
 
@@ -57,7 +57,7 @@ fn bench_route_match(c: &mut Criterion) {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = "world".to_owned();
+      context.body("world");
       Box::new(future::ok(context))
     };
 
@@ -78,7 +78,7 @@ fn optimized_bench_route_match(c: &mut Criterion) {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = "world".to_owned();
+      context.body("world");
       Box::new(future::ok(context))
     };
 
@@ -100,7 +100,8 @@ fn bench_route_match_with_param(c: &mut Criterion) {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = context.params.get("hello").unwrap().to_owned();
+      let body = &context.params.get("hello").unwrap().clone();
+      context.body(body);
       Box::new(future::ok(context))
     };
 
@@ -121,7 +122,8 @@ fn bench_route_match_with_query_param(c: &mut Criterion) {
     let mut app = App::<Request, BasicContext>::new_basic();
 
     fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
-      context.body = context.query_params.get("hello").unwrap().to_owned();
+      let body = &context.query_params.get("hello").unwrap().clone();
+      context.body(body);
       Box::new(future::ok(context))
     };
 

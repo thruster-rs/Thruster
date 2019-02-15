@@ -1,8 +1,8 @@
 #[macro_use] extern crate thruster;
-extern crate futures;
+extern crate futures_legacy;
 
 use std::boxed::Box;
-use futures::future;
+use futures_legacy::future;
 
 use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
 use thruster::builtins::server::Server;
@@ -23,5 +23,5 @@ fn main() {
   app.get("/plaintext", middleware![Ctx => plaintext]);
 
   let server = Server::new(app);
-  server.start("0.0.0.0", 4321);
+  server.start_small_load_optimized("0.0.0.0", 4321);
 }

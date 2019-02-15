@@ -6,5 +6,5 @@ pub trait Context {
   type Response: Send;
 
   fn get_response(self) -> Self::Response;
-  fn set_body(&mut self, Vec<u8>);
+  fn set_body(&mut self, _: Vec<u8>);
 }

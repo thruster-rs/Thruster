@@ -6,11 +6,11 @@ use serde_json;
 use smallvec::SmallVec;
 
 use httparse;
-use httplib;
+use crate::httplib;
 
 
 pub trait RequestWithParams {
-    fn set_params(&mut self, HashMap<String, String>);
+    fn set_params(&mut self, _: HashMap<String, String>);
 }
 
 ///
@@ -145,7 +145,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         let mut r = httparse::Request::new(&mut headers);
         let mut body_len: usize = 0;
         let mut header_vec = SmallVec::new();
-        let status = try!(r.parse(buf).map_err(|e| {
+        let status = r#try!(r.parse(buf).map_err(|e| {
             let msg = format!("failed to parse http request: {:?}", e);
             eprintln!("msg: {}", msg);
             io::Error::new(io::ErrorKind::Other, msg)

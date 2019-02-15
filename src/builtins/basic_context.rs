@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::str;
 
-use context::Context;
-use response::Response;
-use request::Request;
-use builtins::query_params::HasQueryParams;
-use builtins::cookies::{Cookie, HasCookies, CookieOptions, SameSite};
+use crate::context::Context;
+use crate::response::Response;
+use crate::request::Request;
+use crate::builtins::query_params::HasQueryParams;
+use crate::builtins::cookies::{Cookie, HasCookies, CookieOptions, SameSite};
 
 pub fn generate_context(request: Request) -> BasicContext {
   let mut ctx = BasicContext::new();

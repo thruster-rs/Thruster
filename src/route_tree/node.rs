@@ -2,8 +2,11 @@ use std::collections::HashMap;
 use smallvec::SmallVec;
 use std::str::Split;
 
-use middleware::{MiddlewareChain};
-use context::Context;
+#[cfg(not(feature = "async_await"))]
+use crate::middleware::{MiddlewareChain};
+#[cfg(feature = "async_await")]
+use crate::async_middleware::{MiddlewareChain};
+use crate::context::Context;
 
 // A route with params that may or may not be a terminal node.
 type RouteNodeWithParams<'a, T> = (HashMap<String, String>, bool, &'a MiddlewareChain<T>);

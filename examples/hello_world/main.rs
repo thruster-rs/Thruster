@@ -1,5 +1,5 @@
 #[macro_use] extern crate thruster;
-extern crate futures;
+extern crate futures_legacy;
 extern crate serde;
 extern crate serde_json;
 extern crate smallvec;
@@ -9,12 +9,12 @@ extern crate tokio;
 
 mod context;
 
-use futures::future;
+use futures_legacy::future;
 
 use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
 use thruster::builtins::server::Server;
 use thruster::server::ThrusterServer;
-use context::{generate_context, Ctx};
+use crate::context::{generate_context, Ctx};
 
 fn not_found_404(context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
   let mut context = Ctx::new(context);

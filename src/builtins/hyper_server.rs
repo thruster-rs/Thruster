@@ -1,16 +1,16 @@
 use std::net::ToSocketAddrs;
 use std::collections::HashMap;
 
-use futures::Future;
+use futures_legacy::Future;
 use tokio;
 use hyper::{Body, Response, Request, Server as HyperServer};
 use hyper::service::service_fn;
 use std::sync::Arc;
 
-use app::App;
-use context::Context;
-use server::ThrusterServer;
-use request::RequestWithParams;
+use crate::app::App;
+use crate::context::Context;
+use crate::server::ThrusterServer;
+use crate::request::RequestWithParams;
 
 impl<Body> RequestWithParams for Request<Body> {
   fn set_params(&mut self, params: HashMap<String, String>) {

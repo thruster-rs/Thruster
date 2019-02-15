@@ -1,9 +1,9 @@
 #[macro_use] extern crate thruster;
-extern crate futures;
+extern crate futures_legacy;
 extern crate hyper;
 
 use std::boxed::Box;
-use futures::future;
+use futures_legacy::future;
 
 use hyper::{Body, Request};
 use thruster::{App, Context, MiddlewareChain, MiddlewareReturnValue};

@@ -1,8 +1,8 @@
 #[macro_use] extern crate thruster;
-extern crate futures;
+extern crate futures_legacy;
 
 use std::boxed::Box;
-use futures::future;
+use futures_legacy::future;
 
 use thruster::{App, BasicContext as Ctx, CookieOptions, MiddlewareChain, MiddlewareReturnValue, Request};
 use thruster::builtins::server::Server;

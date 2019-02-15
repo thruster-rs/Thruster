@@ -1,13 +1,17 @@
 use std::io;
 
-use futures::future;
-use futures::Future;
+use futures_legacy::future;
+use futures_legacy::{Future as FutureLegacy};
 
-use builtins::basic_context::{generate_context, BasicContext};
-use context::Context;
-use request::{Request, RequestWithParams};
-use route_parser::{MatchedRoute, RouteParser};
-use middleware::{MiddlewareChain};
+use crate::builtins::basic_context::{generate_context, BasicContext};
+use crate::context::Context;
+use crate::request::{Request, RequestWithParams};
+use crate::route_parser::{MatchedRoute, RouteParser};
+
+#[cfg(not(feature = "async_await"))]
+use crate::middleware::{MiddlewareChain};
+#[cfg(feature = "async_await")]
+use crate::async_middleware::{MiddlewareChain};
 
 enum Method {
   DELETE,
@@ -190,14 +194,35 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   }
 
   /// Resolves a request, returning a future that is processable into a Response
-  pub fn resolve(&self, mut request: R, matched_route: MatchedRoute<R, T>) -> impl Future<Item=T::Response, Error=io::Error> + Send {
+  pub fn resolve(&self, request: R, matched_route: MatchedRoute<R, T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
+    self._resolve(request, matched_route)
+  }
+
+  #[cfg(feature = "async_await")]
+  fn _resolve(&self, mut request: R, matched_route: MatchedRoute<R, T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
+    use tokio_async_await::compat::backward;
+    use tokio_async_await::compat::forward::IntoAwaitable;
+
     request.set_params(matched_route.params);
 
     let context = (self.context_generator)(request);
-    // let middleware = matched_route.middleware;
-    // let middleware_chain = MiddlewareChain::new(middleware);
+    let middleware = matched_route.middleware;
 
-    // let context_future = middleware_next(context);
+    let copy = matched_route.middleware.clone();
+    let context_future = async move {
+      let ctx = await!(copy.run(context));
+      Ok(ctx.get_response())
+    };
+
+
+    backward::Compat::new(context_future)
+  }
+
+  #[cfg(not(feature = "async_await"))]
+  fn _resolve(&self, mut request: R, matched_route: MatchedRoute<R, T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
+    request.set_params(matched_route.params);
+
+    let context = (self.context_generator)(request);
     let context_future = matched_route.middleware.run(context);
 
     context_future
@@ -210,20 +235,25 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use testing;
-  use context::Context;
-  use request::Request;
-  use middleware::{MiddlewareChain, MiddlewareReturnValue};
-  use response::Response;
+  use crate::testing;
+  use crate::context::Context;
+  use crate::request::Request;
+
+  #[cfg(not(feature = "async_await"))]
+  use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
+  #[cfg(feature = "async_await")]
+  use crate::async_middleware::{MiddlewareChain, MiddlewareReturnValue};
+
+  use crate::response::Response;
   use serde;
-  use futures::{future, Future};
+  use futures_legacy::{future, Future};
   use std::boxed::Box;
   use std::io;
   use std::str;
   use std::marker::Send;
-  use builtins::query_params;
-  use builtins::cookies;
-  use builtins::basic_context::BasicContext;
+  use crate::builtins::query_params;
+  use crate::builtins::cookies;
+  use crate::builtins::basic_context::BasicContext;
 
   struct TypedContext<T> {
     pub request_body: T,

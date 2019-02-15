@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
-use middleware::{MiddlewareChain};
-use route_tree::RouteTree;
-use context::Context;
-use app::App;
-use request::RequestWithParams;
+#[cfg(not(feature = "async_await"))]
+use crate::middleware::{MiddlewareChain};
+#[cfg(feature = "async_await")]
+use crate::async_middleware::{MiddlewareChain};
+use crate::route_tree::RouteTree;
+use crate::context::Context;
+use crate::app::App;
+use crate::request::RequestWithParams;
 
 pub struct MatchedRoute<'a, R: RequestWithParams, T: 'static + Context + Send> {
   pub middleware: &'a MiddlewareChain<T>,
@@ -89,10 +92,13 @@ impl<T: Context + Send> Default for RouteParser<T> {
 #[cfg(test)]
 mod tests {
   use super::RouteParser;
-  use builtins::basic_context::BasicContext;
-  use request::Request;
-  use middleware::{MiddlewareChain, MiddlewareReturnValue};
-  use futures::future;
+  use crate::builtins::basic_context::BasicContext;
+  use crate::request::Request;
+  #[cfg(not(feature = "async_await"))]
+use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
+#[cfg(feature = "async_await")]
+use crate::async_middleware::{MiddlewareChain, MiddlewareReturnValue};
+  use futures_legacy::future;
   use std::boxed::Box;
 
   fn fake(_: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {

@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
-use context::Context;
-use middleware::{MiddlewareReturnValue};
+use crate::context::Context;
+#[cfg(not(feature = "async_await"))]
+use crate::middleware::{MiddlewareReturnValue};
+#[cfg(feature = "async_await")]
+use crate::async_middleware::{MiddlewareReturnValue};
 
 pub trait HasQueryParams {
   fn set_query_params(&mut self, query_params: HashMap<String, String>);
