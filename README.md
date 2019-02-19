@@ -84,7 +84,7 @@ fn main() {
 
   let mut app = App::<Request, Ctx>::new_basic();
 
-  app.get("/plaintext", middleware![plaintext]);
+  app.get("/plaintext", middleware![Ctx => plaintext]);
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);
@@ -118,7 +118,7 @@ fn main() {
 
   let mut app = App::<Request<Body>, Ctx>::create(generate_context);
 
-  app.get("/plaintext", middleware![plaintext]);
+  app.get("/plaintext", middleware![Ctx => plaintext]);
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);
@@ -169,7 +169,7 @@ let mut app = App::<Request, Ctx>::new_basic();
 
 ...
 
-app.get("/plaintext", middleware![plaintext]);
+app.get("/plaintext", middleware![Ctx => plaintext]);
 
 ...
 
