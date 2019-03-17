@@ -59,6 +59,11 @@ If you have `cargo generate` installed, you can simply run the [cargo generator]
 cargo generate --git https://github.com/ami44/thruster-basic-template.git --name myproject
 ```
 
+## Example
+
+To run the example `cargo run --example <example-name>`.
+For example, `cargo run --example hello_world` and open [http://localhost:4321/](http://localhost:4321/)
+
 ### The most basic example
 
 ```rust
