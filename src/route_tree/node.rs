@@ -5,7 +5,7 @@ use std::str::Split;
 #[cfg(not(feature = "async_await"))]
 use crate::middleware::{MiddlewareChain};
 #[cfg(feature = "async_await")]
-use crate::async_middleware::{MiddlewareChain};
+use crate::middleware::{MiddlewareChain};
 use crate::context::Context;
 
 // A route with params that may or may not be a terminal node.

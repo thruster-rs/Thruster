@@ -3,7 +3,7 @@ use std::collections::HashMap;
 #[cfg(not(feature = "async_await"))]
 use crate::middleware::{MiddlewareChain};
 #[cfg(feature = "async_await")]
-use crate::async_middleware::{MiddlewareChain};
+use crate::middleware::{MiddlewareChain};
 use crate::route_tree::RouteTree;
 use crate::context::Context;
 use crate::app::App;
@@ -97,7 +97,7 @@ mod tests {
   #[cfg(not(feature = "async_await"))]
 use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
 #[cfg(feature = "async_await")]
-use crate::async_middleware::{MiddlewareChain, MiddlewareReturnValue};
+use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
   use futures_legacy::future;
   use std::boxed::Box;
 

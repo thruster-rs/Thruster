@@ -7,7 +7,7 @@ use crate::context::Context;
 #[cfg(not(feature = "async_await"))]
 use crate::middleware::{MiddlewareChain};
 #[cfg(feature = "async_await")]
-use crate::async_middleware::{MiddlewareChain};
+use crate::middleware::{MiddlewareChain};
 
 pub enum Method {
   DELETE,
@@ -127,7 +127,7 @@ mod tests {
   #[cfg(not(feature = "async_await"))]
 use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
 #[cfg(feature = "async_await")]
-use crate::async_middleware::{MiddlewareChain, MiddlewareReturnValue};
+use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
   use futures_legacy::{future, Future};
   use std::boxed::Box;
 

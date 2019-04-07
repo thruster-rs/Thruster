@@ -11,7 +11,7 @@ use crate::route_parser::{MatchedRoute, RouteParser};
 #[cfg(not(feature = "async_await"))]
 use crate::middleware::{MiddlewareChain};
 #[cfg(feature = "async_await")]
-use crate::async_middleware::{MiddlewareChain};
+use crate::middleware::{MiddlewareChain};
 
 enum Method {
   DELETE,
@@ -200,6 +200,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
 
   #[cfg(feature = "async_await")]
   fn _resolve(&self, mut request: R, matched_route: MatchedRoute<R, T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
+
     use tokio_async_await::compat::backward;
     use tokio_async_await::compat::forward::IntoAwaitable;
 
@@ -209,11 +210,12 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     let middleware = matched_route.middleware;
 
     let copy = matched_route.middleware.clone();
-    let context_future = async move {
-      let ctx = await!(copy.run(context));
-      Ok(ctx.get_response())
-    };
-
+    // let context_future = async move {
+    //   let ctx = await!(copy.run(context));
+    //   Ok(ctx.get_response())
+    // };
+    let context_future = copy.run(context)
+      .then(|ctx| Ok(ctx.get_response()));
 
     backward::Compat::new(context_future)
   }
@@ -242,7 +244,7 @@ mod tests {
   #[cfg(not(feature = "async_await"))]
   use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
   #[cfg(feature = "async_await")]
-  use crate::async_middleware::{MiddlewareChain, MiddlewareReturnValue};
+  use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
 
   use crate::response::Response;
   use serde;

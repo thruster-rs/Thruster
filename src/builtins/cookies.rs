@@ -4,7 +4,7 @@ use crate::context::Context;
 #[cfg(not(feature = "async_await"))]
 use crate::middleware::{MiddlewareReturnValue};
 #[cfg(feature = "async_await")]
-use crate::async_middleware::{MiddlewareReturnValue};
+use crate::middleware::{MiddlewareReturnValue};
 
 #[derive(Debug)]
 pub struct Cookie {

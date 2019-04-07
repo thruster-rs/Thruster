@@ -1,4 +1,5 @@
-#![feature(await_macro, async_await, futures_api)]
+// #![cfg(feature = "async_await")]
+// #![feature(await_macro, async_await, futures_api)]
 #![feature(plugin_registrar, rustc_private)]
 
 extern crate bytes;
@@ -47,7 +48,7 @@ mod route_tree;
 #[cfg(not(feature = "async_await"))]
 pub use crate::middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
 #[cfg(feature = "async_await")]
-pub use crate::async_middleware::{Chain, Middleware, MiddlewareChain, MiddlewareReturnValue};
+pub use crate::middleware::{Chain, Middleware, MiddlewareChain, MiddlewareReturnValue};
 
 pub use crate::app::App;
 pub use crate::context::Context;
