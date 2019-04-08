@@ -1,5 +1,4 @@
-// enable the await! macro, async support, and the new std::Futures api.
-#![feature(await_macro, thruster_async_await, async_await, futures_api, proc_macro_hygiene)]
+#![feature(await_macro, async_await, futures_api, proc_macro_hygiene)]
 extern crate thruster;
 
 use std::boxed::Box;

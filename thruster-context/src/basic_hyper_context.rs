@@ -3,6 +3,7 @@ use std::str;
 use hyper::{Body, Response, Request, StatusCode};
 
 use thruster_core::context::Context;
+
 use thruster_middleware::query_params::HasQueryParams;
 
 pub enum SameSite {

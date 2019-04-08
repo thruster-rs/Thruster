@@ -26,7 +26,10 @@ harness = false
 default = ["hyper_server"]
 hyper_server = []
 thruster_async_await = [
-  "thruster-core/thruster_async_await"
+  "thruster-app/thruster_async_await",
+  "thruster-core/thruster_async_await",
+  "thruster-context/thruster_async_await",
+  "thruster-server/thruster_async_await"
 ]
 
 [dependencies]
@@ -36,3 +39,9 @@ thruster-core = { path = "../thruster-core" }
 thruster-middleware = { path = "../thruster-middleware" }
 thruster-proc = { path = "../thruster-proc" }
 thruster-server = { path = "../thruster-server" }
+
+[dev-dependencies]
+futures-legacy = { version = "0.1.23", package = "futures" }
+serde = "1.0.24"
+serde_json = "1.0.8"
+serde_derive = "1.0.24"

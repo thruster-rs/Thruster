@@ -4,6 +4,7 @@ use std::str;
 use thruster_core::context::Context;
 use thruster_core::response::Response;
 use thruster_core::request::Request;
+
 use thruster_middleware::query_params::HasQueryParams;
 use thruster_middleware::cookies::{Cookie, HasCookies, CookieOptions, SameSite};
 

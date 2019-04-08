@@ -5,8 +5,6 @@ extern crate http as httplib;
 
 #[cfg(not(feature = "thruster_async_await"))]
 #[macro_use] pub mod middleware;
-#[cfg(feature = "thruster_async_await")]
-pub mod async_middleware;
 
 pub mod date;
 pub mod http;
@@ -17,7 +15,9 @@ pub mod route_parser;
 pub mod route_tree;
 
 #[cfg(not(feature = "thruster_async_await"))]
-pub use crate::middleware::{Middleware, MiddlewareChain, MiddlewareReturnValue};
+pub use crate::middleware::*;
 
 #[cfg(feature = "thruster_async_await")]
-pub use crate::async_middleware::{Chain, Middleware, MiddlewareChain, MiddlewareReturnValue};
+pub use thruster_core_async_await::{Chain, Middleware, MiddlewareChain, MiddlewareReturnValue};
+#[cfg(feature = "thruster_async_await")]
+pub use thruster_core_async_await::middleware;

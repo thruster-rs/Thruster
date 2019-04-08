@@ -5,13 +5,11 @@ use futures_legacy::{Future as FutureLegacy};
 use thruster_core::context::Context;
 use thruster_core::request::{Request, RequestWithParams};
 use thruster_core::route_parser::{MatchedRoute, RouteParser};
+use thruster_core::middleware::{MiddlewareChain};
+
+
 
 use thruster_context::basic_context::{generate_context, BasicContext};
-
-#[cfg(not(feature = "thruster_async_await"))]
-use thruster_core::middleware::{MiddlewareChain};
-#[cfg(feature = "thruster_async_await")]
-use thruster_core::middleware::{MiddlewareChain};
 
 enum Method {
   DELETE,
@@ -198,26 +196,11 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     self._resolve(request, matched_route)
   }
 
-  #[cfg(feature = "async_await")]
+  #[cfg(feature = "thruster_async_await")]
   fn _resolve(&self, mut request: R, matched_route: MatchedRoute<T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
+    use thruster_async_await::resolve;
 
-    use tokio_async_await::compat::backward;
-    use tokio_async_await::compat::forward::IntoAwaitable;
-
-    request.set_params(matched_route.params);
-
-    let context = (self.context_generator)(request);
-    let middleware = matched_route.middleware;
-
-    let copy = matched_route.middleware.clone();
-    // let context_future = async move {
-    //   let ctx = await!(copy.run(context));
-    //   Ok(ctx.get_response())
-    // };
-    let context_future = copy.run(context)
-      .then(|ctx| Ok(ctx.get_response()));
-
-    backward::Compat::new(context_future)
+    resolve(self.context_generator, request, matched_route)
   }
 
   #[cfg(not(feature = "thruster_async_await"))]
@@ -246,9 +229,6 @@ mod tests {
 
   use thruster_core::request::Request;
 
-  #[cfg(not(feature = "thruster_async_await"))]
-  use thruster_core::middleware::{MiddlewareChain, MiddlewareReturnValue};
-  #[cfg(feature = "thruster_async_await")]
   use thruster_core::middleware::{MiddlewareChain, MiddlewareReturnValue};
 
   use thruster_middleware::query_params;

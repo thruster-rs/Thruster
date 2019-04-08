@@ -13,6 +13,9 @@ edition = "2018"
 [features]
 default = ["hyper_server"]
 hyper_server = ["hyper"]
+thruster_async_await = [
+  "thruster-core/thruster_async_await"
+]
 
 [dependencies]
 hyper = { version = "0.12.25", optional = true }

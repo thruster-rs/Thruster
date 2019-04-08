@@ -1,5 +1,5 @@
 [package]
-name = "thruster-core"
+name = "thruster-core-async-await"
 version = "0.6.3"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
@@ -12,23 +12,8 @@ repository = "https://github.com/trezm/thruster"
 edition = "2018"
 
 [features]
-thruster_async_await = [
-  "thruster-core-async-await/thruster_async_await"
-]
+thruster_async_await = []
 
 [dependencies]
-bytes = "0.4"
 futures-legacy = { version = "0.1.23", package = "futures" }
 futures-preview = "0.3.0-alpha.13"
-http = "0.1.7"
-httparse = "1.1.2"
-regex = "0.2"
-serde = "1.0.24"
-serde_json = "1.0.8"
-serde_derive = "1.0.24"
-smallvec = "0.6.2"
-templatify = "0.2.3"
-time = "0.1"
-tokio-codec = "0.1.0"
-tokio-io = "0.1"
-thruster-core-async-await = { path = "../thruster-core-async-await", optional = true }

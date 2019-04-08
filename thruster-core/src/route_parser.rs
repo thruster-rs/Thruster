@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use crate::context::Context;
 use crate::request::RequestWithParams;
+use crate::route_tree::RouteTree;
 
 #[cfg(not(feature = "thruster_async_await"))]
 use crate::middleware::{MiddlewareChain};
 #[cfg(feature = "thruster_async_await")]
-use crate::async_middleware::{MiddlewareChain};
-use crate::route_tree::RouteTree;
+use thruster_core_async_await::{MiddlewareChain};
 
 pub struct MatchedRoute<'a, T: 'static + Context + Send> {
   pub middleware: &'a MiddlewareChain<T>,

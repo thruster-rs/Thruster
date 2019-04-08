@@ -6,8 +6,9 @@ pub use self::node::Node;
 use crate::context::Context;
 #[cfg(not(feature = "thruster_async_await"))]
 use crate::middleware::{MiddlewareChain};
+
 #[cfg(feature = "thruster_async_await")]
-use crate::async_middleware::{MiddlewareChain};
+use thruster_core_async_await::{MiddlewareChain};
 
 pub enum Method {
   DELETE,

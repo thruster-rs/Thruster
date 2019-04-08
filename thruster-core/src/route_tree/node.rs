@@ -2,11 +2,12 @@ use std::collections::HashMap;
 use smallvec::SmallVec;
 use std::str::Split;
 
+
+use crate::context::Context;
 #[cfg(not(feature = "thruster_async_await"))]
 use crate::middleware::{MiddlewareChain};
 #[cfg(feature = "thruster_async_await")]
-use crate::async_middleware::{MiddlewareChain};
-use crate::context::Context;
+use thruster_core_async_await::{MiddlewareChain};
 
 // A route with params that may or may not be a terminal node.
 type RouteNodeWithParams<'a, T> = (HashMap<String, String>, bool, &'a MiddlewareChain<T>);
