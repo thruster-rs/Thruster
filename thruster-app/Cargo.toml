@@ -1,0 +1,51 @@
+[package]
+name = "thruster-app"
+version = "0.6.3"
+authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
+description = "A middleware based http async web server."
+readme = "README.md"
+license = "MIT"
+keywords = ["thruster", "router", "fast", "http", "hyper"]
+documentation = "https://thruster.github.com"
+homepage = "https://thruster.github.com"
+repository = "https://github.com/trezm/thruster"
+edition = "2018"
+
+[profile.release]
+debug = true
+
+[dependencies]
+bytes = "0.4"
+futures-legacy = { version = "0.1.23", package = "futures" }
+futures-preview = "0.3.0-alpha.13"
+http = "0.1.7"
+httparse = "1.1.2"
+hyper = { version = "0.12.25", optional = true }
+log = "0.3.6"
+net2 = "0.2"
+num_cpus = "1.0"
+regex = "0.2"
+serde = "1.0.24"
+serde_json = "1.0.8"
+serde_derive = "1.0.24"
+smallvec = "0.6.2"
+templatify = "0.2.3"
+time = "0.1"
+# Not bleeding edge
+tokio = { version = "0.1.15", features = ["async-await-preview"] }
+tokio-async-await = "0.1.6"
+tokio-codec = "0.1.0"
+tokio-core = "0.1.17"
+tokio-io = "0.1"
+thruster-context = { path = "../thruster-context" }
+thruster-core = { path = "../thruster-core" }
+thruster-middleware = { path = "../thruster-middleware" }
+
+[dev-dependencies]
+criterion = "0.2"
+diesel = { version = "1.3", features = ["postgres", "r2d2"] }
+dotenv = "0.13.0"
+lazy_static = "1.1.0"
+rustc-serialize = "0.3"
+num_cpus = "1.0"
+env_logger = { version = "0.3.4", default-features = false }

@@ -1,0 +1,38 @@
+[package]
+name = "thruster"
+version = "0.6.3"
+authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
+description = "A middleware based http async web server."
+readme = "README.md"
+license = "MIT"
+keywords = ["thruster", "router", "fast", "http", "hyper"]
+documentation = "https://thruster.github.com"
+homepage = "https://thruster.github.com"
+repository = "https://github.com/trezm/thruster"
+edition = "2018"
+
+[profile.release]
+debug = true
+
+[[example]]
+name = "most_basic_async"
+required-features = ["thruster_async_await"]
+
+[[bench]]
+name = "app"
+harness = false
+
+[features]
+default = ["hyper_server"]
+hyper_server = []
+thruster_async_await = [
+  "thruster-core/thruster_async_await"
+]
+
+[dependencies]
+thruster-app = { path = "../thruster-app" }
+thruster-context = { path = "../thruster-context" }
+thruster-core = { path = "../thruster-core" }
+thruster-middleware = { path = "../thruster-middleware" }
+thruster-proc = { path = "../thruster-proc" }
+thruster-server = { path = "../thruster-server" }

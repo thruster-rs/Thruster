@@ -1,0 +1,20 @@
+[package]
+name = "thruster-context"
+version = "0.1.0"
+authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
+description = "A middleware based http async web server."
+readme = "README.md"
+license = "MIT"
+documentation = "https://thruster.github.com"
+homepage = "https://thruster.github.com"
+repository = "https://github.com/trezm/thruster"
+edition = "2018"
+
+[features]
+default = ["hyper_server"]
+hyper_server = ["hyper"]
+
+[dependencies]
+hyper = { version = "0.12.25", optional = true }
+thruster-core = { path = "../thruster-core" }
+thruster-middleware = { path = "../thruster-middleware" }
