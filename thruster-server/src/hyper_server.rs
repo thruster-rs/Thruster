@@ -1,5 +1,4 @@
 use std::net::ToSocketAddrs;
-use std::collections::HashMap;
 
 use futures_legacy::Future;
 use tokio;
@@ -8,9 +7,10 @@ use hyper::service::service_fn;
 use std::sync::Arc;
 
 use thruster_app::app::App;
-use crate::thruster_server::ThrusterServer;
 use thruster_core::context::Context;
 use thruster_context::basic_hyper_context::HyperRequest;
+
+use crate::thruster_server::ThrusterServer;
 
 pub struct Server<T: 'static + Context + Send> {
   app: App<HyperRequest, T>

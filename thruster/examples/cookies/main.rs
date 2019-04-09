@@ -4,9 +4,10 @@ extern crate futures_legacy;
 use std::boxed::Box;
 use futures_legacy::future;
 
-use thruster::{App, BasicContext as Ctx, CookieOptions, MiddlewareChain, MiddlewareReturnValue, Request};
-use thruster::builtins::server::Server;
-use thruster::server::ThrusterServer;
+use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
+use thruster::thruster_middleware::cookies::CookieOptions;
+use thruster::server::Server;
+use thruster::ThrusterServer;
 
 fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!";

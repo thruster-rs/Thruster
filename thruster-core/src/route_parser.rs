@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use crate::context::Context;
-use crate::request::RequestWithParams;
 use crate::route_tree::RouteTree;
 
 #[cfg(not(feature = "thruster_async_await"))]

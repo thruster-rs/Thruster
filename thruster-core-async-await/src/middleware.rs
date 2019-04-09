@@ -4,13 +4,15 @@ use std::pin::Pin;
 
 pub type MiddlewareReturnValue<T> = Pin<Box<Future<Output=T> + Send + Sync>>;
 
+type BuiltChain<C> = Box<Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>> + Send + Sync>;
+type MiddlewareFn<C> = fn(C, Box<((Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>>) + 'static + Send + Sync)>) -> Pin<Box<Future<Output=C> + Send + Sync>>;
 pub struct Middleware<C: 'static> {
   pub middleware: &'static [
-    fn(C, Box<((Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>>) + 'static + Send + Sync)>) -> Pin<Box<Future<Output=C> + Send + Sync>>
+    MiddlewareFn<C>
   ]
 }
 
-fn chained_run<C: 'static>(i: usize, j: usize, nodes: Vec<&'static Middleware<C>>) -> Box<Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>> + Send + Sync> {
+fn chained_run<C: 'static>(i: usize, j: usize, nodes: Vec<&'static Middleware<C>>) -> BuiltChain<C> {
   Box::new(move |ctx| {
     match nodes.get(i) {
       Some(n) => {
@@ -26,7 +28,7 @@ fn chained_run<C: 'static>(i: usize, j: usize, nodes: Vec<&'static Middleware<C>
 
 pub struct Chain<C: 'static> {
   nodes: Vec<&'static Middleware<C>>,
-  built: Box<Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>> + Send + Sync>
+  built: BuiltChain<C>
 }
 
 impl<C: 'static> Chain<C> {

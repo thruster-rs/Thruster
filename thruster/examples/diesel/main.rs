@@ -2,7 +2,6 @@ extern crate futures_legacy;
 extern crate serde;
 extern crate serde_json;
 extern crate smallvec;
-extern crate tokio;
 extern crate dotenv;
 extern crate thruster;
 
@@ -17,8 +16,9 @@ mod content_model;
 use futures_legacy::future;
 
 use thruster::{App, MiddlewareReturnValue};
-use thruster::builtins::server::Server;
-use thruster::server::ThrusterServer;
+use thruster::server::Server;
+use thruster::ThrusterServer;
+
 use crate::context::{Ctx, generate_context};
 use diesel::prelude::*;
 use diesel::pg::PgConnection;

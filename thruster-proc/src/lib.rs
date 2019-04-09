@@ -5,7 +5,7 @@ extern crate proc_macro2;
 extern crate lazy_static;
 extern crate uuid;
 
-use crate::proc_macro::{TokenStream, Span};
+use crate::proc_macro::{TokenStream};
 use crate::proc_macro2::TokenTree;
 use crate::proc_macro2::{TokenStream as TokenStream2};
 use crate::proc_macro2::{Ident, Span as Span2};
