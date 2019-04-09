@@ -14,8 +14,8 @@ pub use thruster_core::{Chain, Middleware, MiddlewareChain, MiddlewareReturnValu
 
 pub use thruster_middleware;
 
-// #[cfg(feature="hyper_server")]
-// pub use thruster_server::hyper_server::HyperServer;
+#[cfg(feature="hyper_server")]
+pub use thruster_server::hyper_server;
 
 pub use thruster_server::thruster_server::ThrusterServer;
 pub use thruster_server::server;

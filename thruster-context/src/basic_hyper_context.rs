@@ -3,8 +3,25 @@ use std::str;
 use hyper::{Body, Response, Request, StatusCode};
 
 use thruster_core::context::Context;
-
+use thruster_core::request::RequestWithParams;
 use thruster_middleware::query_params::HasQueryParams;
+
+pub struct HyperRequest(pub Request<Body>);
+
+impl RequestWithParams for HyperRequest {
+  fn set_params(&mut self, params: HashMap<String, String>) {
+    let extensions = self.0
+      .extensions_mut();
+
+    extensions.insert(params);
+  }
+}
+
+impl Default for HyperRequest {
+  fn default() -> Self {
+    HyperRequest(Request::default())
+  }
+}
 
 pub enum SameSite {
   Strict,
@@ -37,7 +54,7 @@ impl CookieOptions {
   }
 }
 
-pub fn generate_context(request: Request<Body>) -> BasicHyperContext {
+pub fn generate_context(request: HyperRequest) -> BasicHyperContext {
   let mut ctx = BasicHyperContext::new();
   ctx.request = request;
 
@@ -48,7 +65,7 @@ pub fn generate_context(request: Request<Body>) -> BasicHyperContext {
 pub struct BasicHyperContext {
   pub body: Body,
   pub query_params: HashMap<String, String>,
-  pub request: Request<Body>,
+  pub request: HyperRequest,
   pub status: u16,
   pub headers: HashMap<String, String>
 }
@@ -64,7 +81,7 @@ impl BasicHyperContext {
     BasicHyperContext {
       body: Body::empty(),
       query_params: HashMap::new(),
-      request: req,
+      request: HyperRequest(req),
       headers: HashMap::new(),
       status: 200
     }
@@ -74,7 +91,7 @@ impl BasicHyperContext {
   /// Get a a parameter
   ///
   pub fn param(&mut self, key: &str) -> Option<&String> {
-    let params = self.request
+    let params = self.request.0
       .extensions_mut()
       .get_mut::<HashMap<String, String>>()
       .unwrap();
@@ -201,9 +218,9 @@ impl HasQueryParams for BasicHyperContext {
   }
 
   fn route(&self) -> &str {
-    match self.request.uri().path_and_query() {
+    match self.request.0.uri().path_and_query() {
       Some(val) => val.as_str(),
-      None => self.request.uri().path()
+      None => self.request.0.uri().path()
     }
   }
 }

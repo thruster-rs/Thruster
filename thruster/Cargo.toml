@@ -24,7 +24,10 @@ harness = false
 
 [features]
 default = ["hyper_server"]
-hyper_server = []
+hyper_server = [
+  "hyper",
+  "thruster-server/hyper_server"
+]
 thruster_async_await = [
   "thruster-app/thruster_async_await",
   "thruster-core/thruster_async_await",
@@ -33,6 +36,7 @@ thruster_async_await = [
 ]
 
 [dependencies]
+hyper = { version = "0.12.25", optional = true }
 thruster-app = { path = "../thruster-app" }
 thruster-context = { path = "../thruster-context" }
 thruster-core = { path = "../thruster-core" }

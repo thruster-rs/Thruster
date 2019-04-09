@@ -8,21 +8,12 @@ use hyper::service::service_fn;
 use std::sync::Arc;
 
 use thruster_app::app::App;
-use thruster_app::server::ThrusterServer;
+use crate::thruster_server::ThrusterServer;
 use thruster_core::context::Context;
-use thruster_core::request::RequestWithParams;
-
-impl<Body> RequestWithParams for Request<Body> {
-  fn set_params(&mut self, params: HashMap<String, String>) {
-    let extensions = self
-      .extensions_mut();
-
-    extensions.insert(params);
-  }
-}
+use thruster_context::basic_hyper_context::HyperRequest;
 
 pub struct Server<T: 'static + Context + Send> {
-  app: App<Request<Body>, T>
+  app: App<HyperRequest, T>
 }
 
 impl<T: 'static + Context + Send> Server<T> {
@@ -31,7 +22,7 @@ impl<T: 'static + Context + Send> Server<T> {
 impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for Server<T> {
   type Context = T;
   type Response = Response<Body>;
-  type Request = Request<Body>;
+  type Request = HyperRequest;
 
   fn new(app: App<Self::Request, T>) -> Self {
     Server {
@@ -52,7 +43,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for Server<T> 
           &req.method().to_string(),
           &req.uri().to_string()
         );
-        clone.resolve(req, matched)
+        clone.resolve(HyperRequest(req), matched)
       })
     };
 

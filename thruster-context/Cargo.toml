@@ -12,7 +12,9 @@ edition = "2018"
 
 [features]
 default = ["hyper_server"]
-hyper_server = ["hyper"]
+hyper_server = [
+  "hyper"
+]
 thruster_async_await = [
   "thruster-core/thruster_async_await"
 ]

@@ -1,19 +1,17 @@
 #[macro_use] extern crate thruster;
 extern crate futures_legacy;
-extern crate hyper;
+extern crate serde_json;
 
 use std::boxed::Box;
 use futures_legacy::future;
-
-use hyper::{Body, Request};
-use thruster::{App, Context, MiddlewareChain, MiddlewareReturnValue};
-use thruster::builtins::hyper_server::Server;
-use thruster::builtins::basic_hyper_context::{generate_context, BasicHyperContext as Ctx};
-use thruster::server::ThrusterServer;
+use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
+use thruster::server::Server;
+use thruster::thruster_middleware::query_params::query_params;
+use thruster::ThrusterServer;
 
 fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
-  let val = "Hello, World!".as_bytes().to_vec();
-  context.set_body(val);
+  let val = serde_json::to_string(&context.query_params).unwrap();
+  context.body(&val);
 
   Box::new(future::ok(context))
 }
@@ -21,8 +19,9 @@ fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>
 fn main() {
   println!("Starting server...");
 
-  let mut app = App::<Request<Body>, Ctx>::create(generate_context);
+  let mut app = App::<Request, Ctx>::new_basic();
 
+  app.use_middleware("/", middleware![Ctx => query_params]);
   app.get("/plaintext", middleware![Ctx => plaintext]);
 
   let server = Server::new(app);

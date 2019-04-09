@@ -4,9 +4,9 @@ extern crate futures_legacy;
 use futures_legacy::future;
 
 use thruster::{App, BasicContext, Context, MiddlewareChain, MiddlewareReturnValue, Response};
-use thruster::builtins::server::Server;
-use thruster::builtins::basic_context::generate_context;
-use thruster::server::ThrusterServer;
+use thruster::server::Server;
+use thruster::thruster_context::basic_context::generate_context;
+use thruster::ThrusterServer;
 
 use std::str;
 
