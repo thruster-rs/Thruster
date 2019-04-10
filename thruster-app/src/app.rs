@@ -7,8 +7,6 @@ use thruster_core::request::{Request, RequestWithParams};
 use thruster_core::route_parser::{MatchedRoute, RouteParser};
 use thruster_core::middleware::{MiddlewareChain};
 
-
-
 use thruster_context::basic_context::{generate_context, BasicContext};
 
 enum Method {
@@ -197,7 +195,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   }
 
   #[cfg(feature = "thruster_async_await")]
-  fn _resolve(&self, mut request: R, matched_route: MatchedRoute<T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
+  fn _resolve(&self, request: R, matched_route: MatchedRoute<T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
     use thruster_async_await::resolve;
 
     resolve(self.context_generator, request, matched_route)

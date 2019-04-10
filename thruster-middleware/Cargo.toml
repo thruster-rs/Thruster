@@ -17,10 +17,9 @@ hyper_server = ["hyper"]
 
 [dependencies]
 futures-legacy = { version = "0.1.23", package = "futures" }
-futures-preview = "0.3.0-alpha.13"
 hyper = { version = "0.12.25", optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-tokio = { version = "0.1.15", features = ["async-await-preview"] }
+tokio = "0.1.15"
 tokio-codec = "0.1.0"
 thruster-core = { path = "../thruster-core" }

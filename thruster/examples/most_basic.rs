@@ -4,7 +4,6 @@ extern crate futures_legacy;
 use std::boxed::Box;
 use futures_legacy::future;
 
-#[macro_use(middleware)]
 use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
 use thruster::server::Server;
 use thruster::ThrusterServer;

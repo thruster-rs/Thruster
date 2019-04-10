@@ -12,7 +12,7 @@ use thruster::ThrusterServer;
 use thruster::thruster_proc::{async_middleware, middleware_fn};
 
 #[middleware_fn]
-async fn add_one(mut context: Ctx, next: Box<(Fn(Ctx) -> Pin<Box<Future<Output=Ctx> + Send + Sync>>) + 'static + Send + Sync>) -> Ctx {
+async fn add_one(context: Ctx, next: Box<(Fn(Ctx) -> Pin<Box<Future<Output=Ctx> + Send + Sync>>) + 'static + Send + Sync>) -> Ctx {
   let mut ctx: Ctx = await!(next(context));
 
   ctx.body(&format!("{} + 1", ctx.get_body()));
