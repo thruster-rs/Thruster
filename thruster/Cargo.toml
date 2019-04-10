@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "0.7.0"
+version = "0.7.4"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
@@ -37,12 +37,12 @@ thruster_async_await = [
 
 [dependencies]
 hyper = { version = "0.12.25", optional = true }
-thruster-app = { path = "../thruster-app" }
-thruster-context = { path = "../thruster-context" }
-thruster-core = { path = "../thruster-core" }
-thruster-middleware = { path = "../thruster-middleware" }
-thruster-proc = { path = "../thruster-proc" }
-thruster-server = { path = "../thruster-server" }
+thruster-app = { version = "0.7", path = "../thruster-app" }
+thruster-context = { version = "0.7", path = "../thruster-context" }
+thruster-core = { version = "0.7", path = "../thruster-core" }
+thruster-middleware = { version = "0.7", path = "../thruster-middleware" }
+thruster-proc = { version = "0.7", path = "../thruster-proc" }
+thruster-server = { version = "0.7", path = "../thruster-server" }
 
 [dev-dependencies]
 diesel = { version = "1.3", features = ["postgres", "r2d2"] }

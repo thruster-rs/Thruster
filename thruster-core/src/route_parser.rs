@@ -97,7 +97,7 @@ mod tests {
   #[cfg(feature = "thruster_async_await")]
   use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
 
-  use futures_legacy::future;
+  use futures::future;
   use std::boxed::Box;
   use std::collections::HashMap;
 

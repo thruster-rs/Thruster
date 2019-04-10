@@ -13,6 +13,7 @@ use thruster_core_async_await::{MiddlewareChain};
 pub enum Method {
   DELETE,
   GET,
+  OPTIONS,
   POST,
   PUT,
   UPDATE
@@ -28,6 +29,7 @@ fn method_to_prefix<'a>(method: &Method) -> &'a str {
   match method {
     Method::DELETE => "__DELETE__",
     Method::GET => "__GET__",
+    Method::OPTIONS => "__OPTIONS__",
     Method::POST => "__POST__",
     Method::PUT => "__PUT__",
     Method::UPDATE => "__UPDATE__"
@@ -94,6 +96,7 @@ impl<T: 'static + Context + Send> RouteTree<T> {
   pub fn add_route_tree(&mut self, route: &str, mut route_tree: RouteTree<T>) {
     route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::DELETE);
     route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::GET);
+    route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::OPTIONS);
     route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::POST);
     route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::PUT);
     self._adopt_sub_app_method_to_self(route, route_tree, &Method::UPDATE);
@@ -132,7 +135,7 @@ mod tests {
   #[cfg(feature = "thruster_async_await")]
   use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
 
-  use futures_legacy::{future, Future};
+  use futures::{future, Future};
   use std::boxed::Box;
   use std::collections::HashMap;
   use std::str;

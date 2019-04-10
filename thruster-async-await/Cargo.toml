@@ -1,8 +1,8 @@
 [package]
 name = "thruster-async-await"
-version = "0.6.3"
+version = "0.7.4"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
-description = "A middleware based http async web server."
+description = "An async await shim for the thruster web framework"
 readme = "README.md"
 license = "MIT"
 keywords = ["thruster", "router", "fast", "http", "hyper"]
@@ -12,13 +12,16 @@ repository = "https://github.com/trezm/thruster"
 edition = "2018"
 
 [features]
-thruster_async_await = []
+default = ["thruster_async_await"]
+thruster_async_await = [
+  "thruster-core/thruster_async_await"
+]
 
 [dependencies]
 futures-legacy = { version = "0.1.23", package = "futures" }
 futures-preview = "0.3.0-alpha.13"
 futures-util = "0.2.1"
-thruster-core = { path = "../thruster-core" }
+thruster-core = { version = "0.7", path = "../thruster-core" }
 tokio = { version = "0.1.15", features = ["async-await-preview"] }
 tokio-async-await = "0.1.6"
 

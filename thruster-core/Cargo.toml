@@ -1,8 +1,8 @@
 [package]
 name = "thruster-core"
-version = "0.6.3"
+version = "0.7.4"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
-description = "A middleware based http async web server."
+description = "The core pieces of the thruster web framework"
 readme = "README.md"
 license = "MIT"
 keywords = ["thruster", "router", "fast", "http", "hyper"]
@@ -18,7 +18,7 @@ thruster_async_await = [
 
 [dependencies]
 bytes = "0.4"
-futures-legacy = { version = "0.1.23", package = "futures" }
+futures = "0.1.23"
 http = "0.1.7"
 httparse = "1.1.2"
 regex = "0.2"
@@ -30,4 +30,4 @@ templatify = "0.2.3"
 time = "0.1"
 tokio-codec = "0.1.0"
 tokio-io = "0.1"
-thruster-core-async-await = { path = "../thruster-core-async-await", optional = true }
+thruster-core-async-await = { version = "0.7", path = "../thruster-core-async-await", optional = true }

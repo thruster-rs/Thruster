@@ -10,7 +10,7 @@ pub use thruster_core::http::Http;
 pub use thruster_core::{middleware, Middleware, MiddlewareChain, MiddlewareReturnValue};
 
 #[cfg(feature = "thruster_async_await")]
-pub use thruster_core::{Chain, Middleware, MiddlewareChain, MiddlewareReturnValue};
+pub use thruster_core::{Chain, Middleware, MiddlewareChain, MiddlewareNext, MiddlewareReturnValue};
 
 pub use thruster_middleware;
 

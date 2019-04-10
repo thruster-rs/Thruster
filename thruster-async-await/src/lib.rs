@@ -7,7 +7,7 @@ use thruster_core::context::Context;
 use thruster_core::request::{RequestWithParams};
 use thruster_core::route_parser::{MatchedRoute};
 
-pub fn resolve<R: RequestWithParams, T: Context + Send>(context_generator: fn(R) -> T, mut request: R, matched_route: MatchedRoute<T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
+pub fn resolve<R: RequestWithParams, T: 'static + Context + Send>(context_generator: fn(R) -> T, mut request: R, matched_route: MatchedRoute<T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
   use tokio_async_await::compat::backward;
 
   request.set_params(matched_route.params);
