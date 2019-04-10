@@ -1,0 +1,19 @@
+[package]
+name = "thruster-core-async-await"
+version = "0.6.3"
+authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
+description = "A middleware based http async web server."
+readme = "README.md"
+license = "MIT"
+keywords = ["thruster", "router", "fast", "http", "hyper"]
+documentation = "https://thruster.github.com"
+homepage = "https://thruster.github.com"
+repository = "https://github.com/trezm/thruster"
+edition = "2018"
+
+[features]
+thruster_async_await = []
+
+[dependencies]
+futures-legacy = { version = "0.1.23", package = "futures" }
+futures-preview = "0.3.0-alpha.13"

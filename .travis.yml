@@ -16,7 +16,13 @@ before_script:
   - rustup component add clippy-preview
 
 script:
+  # move to the main exported workspace
+  - cd thruster
   # fail when encountering warnings
   - cargo clippy -- -D warnings
-  # run tests
+  # run app tests
+  - cd ../thruster-app
+  - cargo test
+  # run core tests
+  - cd ../thruster-core
   - cargo test
