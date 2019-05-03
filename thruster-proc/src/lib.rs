@@ -1,5 +1,3 @@
-// #![feature(proc_macro_diagnostic)]
-
 extern crate proc_macro;
 extern crate proc_macro2;
 extern crate lazy_static;
@@ -48,11 +46,6 @@ pub fn async_middleware(item: TokenStream) -> TokenStream {
             assigned: true
         }
     }};
-
-    // Span::call_site()
-    //     .note("Thruster Debug...")
-    //     .note(gen.to_string().replace(";", ";\n"))
-    //     .emit();
 
     gen.into()
 }

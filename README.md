@@ -3,7 +3,7 @@
 
 
 
-[Documentation](https://docs.rs/thruster/0.4.5/thruster/)
+[Documentation](https://docs.rs/thruster/0.7.4/thruster/)
 
 ## Motivation
 
@@ -150,6 +150,7 @@ extern crate thruster;
 use std::boxed::Box;
 use std::pin::Pin;
 use std::future::Future;
+use std::time::SystemTime;
 
 use thruster::{Chain, Middleware, MiddlewareChain};
 use thruster::{App, BasicContext as Ctx, Request};
@@ -158,11 +159,18 @@ use thruster::ThrusterServer;
 use thruster::thruster_proc::{async_middleware, middleware_fn};
 
 #[middleware_fn]
-async fn add_one(context: Ctx, next: Box<(Fn(Ctx) -> Pin<Box<Future<Output=Ctx> + Send + Sync>>) + 'static + Send + Sync>) -> Ctx {
-  let mut ctx: Ctx = await!(next(context));
+async fn profile(context: Ctx, next: Box<(Fn(Ctx) -> Pin<Box<Future<Output=Ctx> + Send + Sync>>) + 'static + Send + Sync>) -> Ctx {
+  let start_time = SystemTime::now();
 
-  ctx.body(&format!("{} + 1", ctx.get_body()));
-  ctx
+  context = await!(next(context));
+
+  let elapsed_time = SystemTime::now().duration_since(start_time).unwrap();
+  println!("[{}μs] {} -- {}",
+    elapsed_time.as_micros(),
+    context.request.method(),
+    context.request.path());
+
+  context
 }
 
 #[middleware_fn]

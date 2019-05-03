@@ -2,7 +2,7 @@ use std::net::ToSocketAddrs;
 
 use futures_legacy::Future;
 use tokio;
-use hyper::{Body, Response, Request, Server as HyperServer};
+use hyper::{Body, Response, Request, Server};
 use hyper::service::service_fn;
 use std::sync::Arc;
 
@@ -12,20 +12,20 @@ use thruster_context::basic_hyper_context::HyperRequest;
 
 use crate::thruster_server::ThrusterServer;
 
-pub struct Server<T: 'static + Context + Send> {
+pub struct HyperServer<T: 'static + Context + Send> {
   app: App<HyperRequest, T>
 }
 
-impl<T: 'static + Context + Send> Server<T> {
+impl<T: 'static + Context + Send> HyperServer<T> {
 }
 
-impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for Server<T> {
+impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for HyperServer<T> {
   type Context = T;
   type Response = Response<Body>;
   type Request = HyperRequest;
 
   fn new(app: App<Self::Request, T>) -> Self {
-    Server {
+    HyperServer {
       app
     }
   }
@@ -47,7 +47,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for Server<T> 
       })
     };
 
-    let server = HyperServer::bind(&addr)
+    let server = Server::bind(&addr)
       .serve(new_service)
       .map_err(|e| eprintln!("server error: {}", e));
 
