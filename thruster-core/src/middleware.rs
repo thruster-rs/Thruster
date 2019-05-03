@@ -1,6 +1,6 @@
 use std::boxed::Box;
 use std::sync::Arc;
-use futures_legacy::Future;
+use futures::Future;
 use std::io;
 
 pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error> + Send>;
@@ -127,7 +127,7 @@ macro_rules! middleware {
   );
   [ $ctx:ty => $head:expr ] => {{
     use std::boxed::Box;
-    use futures_legacy::future::Future;
+    use futures::future::Future;
 
     let mut chain: MiddlewareChain<$ctx> = MiddlewareChain::new();
 
@@ -150,7 +150,7 @@ macro_rules! middleware {
   }};
   [ $ctx:ty => $head:expr, $($tail_t:ty => $tail_e:expr),+ ] => {{
     use std::boxed::Box;
-    use futures_legacy::future::Future;
+    use futures::future::Future;
 
     let mut chain = MiddlewareChain::new();
 

@@ -3,16 +3,17 @@ use futures::future::Future;
 use std::pin::Pin;
 
 pub type MiddlewareReturnValue<T> = Pin<Box<Future<Output=T> + Send + Sync>>;
+pub type MiddlewareNext<C> = Box<Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>> + Send + Sync>;
 
-type BuiltChain<C> = Box<Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>> + Send + Sync>;
 type MiddlewareFn<C> = fn(C, Box<((Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>>) + 'static + Send + Sync)>) -> Pin<Box<Future<Output=C> + Send + Sync>>;
+
 pub struct Middleware<C: 'static> {
   pub middleware: &'static [
     MiddlewareFn<C>
   ]
 }
 
-fn chained_run<C: 'static>(i: usize, j: usize, nodes: Vec<&'static Middleware<C>>) -> BuiltChain<C> {
+fn chained_run<C: 'static>(i: usize, j: usize, nodes: Vec<&'static Middleware<C>>) -> MiddlewareNext<C> {
   Box::new(move |ctx| {
     match nodes.get(i) {
       Some(n) => {
@@ -28,7 +29,7 @@ fn chained_run<C: 'static>(i: usize, j: usize, nodes: Vec<&'static Middleware<C>
 
 pub struct Chain<C: 'static> {
   nodes: Vec<&'static Middleware<C>>,
-  built: BuiltChain<C>
+  built: MiddlewareNext<C>
 }
 
 impl<C: 'static> Chain<C> {
@@ -107,6 +108,7 @@ impl<T: 'static> MiddlewareChain<T> {
   ///
   pub fn chain(&mut self, mut chain: MiddlewareChain<T>) {
     self.chain.nodes.append(&mut chain.chain.nodes);
+    self.assigned = self.assigned || chain.is_assigned();
   }
 
   ///

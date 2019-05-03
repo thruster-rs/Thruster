@@ -18,6 +18,6 @@ pub mod route_tree;
 pub use crate::middleware::*;
 
 #[cfg(feature = "thruster_async_await")]
-pub use thruster_core_async_await::{Chain, Middleware, MiddlewareChain, MiddlewareReturnValue};
+pub use thruster_core_async_await::{Chain, Middleware, MiddlewareChain, MiddlewareNext, MiddlewareReturnValue};
 #[cfg(feature = "thruster_async_await")]
 pub use thruster_core_async_await::middleware;

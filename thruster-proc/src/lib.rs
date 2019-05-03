@@ -31,8 +31,10 @@ pub fn async_middleware(item: TokenStream) -> TokenStream {
     let instance_ident = Ident::new(&format!("middleware_{}", unique_id), Span2::call_site());
 
     let gen = quote! {{
+        use thruster::{Chain, Middleware, MiddlewareChain, MiddlewareNext, MiddlewareReturnValue};
+
         const #class_ident: &'static [
-            fn(#context_type, Box<((Fn(#context_type) -> Pin<Box<Future<Output=#context_type> + Send + Sync>>) + 'static + Send + Sync)>) -> Pin<Box<Future<Output=#context_type> + Send + Sync>>
+            fn(#context_type, MiddlewareNext<#context_type>) -> MiddlewareReturnValue<#context_type>
         ] = &#fn_group;
 
         static #instance_ident: Middleware<#context_type> = Middleware {
@@ -43,7 +45,7 @@ pub fn async_middleware(item: TokenStream) -> TokenStream {
 
         MiddlewareChain {
             chain,
-            assigned: false
+            assigned: true
         }
     }};
 
@@ -73,7 +75,7 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let gen = quote! {
             #function_item
 
-            #visibility fn #name(ctx: #context_type, next: Box<((Fn(#context_type) -> Pin<Box<Future<Output=#context_type> + Send + Sync>>) + 'static + Send + Sync)>) -> Pin<Box<Future<Output=#context_type> + Send + Sync>> {
+            #visibility fn #name(ctx: #context_type, next: MiddlewareNext<#context_type>) -> MiddlewareReturnValue<#context_type> {
                 Box::pin(#new_name(ctx, next))
             }
         };

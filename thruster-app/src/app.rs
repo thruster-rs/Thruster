@@ -1,7 +1,7 @@
 use std::io;
 
-use futures_legacy::future;
-use futures_legacy::{Future as FutureLegacy};
+use futures::future;
+use futures::{Future as FutureLegacy};
 use thruster_core::context::Context;
 use thruster_core::request::{Request, RequestWithParams};
 use thruster_core::route_parser::{MatchedRoute, RouteParser};
@@ -12,6 +12,7 @@ use thruster_context::basic_context::{generate_context, BasicContext};
 enum Method {
   DELETE,
   GET,
+  OPTIONS,
   POST,
   PUT,
   UPDATE
@@ -22,6 +23,7 @@ fn _add_method_to_route(method: &Method, path: &str) -> String {
   let prefix = match method {
     Method::DELETE => "__DELETE__",
     Method::GET => "__GET__",
+    Method::OPTIONS => "__OPTIONS__",
     Method::POST => "__POST__",
     Method::PUT => "__PUT__",
     Method::UPDATE => "__UPDATE__"
@@ -135,6 +137,14 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     self
   }
 
+  /// Add a route that responds to `OPTION`s to a given path
+  pub fn options(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
+    self._route_parser.add_route(
+      &_add_method_to_route(&Method::OPTIONS, path), middlewares);
+
+    self
+  }
+
   /// Add a route that responds to `POST`s to a given path
   pub fn post(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
     self._route_parser.add_route(
@@ -220,7 +230,7 @@ mod tests {
   use super::*;
   use crate::testing;
 
-  use futures_legacy::{future, Future};
+  use futures::{future, Future};
   use std::boxed::Box;
   use std::io;
   use std::marker::Send;

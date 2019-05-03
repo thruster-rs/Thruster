@@ -1,8 +1,8 @@
 [package]
 name = "thruster-app"
-version = "0.6.3"
+version = "0.7.4"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
-description = "A middleware based http async web server."
+description = "The App portion of the thruster web framework"
 readme = "README.md"
 license = "MIT"
 keywords = ["thruster", "router", "fast", "http", "hyper"]
@@ -25,9 +25,9 @@ thruster_async_await = [
 
 [dependencies]
 bytes = "0.4"
-futures-legacy = { version = "0.1.23", package = "futures" }
+futures = "0.1.23"
 templatify = "0.2.3"
-thruster-async-await = { path = "../thruster-async-await", optional = true }
-thruster-context = { path = "../thruster-context" }
-thruster-core = { path = "../thruster-core" }
-thruster-middleware = { path = "../thruster-middleware" }
+thruster-async-await = { version = "0.7", path = "../thruster-async-await", optional = true }
+thruster-context = { version = "0.7", path = "../thruster-context" }
+thruster-core = { version = "0.7", path = "../thruster-core" }
+thruster-middleware = { version = "0.7", path = "../thruster-middleware" }

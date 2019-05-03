@@ -1,5 +1,5 @@
 use bytes::{BytesMut, BufMut};
-use futures_legacy::Future;
+use futures::Future;
 use std::collections::HashMap;
 
 use crate::app::App;
