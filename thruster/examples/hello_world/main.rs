@@ -1,5 +1,5 @@
 #[macro_use] extern crate thruster;
-extern crate futures_legacy;
+extern crate futures;
 extern crate serde;
 extern crate serde_json;
 extern crate smallvec;
@@ -8,7 +8,7 @@ extern crate smallvec;
 
 mod context;
 
-use futures_legacy::future;
+use futures::future;
 
 use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
 use thruster::server::Server;

@@ -1,17 +1,17 @@
 extern crate bytes;
-extern crate futures_legacy;
+extern crate futures;
 
 #[macro_use] extern crate criterion;
 #[macro_use] extern crate thruster;
 
 use std::boxed::Box;
-use futures_legacy::{future, Future};
+use futures::{future, Future};
 use std::collections::HashMap;
 use bytes::{BytesMut, BufMut};
 
 use criterion::Criterion;
 use thruster::{decode, App, BasicContext, MiddlewareChain, MiddlewareReturnValue, Request};
-use thruster::builtins::query_params::query_params;
+use thruster::thruster_middleware::query_params::query_params;
 
 fn bench_no_check(c: &mut Criterion) {
   c.bench_function("No check", |bench| {

@@ -6,9 +6,8 @@ use std::boxed::Box;
 use futures_legacy::future;
 
 use thruster::{App, Context, MiddlewareChain, MiddlewareReturnValue};
-use thruster::hyper_server::Server;
+use thruster::server::{HyperServer, ThrusterServer};
 use thruster::thruster_context::basic_hyper_context::{generate_context, BasicHyperContext as Ctx, HyperRequest};
-use thruster::ThrusterServer;
 
 fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".as_bytes().to_vec();
