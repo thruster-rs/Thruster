@@ -1,8 +1,7 @@
-# Thruster
+# Thruster [![Build Status](https://travis-ci.org/trezm/Thruster.svg?branch=master)](https://travis-ci.org/trezm/Thruster) ![Crates.io](https://img.shields.io/crates/v/thruster.svg) ![Crates.io](https://img.shields.io/crates/d/thruster.svg)  [![Gitter chat](https://img.shields.io/gitter/room/thruster-rs/thruster.svg)](https://gitter.im/thruster-rs/Lobby)
 ## An opinionated framework for web development in rust.
 
-[![Build Status](https://travis-ci.org/trezm/Thruster.svg?branch=master)](https://travis-ci.org/trezm/Thruster)
-[![Gitter chat](https://img.shields.io/gitter/room/thruster-rs/thruster.svg)](https://gitter.im/thruster-rs/Lobby)
+
 
 [Documentation](https://docs.rs/thruster/0.4.5/thruster/)
 
