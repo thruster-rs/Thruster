@@ -1,6 +1,7 @@
 #![feature(await_macro, async_await, futures_api, proc_macro_hygiene)]
 extern crate thruster;
 
+use std::time::Instant;
 use thruster::{MiddlewareNext, MiddlewareReturnValue};
 use thruster::{App, BasicContext as Ctx, Request};
 use thruster::server::Server;
@@ -9,13 +10,13 @@ use thruster::thruster_proc::{async_middleware, middleware_fn};
 
 #[middleware_fn]
 async fn profiling(mut context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
-  println!("[start] {} -- {}",
-    context.request.method(),
-    context.request.path());
+  let start_time = Instant::now();
 
   context = await!(next(context));
 
-  println!("[end] {} -- {}",
+  let elapsed_time = start_time.elapsed();
+  println!("[{}μs] {} -- {}",
+    elapsed_time.as_micros(),
     context.request.method(),
     context.request.path());
 

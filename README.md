@@ -150,7 +150,7 @@ extern crate thruster;
 use std::boxed::Box;
 use std::pin::Pin;
 use std::future::Future;
-use std::time::SystemTime;
+use std::time::Instant;
 
 use thruster::{Chain, Middleware, MiddlewareChain, MiddlewareNext};
 use thruster::{App, BasicContext as Ctx, Request};
@@ -160,11 +160,11 @@ use thruster::thruster_proc::{async_middleware, middleware_fn};
 
 #[middleware_fn]
 async fn profile(context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
-  let start_time = SystemTime::now();
+  let start_time = Instant::now();
 
   context = await!(next(context));
 
-  let elapsed_time = SystemTime::now().duration_since(start_time).unwrap();
+  let elapsed_time = start_time.elapsed();
   println!("[{}μs] {} -- {}",
     elapsed_time.as_micros(),
     context.request.method(),
