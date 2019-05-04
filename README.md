@@ -152,14 +152,14 @@ use std::pin::Pin;
 use std::future::Future;
 use std::time::SystemTime;
 
-use thruster::{Chain, Middleware, MiddlewareChain};
+use thruster::{Chain, Middleware, MiddlewareChain, MiddlewareNext};
 use thruster::{App, BasicContext as Ctx, Request};
 use thruster::server::Server;
 use thruster::ThrusterServer;
 use thruster::thruster_proc::{async_middleware, middleware_fn};
 
 #[middleware_fn]
-async fn profile(context: Ctx, next: Box<(Fn(Ctx) -> Pin<Box<Future<Output=Ctx> + Send + Sync>>) + 'static + Send + Sync>) -> Ctx {
+async fn profile(context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
   let start_time = SystemTime::now();
 
   context = await!(next(context));
@@ -174,14 +174,14 @@ async fn profile(context: Ctx, next: Box<(Fn(Ctx) -> Pin<Box<Future<Output=Ctx> 
 }
 
 #[middleware_fn]
-async fn plaintext(mut context: Ctx, _next: Box<(Fn(Ctx) -> Pin<Box<Future<Output=Ctx> + Send + Sync>>) + 'static + Send + Sync>) -> Ctx {
+async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
   let val = "Hello, World!";
   context.body(val);
   context
 }
 
 #[middleware_fn]
-async fn four_oh_four(mut context: Ctx, _next: Box<(Fn(Ctx) -> Pin<Box<Future<Output=Ctx> + Send + Sync>>) + 'static + Send + Sync>) -> Ctx {
+async fn four_oh_four(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
   context.status(404);
   context.body("Whoops! That route doesn't exist!");
   context
@@ -192,7 +192,7 @@ fn main() {
 
   let mut app = App::<Request, Ctx>::new_basic();
 
-  app.get("/plaintext", async_middleware!(Ctx, [add_one, plaintext]));
+  app.get("/plaintext", async_middleware!(Ctx, [profile, plaintext]));
   app.set404(async_middleware!(Ctx, [four_oh_four]));
 
   let server = Server::new(app);
