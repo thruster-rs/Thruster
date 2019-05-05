@@ -16,7 +16,7 @@ pub struct Ctx {
 
 impl Ctx {
   pub fn new(context: Ctx) -> Ctx {
-    Ctx {
+    let mut ctx = Ctx {
       body: context.body,
       method: context.method,
       path: context.path,
@@ -25,7 +25,11 @@ impl Ctx {
       headers: SmallVec::new(),
       status_code: 200,
       response: Response::new()
-    }
+    };
+
+    ctx.set("Server", "Thruster");
+
+    ctx
   }
 
   pub fn set_header(&mut self, key: &str, val: &str) {

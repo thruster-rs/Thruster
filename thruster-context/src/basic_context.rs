@@ -29,7 +29,7 @@ pub struct BasicContext {
 
 impl BasicContext {
   pub fn new() -> BasicContext {
-    BasicContext {
+    let mut ctx = BasicContext {
       body_bytes: Vec::new(),
       cookies: Vec::new(),
       params: HashMap::new(),
@@ -37,7 +37,11 @@ impl BasicContext {
       request: Request::new(),
       headers: HashMap::new(),
       status: 200
-    }
+    };
+
+    ctx.set("Server", "Thruster");
+
+    ctx
   }
 
   ///
