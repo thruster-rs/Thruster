@@ -78,13 +78,17 @@ impl BasicHyperContext {
     let param_map: HashMap<String, String> = HashMap::new();
     req.extensions_mut().insert(param_map);
 
-    BasicHyperContext {
+    let mut ctx = BasicHyperContext {
       body: Body::empty(),
       query_params: HashMap::new(),
       request: HyperRequest(req),
       headers: HashMap::new(),
       status: 200
-    }
+    };
+
+    ctx.set("Server", "Thruster");
+
+    ctx
   }
 
   ///
