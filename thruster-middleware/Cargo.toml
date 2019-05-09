@@ -6,8 +6,8 @@ description = "The middleware for the thruster web framework"
 readme = "README.md"
 license = "MIT"
 keywords = ["thruster", "router", "fast", "http", "hyper"]
-documentation = "https://thruster.github.com"
-homepage = "https://thruster.github.com"
+documentation = "https://docs.rs/thruster"
+homepage = "https://thruster.pete.pm"
 repository = "https://github.com/trezm/thruster"
 edition = "2018"
 
