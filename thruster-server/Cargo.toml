@@ -12,9 +12,7 @@ repository = "https://github.com/trezm/thruster"
 edition = "2018"
 
 [features]
-thruster_async_await = [
-  "tokio/async-await-preview"
-]
+thruster_async_await = []
 hyper_server = [
   "hyper",
   "thruster-context/hyper_server"
@@ -25,8 +23,8 @@ futures-legacy = { version = "0.1.23", package = "futures" }
 hyper = { version = "0.12.25", optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-tokio = "0.1.15"
-tokio-codec = "0.1.0"
+tokio = { git = "https://github.com/tokio-rs/tokio", branch = "master" }
+tokio-codec = { git = "https://github.com/tokio-rs/tokio", branch = "master" }
 thruster-core = { version = "0.7", path = "../thruster-core" }
 thruster-app = { version = "0.7", path = "../thruster-app" }
 thruster-context = { version = "0.7", path = "../thruster-context" }

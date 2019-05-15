@@ -1,4 +1,4 @@
-#![feature(await_macro, async_await, futures_api, proc_macro_hygiene)]
+#![feature(async_await, proc_macro_hygiene)]
 extern crate thruster;
 
 use std::time::Instant;
@@ -12,7 +12,7 @@ use thruster::thruster_proc::{async_middleware, middleware_fn};
 async fn profiling(mut context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
   let start_time = Instant::now();
 
-  context = await!(next(context));
+  context = next(context).await;
 
   let elapsed_time = start_time.elapsed();
   println!("[{}μs] {} -- {}",
@@ -25,7 +25,7 @@ async fn profiling(mut context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
 
 #[middleware_fn]
 async fn add_one(context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
-  let mut ctx: Ctx = await!(next(context));
+  let mut ctx: Ctx = next(context).await;
 
   ctx.body(&format!("{} + 1", ctx.get_body()));
   ctx
