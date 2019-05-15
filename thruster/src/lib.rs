@@ -7,7 +7,7 @@ pub use thruster_core::request::{decode, Request};
 pub use thruster_core::http::Http;
 #[cfg(feature = "thruster_error_handling")]
 pub use thruster_core::{errors, map_try};
-
+#[cfg(feature = "thruster_error_handling")]
 pub use thruster_core::middleware::MiddlewareResult;
 
 #[cfg(not(feature = "thruster_async_await"))]
