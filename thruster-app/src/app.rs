@@ -1,5 +1,6 @@
 use std::io;
 
+use futures::future;
 use futures::{Future as FutureLegacy};
 use thruster_core::context::Context;
 use thruster_core::request::{Request, RequestWithParams};
