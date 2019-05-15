@@ -9,6 +9,20 @@ use thruster::errors::ThrusterError as Error;
 use thruster::ThrusterServer;
 use thruster::thruster_proc::{async_middleware, middleware_fn};
 
+trait ErrorSet {
+  fn parsing_error(context: Ctx) -> Error<Ctx>;
+}
+
+impl ErrorSet for Error<Ctx> {
+  fn parsing_error(context: Ctx) -> Error<Ctx> {
+    Error {
+      context,
+      message: "Parsing failure!".to_string(),
+      status: 400
+    }
+  }
+}
+
 #[middleware_fn]
 async fn profiling(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
   let start_time = Instant::now();
@@ -42,14 +56,7 @@ async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareRe
 #[middleware_fn]
 async fn error(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
   let res = "Hello, world".parse::<u32>();
-  let non_existent_param = map_try!(res, Err(_) => {
-      Error {
-        context,
-        message: "Parsing failure!".to_string(),
-        status: 400
-      }
-    }
-  );
+  let non_existent_param = map_try!(res, Err(_) => Error::parsing_error(context));
 
   context.body(&format!("{}", non_existent_param));
 
