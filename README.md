@@ -200,6 +200,80 @@ fn main() {
 }
 ```
 
+### Async/Await with error handling
+
+To turn on experimental error handling, pass the flag `thruster_error_handling`. This will enable the useage of the `map_try!` macro from the main package. This has the same function as `try!`, but with the ability to properly map the error in a way that the compiler knows that execution ends (so there's no movement issues with `context`.)
+
+This ends up looking like:
+
+```rust
+#![feature(await_macro, async_await, futures_api, proc_macro_hygiene)]
+extern crate thruster;
+
+use thruster::{MiddlewareNext, MiddlewareReturnValue, MiddlewareResult};
+use thruster::{App, BasicContext as Ctx, Request, map_try};
+use thruster::server::Server;
+use thruster::errors::ThrusterError as Error;
+use thruster::ThrusterServer;
+use thruster::thruster_proc::{async_middleware, middleware_fn};
+
+#[middleware_fn]
+async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+  let val = "Hello, World!";
+  context.body(val);
+  Ok(context)
+}
+
+#[middleware_fn]
+async fn error(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+  let res = "Hello, world".parse::<u32>();
+  let non_existent_param = map_try!(res, Err(_) => {
+      Error {
+        context,
+        message: "Parsing failure!".to_string(),
+        status: 400
+      }
+    }
+  );
+
+  context.body(&format!("{}", non_existent_param));
+
+  Ok(context)
+}
+
+#[middleware_fn]
+async fn json_error_handler(context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+  let res = await!(next(context));
+
+  let ctx = match res {
+    Ok(val) => val,
+    Err(e) => {
+      let mut context = e.context;
+      context.body(&format!("{{\"message\": \"{}\",\"success\":false}}", e.message));
+      context.status(e.status);
+      context
+    }
+  };
+
+  Ok(ctx)
+}
+
+fn main() {
+  println!("Starting server...");
+
+  let mut app = App::<Request, Ctx>::new_basic();
+
+  app.use_middleware("/", async_middleware!(Ctx, [json_error_handler]));
+
+  app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
+  app.get("/error", async_middleware!(Ctx, [error]));
+
+  let server = Server::new(app);
+  server.start("0.0.0.0", 4321);
+}
+
+```
+
 ### Quick setup without a DB
 
 The easiest way to get started is to just clone the [starter kit](https://github.com/trezm/thruster-starter-kit)

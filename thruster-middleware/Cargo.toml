@@ -1,6 +1,6 @@
 [package]
 name = "thruster-middleware"
-version = "0.7.5"
+version = "0.7.6"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The middleware for the thruster web framework"
 readme = "README.md"

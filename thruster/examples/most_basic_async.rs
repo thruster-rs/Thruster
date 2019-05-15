@@ -2,17 +2,18 @@
 extern crate thruster;
 
 use std::time::Instant;
-use thruster::{MiddlewareNext, MiddlewareReturnValue};
-use thruster::{App, BasicContext as Ctx, Request};
+use thruster::{MiddlewareNext, MiddlewareReturnValue, MiddlewareResult};
+use thruster::{App, BasicContext as Ctx, Request, map_try};
 use thruster::server::Server;
+use thruster::errors::ThrusterError as Error;
 use thruster::ThrusterServer;
 use thruster::thruster_proc::{async_middleware, middleware_fn};
 
 #[middleware_fn]
-async fn profiling(mut context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
+async fn profiling(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
   let start_time = Instant::now();
 
-  context = next(context).await;
+  context = next(context).await?;
 
   let elapsed_time = start_time.elapsed();
   println!("[{}μs] {} -- {}",
@@ -20,29 +21,63 @@ async fn profiling(mut context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
     context.request.method(),
     context.request.path());
 
-  context
+  Ok(context)
 }
 
 #[middleware_fn]
-async fn add_one(context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
-  let mut ctx: Ctx = next(context).await;
+async fn add_one(context: Ctx, next: MiddlewareNext<Ctx>) ->  MiddlewareResult<Ctx> {
+  let mut ctx: Ctx = next(context).await?;
 
   ctx.body(&format!("{} + 1", ctx.get_body()));
-  ctx
+  Ok(ctx)
 }
 
 #[middleware_fn]
-async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
   let val = "Hello, World!";
   context.body(val);
-  context
+  Ok(context)
 }
 
 #[middleware_fn]
-async fn four_oh_four(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn error(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+  let res = "Hello, world".parse::<u32>();
+  let non_existent_param = map_try!(res, Err(_) => {
+      Error {
+        context,
+        message: "Parsing failure!".to_string(),
+        status: 400
+      }
+    }
+  );
+
+  context.body(&format!("{}", non_existent_param));
+
+  Ok(context)
+}
+
+#[middleware_fn]
+async fn json_error_handler(context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+  let res = next(context).await;
+
+  let ctx = match res {
+    Ok(val) => val,
+    Err(e) => {
+      let mut context = e.context;
+      context.body(&format!("{{\"message\": \"{}\",\"success\":false}}", e.message));
+      context.status(e.status);
+      context
+    }
+  };
+
+  Ok(ctx)
+}
+
+#[middleware_fn]
+async fn four_oh_four(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
   context.status(404);
   context.body("Whoops! That route doesn't exist!");
-  context
+  Ok(context)
 }
 
 fn main() {
@@ -50,14 +85,11 @@ fn main() {
 
   let mut app = App::<Request, Ctx>::new_basic();
 
-  app.use_middleware("/", async_middleware!(Ctx, [profiling]));
-  // for (route, middleware) in app._route_parser.route_tree.root_node.enumerate() {
-  //   println!("a{}: {}", route, middleware.chain.nodes.len());
-  // }
+  app.use_middleware("/", async_middleware!(Ctx, [profiling, json_error_handler]));
 
   app.get("/plaintext", async_middleware!(Ctx, [add_one, plaintext]));
-
-  // app.set404(async_middleware!(Ctx, [four_oh_four]));
+  app.get("/error", async_middleware!(Ctx, [add_one, error]));
+  app.set404(async_middleware!(Ctx, [four_oh_four]));
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);

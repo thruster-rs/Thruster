@@ -1,6 +1,5 @@
 use std::io;
 
-use futures::future;
 use futures::{Future as FutureLegacy};
 use thruster_core::context::Context;
 use thruster_core::request::{Request, RequestWithParams};
@@ -217,6 +216,9 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
 
     let context = (self.context_generator)(request);
     let context_future = matched_route.middleware.run(context);
+
+    #[cfg(feature = "thruster_error_handling")]
+    let context_future = context_future.unwrap();
 
     context_future
         .and_then(|context| {

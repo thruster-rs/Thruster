@@ -1,6 +1,6 @@
 [package]
 name = "thruster-app"
-version = "0.7.5"
+version = "0.7.6"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The App portion of the thruster web framework"
 readme = "README.md"
@@ -21,6 +21,10 @@ thruster_async_await = [
   "thruster-core/thruster_async_await",
   "thruster-context/thruster_async_await",
   "thruster-async-await/thruster_async_await"
+]
+thruster_error_handling = [
+  "thruster-core/thruster_error_handling",
+  "thruster-async-await/thruster_error_handling"
 ]
 
 [dependencies]
