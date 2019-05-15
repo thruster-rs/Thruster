@@ -19,9 +19,9 @@ thruster_async_await = [
 
 [dependencies]
 futures-legacy = { version = "0.1.23", package = "futures" }
-futures-preview = "0.3.0-alpha.13"
+futures-preview = "0.3.0-alpha.16"
 futures-util = "0.2.1"
 thruster-core = { version = "0.7", path = "../thruster-core" }
-tokio = { version = "0.1.15", features = ["async-await-preview"] }
-tokio-async-await = "0.1.6"
+tokio = { git = "https://github.com/tokio-rs/tokio", branch = "master" }
+tokio-futures = { git = "https://github.com/tokio-rs/tokio", branch = "master", features = ["async-await-preview"] }
 

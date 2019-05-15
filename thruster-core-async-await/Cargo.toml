@@ -16,4 +16,4 @@ thruster_async_await = []
 
 [dependencies]
 futures-legacy = { version = "0.1.23", package = "futures" }
-futures-preview = "0.3.0-alpha.13"
+futures-preview = "0.3.0-alpha.16"
