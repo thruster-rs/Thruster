@@ -1,6 +1,6 @@
 [package]
 name = "thruster-context"
-version = "0.7.5"
+version = "0.7.6"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The context portion of the thruster web framework"
 readme = "README.md"
@@ -18,6 +18,9 @@ hyper_server = [
 ]
 thruster_async_await = [
   "thruster-core/thruster_async_await"
+]
+thruster_error_handling = [
+  "thruster-core/thruster_error_handling"
 ]
 
 [dependencies]

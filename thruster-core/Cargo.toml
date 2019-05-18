@@ -1,6 +1,6 @@
 [package]
 name = "thruster-core"
-version = "0.7.5"
+version = "0.7.6"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The core pieces of the thruster web framework"
 readme = "README.md"
@@ -14,6 +14,9 @@ edition = "2018"
 [features]
 thruster_async_await = [
   "thruster-core-async-await/thruster_async_await"
+]
+thruster_error_handling = [
+  "thruster-core-async-await/thruster_error_handling"
 ]
 
 [dependencies]

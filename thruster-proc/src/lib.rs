@@ -1,3 +1,6 @@
+#![feature(proc_macro_diagnostic, proc_macro_span)]
+#![feature(await_macro, async_await, futures_api, proc_macro_hygiene)]
+
 extern crate proc_macro;
 extern crate proc_macro2;
 extern crate lazy_static;
@@ -72,6 +75,12 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 Box::pin(#new_name(ctx, next))
             }
         };
+
+        // proc_macro::Span::call_site()
+        //     .note("Thruster code output")
+        //     .note(gen.to_string())
+        //     .emit();
+
         gen.into()
     } else {
         item

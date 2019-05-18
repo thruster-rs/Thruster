@@ -218,6 +218,9 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     let context = (self.context_generator)(request);
     let context_future = matched_route.middleware.run(context);
 
+    #[cfg(feature = "thruster_error_handling")]
+    let context_future = context_future.unwrap();
+
     context_future
         .and_then(|context| {
           future::ok(context.get_response())

@@ -1,6 +1,6 @@
 [package]
 name = "thruster-core-async-await"
-version = "0.7.5"
+version = "0.7.6"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "An async await shim for the core features of the thruster web framework"
 readme = "README.md"
@@ -13,6 +13,7 @@ edition = "2018"
 
 [features]
 thruster_async_await = []
+thruster_error_handling = []
 
 [dependencies]
 futures-legacy = { version = "0.1.23", package = "futures" }
