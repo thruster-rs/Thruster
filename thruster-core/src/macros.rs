@@ -6,7 +6,7 @@ macro_rules! map_try {
         $pat => {
             let __e = $mapper;
 
-            return Err(__e);
+            return Err(Into::into(__e));
         }
     }
   });

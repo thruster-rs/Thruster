@@ -1,6 +1,3 @@
-#[derive(Debug)]
-pub struct ThrusterError<C> {
-  pub context: C,
-  pub message: String,
-  pub status: u32
+pub trait Error<C> {
+  fn build_context(self: Box<Self>) -> C;
 }
