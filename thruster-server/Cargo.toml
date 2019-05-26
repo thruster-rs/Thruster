@@ -23,8 +23,8 @@ futures-legacy = { version = "0.1.23", package = "futures" }
 hyper = { version = "0.12.25", optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-tokio = { git = "https://github.com/tokio-rs/tokio", branch = "master" }
-tokio-codec = { git = "https://github.com/tokio-rs/tokio", branch = "master" }
+tokio = { version = "0.1.20" }
+tokio-codec = { version = "0.1.1" }
 thruster-core = { version = "0.7", path = "../thruster-core" }
 thruster-app = { version = "0.7", path = "../thruster-app" }
 thruster-context = { version = "0.7", path = "../thruster-context" }

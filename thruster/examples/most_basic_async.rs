@@ -18,7 +18,8 @@ impl ErrorSet for Error<Ctx> {
     Error {
       context,
       message: "Parsing failure!".to_string(),
-      status: 400
+      status: 400,
+      cause: None
     }
   }
 }
