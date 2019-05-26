@@ -18,7 +18,8 @@ impl ErrorSet for Error<Ctx> {
     Error {
       context,
       message: "Parsing failure!".to_string(),
-      status: 400
+      status: 400,
+      cause: None
     }
   }
 }
@@ -56,7 +57,7 @@ async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareRe
 #[middleware_fn]
 async fn error(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
   let res = "Hello, world".parse::<u32>();
-  let non_existent_param = map_try!(res, Err(_) => Box::new(Error::parsing_error(context)));
+  let non_existent_param = map_try!(res, Err(_) => Error::parsing_error(context));
 
   context.body(&format!("{}", non_existent_param));
 

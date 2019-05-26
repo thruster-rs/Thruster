@@ -1,7 +1,7 @@
 use std::boxed::Box;
 use futures::future::Future;
 use std::pin::Pin;
-use crate::errors::Error;
+use crate::errors::ThrusterError;
 
 #[cfg(not(feature = "thruster_error_handling"))]
 pub type MiddlewareResult<C> = C;
@@ -13,7 +13,7 @@ pub type MiddlewareNext<C> = Box<Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync
 type MiddlewareFn<C> = fn(C, Box<((Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>>) + 'static + Send + Sync)>) -> Pin<Box<Future<Output=C> + Send + Sync>>;
 
 #[cfg(feature = "thruster_error_handling")]
-pub type MiddlewareResult<C> = Result<C, Error<C>>;
+pub type MiddlewareResult<C> = Result<C, ThrusterError<C>>;
 #[cfg(feature = "thruster_error_handling")]
 pub type MiddlewareReturnValue<C> = Pin<Box<Future<Output=MiddlewareResult<C>> + Send + Sync>>;
 #[cfg(feature = "thruster_error_handling")]

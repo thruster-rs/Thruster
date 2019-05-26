@@ -50,14 +50,6 @@ Transfer/sec:      7.57MB
 
 Based on frameworks like Koa, and Express, thruster aims to be a pleasure to develop with.
 
-## Getting Started
-
-If you have `cargo generate` installed, you can simply run the [cargo generator](https://github.com/ami44/thruster-basic-template)
-
-```
-cargo generate --git https://github.com/ami44/thruster-basic-template.git --name myproject
-```
-
 ## Example
 
 To run the example `cargo run --example <example-name>`.
@@ -350,3 +342,13 @@ Within the `start` function, the server implementation should:
 - Start up some sort of listener for connections
 - Call `let matched = app.resolve_from_method_and_path(<some method>, <some path>);` (This is providing the actual routing.)
 - Call `app.resolve(<incoming request>, matched)` (This runs the chained middleware.)
+
+## Using cargo generate
+
+_Note: This hasn't yet been update for the latest version of thruster_
+
+If you have `cargo generate` installed, you can simply run the [cargo generator](https://github.com/ami44/thruster-basic-template)
+
+```
+cargo generate --git https://github.com/ami44/thruster-basic-template.git --name myproject
+```
