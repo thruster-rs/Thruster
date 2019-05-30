@@ -20,7 +20,7 @@ required-features = ["thruster_async_await"]
 
 [[example]]
 name = "errors_async"
-required-features = ["thruster_async_await"]
+required-features = ["thruster_async_await", "thruster_error_handling"]
 
 [[bench]]
 name = "app"
