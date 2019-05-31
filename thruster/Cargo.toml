@@ -19,6 +19,11 @@ name = "most_basic_async"
 required-features = ["thruster_async_await"]
 
 [[example]]
+name = "async_await"
+required-features = ["thruster_async_await", "thruster_error_handling"]
+
+
+[[example]]
 name = "errors_async"
 required-features = ["thruster_async_await", "thruster_error_handling"]
 
