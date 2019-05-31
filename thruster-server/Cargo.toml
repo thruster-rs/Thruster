@@ -1,6 +1,6 @@
 [package]
 name = "thruster-server"
-version = "0.7.6"
+version = "0.7.7"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The core future wrappers aroun the thruster web framework"
 readme = "README.md"
