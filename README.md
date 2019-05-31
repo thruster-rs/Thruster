@@ -3,7 +3,7 @@
 
 
 
-[Documentation](https://docs.rs/thruster/0.7.4/thruster/)
+[Documentation](https://docs.rs/thruster)
 
 ## Motivation
 
