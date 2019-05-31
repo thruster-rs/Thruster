@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "0.7.6"
+version = "0.7.7"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
