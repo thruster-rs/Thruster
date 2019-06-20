@@ -180,13 +180,17 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
          body_len)
     };
 
-    Ok(Request {
-        method,
-        path,
-        version,
-        headers,
-        data: buf.split_to(amt + body_len),
-        body: (amt, amt + body_len),
-        params: HashMap::new()
-    }.into())
+    if amt + body_len != buf.len() {
+        Ok(None)
+    } else {
+        Ok(Request {
+            method,
+            path,
+            version,
+            headers,
+            data: buf.split_to(amt + body_len),
+            body: (amt, amt + body_len),
+            params: HashMap::new()
+        }.into())
+    }
 }

@@ -131,7 +131,9 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for Server<T> {
             let matched = app.resolve_from_method_and_path(request.method(), request.path());
             app.resolve(request, matched)
           }))
-          .then(|_| future::ok(()));
+          .then(|_| {
+            future::ok(())
+          });
 
       // Spawn the task that handles the connection.
       tokio::spawn(task);
