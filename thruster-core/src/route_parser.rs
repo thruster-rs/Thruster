@@ -37,10 +37,12 @@ impl<T: Context + Send> RouteParser<T> {
   }
 
   pub fn optimize(&mut self) {
-    let routes = self.route_tree.root_node.enumerate();
+    let routes = self.route_tree.root_node.get_route_list();
 
-    for (path, middleware) in routes {
-      self.shortcuts.insert((&path[1..]).to_owned(), middleware);
+    for (path, middleware, is_terminal_node) in routes {
+      if is_terminal_node {
+        self.shortcuts.insert((&path[1..]).to_owned(), middleware);
+      }
     }
   }
 

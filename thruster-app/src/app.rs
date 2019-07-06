@@ -1,6 +1,8 @@
 use std::io;
 
+#[cfg(not(feature = "thruster_async_await"))]
 use futures::future;
+
 use futures::{Future as FutureLegacy};
 use thruster_core::context::Context;
 use thruster_core::request::{Request, RequestWithParams};
@@ -239,12 +241,13 @@ mod tests {
   use std::marker::Send;
 
   use thruster_core::request::Request;
-
   use thruster_core::middleware::{MiddlewareChain, MiddlewareReturnValue};
-
   use thruster_middleware::query_params;
   use thruster_middleware::cookies;
   use thruster_context::basic_context::BasicContext;
+
+  #[cfg(feature = "thruster_async_await")]
+  use thruster_proc::{async_middleware, middleware_fn};
 
   #[test]
   fn it_should_execute_all_middlware_with_a_given_request() {

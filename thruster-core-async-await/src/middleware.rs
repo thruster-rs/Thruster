@@ -42,7 +42,7 @@ fn chained_run<C: 'static>(i: usize, j: usize, nodes: Vec<&'static Middleware<C>
 }
 
 pub struct Chain<C: 'static> {
-  nodes: Vec<&'static Middleware<C>>,
+  pub nodes: Vec<&'static Middleware<C>>,
   built: MiddlewareNext<C>
 }
 

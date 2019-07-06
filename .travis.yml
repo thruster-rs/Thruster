@@ -20,6 +20,8 @@ script:
   - cd thruster
   # fail when encountering warnings
   - cargo clippy -- -D warnings
+  # run integration tests
+  - cargo test --test integration --features="thruster_async_await"
   # run app tests
   - cd ../thruster-app
   - cargo test

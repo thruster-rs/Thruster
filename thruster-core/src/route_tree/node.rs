@@ -11,7 +11,7 @@ use thruster_core_async_await::{MiddlewareChain};
 
 // A route with params that may or may not be a terminal node.
 type RouteNodeWithParams<'a, T> = (HashMap<String, String>, bool, &'a MiddlewareChain<T>);
-type RouteNodeEnumeration<T> = SmallVec<[(String, MiddlewareChain<T>); 8]>;
+type RouteNodeEnumeration<T> = SmallVec<[(String, MiddlewareChain<T>, bool); 8]>;
 
 pub struct Node<T: 'static + Context + Send> {
   runnable: MiddlewareChain<T>,
@@ -250,7 +250,7 @@ impl<T: 'static + Context + Send> Node<T> {
   ///
   ///   app.get("/plaintext", middleware![plaintext]);
   ///  println!("app: {}", app._route_parser.route_tree.root_node.to_string(""));
-  ///  for (route, middleware) in app._route_parser.route_tree.root_node.enumerate() {
+  ///  for (route, middleware) in app._route_parser.route_tree.root_node.get_route_list() {
   ///    println!("{}: {}", route, middleware.len());
   ///  }
   /// ```
@@ -279,27 +279,44 @@ impl<T: 'static + Context + Send> Node<T> {
     in_progress
   }
 
-  pub fn enumerate(&self) -> RouteNodeEnumeration<T> {
-    let mut children = SmallVec::new();
+  pub fn get_route_list(&self) -> RouteNodeEnumeration<T> {
+    let mut routes = SmallVec::new();
 
+    let self_route = &self.value;
+
+    // Add child routes
     for child in self.children.values() {
-      let piece = match &self.param_key {
-        Some(param_key) => format!(":{}", param_key),
-        None => self.value.clone()
-      };
+      if child.is_terminal_node {
+        routes.push((
+          format!("{}/{}", self_route, child.value),
+          child.runnable.clone(),
+          child.is_terminal_node
+        ));
+      }
 
-      let child_enumeration = child.enumerate();
-
-      if !child_enumeration.is_empty() {
-        for child_route in child_enumeration {
-          children.push((format!("{}/{}", piece, child_route.0), child_route.1));
-        }
-      } else {
-        children.push((format!("{}/{}", piece, child.value), child.runnable.clone()));
+      for child_route in child.get_route_list() {
+        routes.push((
+          format!("{}/{}", self_route, child_route.0),
+          child_route.1.clone(),
+          child_route.2
+        ));
       }
     }
 
-    children
+    if let Some(ref wildcard_node) = self.wildcard_node {
+      let piece = match wildcard_node.param_key {
+        Some(ref param_key) => format!(":{}", param_key),
+        None => wildcard_node.value.clone()
+      };
+
+      routes.push((
+        format!("{}/{}", self_route, piece),
+        wildcard_node.runnable.clone(),
+        wildcard_node.is_terminal_node
+      ));
+    }
+
+    routes
   }
 
   ///
