@@ -21,7 +21,7 @@ script:
   # fail when encountering warnings
   - cargo clippy -- -D warnings
   # run integration tests
-  - cargo test --test integration --features="thruster_async_await"
+  - cargo test --test integration
   # run app tests
   - cd ../thruster-app
   - cargo test
