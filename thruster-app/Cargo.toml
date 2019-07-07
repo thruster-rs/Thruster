@@ -20,7 +20,8 @@ hyper_server = []
 thruster_async_await = [
   "thruster-core/thruster_async_await",
   "thruster-context/thruster_async_await",
-  "thruster-async-await/thruster_async_await"
+  "thruster-async-await/thruster_async_await",
+  "thruster-proc"
 ]
 thruster_error_handling = [
   "thruster-core/thruster_error_handling",
@@ -35,4 +36,4 @@ thruster-async-await = { version = "0.7", path = "../thruster-async-await", opti
 thruster-context = { version = "0.7", path = "../thruster-context" }
 thruster-core = { version = "0.7", path = "../thruster-core" }
 thruster-middleware = { version = "0.7", path = "../thruster-middleware" }
-thruster-proc = { version = "0.7", path = "../thruster-proc" }
+thruster-proc = { version = "0.7", path = "../thruster-proc", optional = true }
