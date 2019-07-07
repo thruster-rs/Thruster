@@ -6,20 +6,20 @@ use crate::errors::ThrusterError;
 #[cfg(not(feature = "thruster_error_handling"))]
 pub type MiddlewareResult<C> = C;
 #[cfg(not(feature = "thruster_error_handling"))]
-pub type MiddlewareReturnValue<T> = Pin<Box<Future<Output=T> + Send + Sync>>;
+pub type MiddlewareReturnValue<T> = Pin<Box<dyn Future<Output=T> + Send + Sync>>;
 #[cfg(not(feature = "thruster_error_handling"))]
-pub type MiddlewareNext<C> = Box<Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>> + Send + Sync>;
+pub type MiddlewareNext<C> = Box<dyn Fn(C) -> Pin<Box<dyn Future<Output=C> + Send + Sync>> + Send + Sync>;
 #[cfg(not(feature = "thruster_error_handling"))]
-type MiddlewareFn<C> = fn(C, Box<((Fn(C) -> Pin<Box<Future<Output=C> + Send + Sync>>) + 'static + Send + Sync)>) -> Pin<Box<Future<Output=C> + Send + Sync>>;
+type MiddlewareFn<C> = fn(C, Box<((Fn(C) -> Pin<Box<dyn Future<Output=C> + Send + Sync>>) + 'static + Send + Sync)>) -> Pin<Box<dyn Future<Output=C> + Send + Sync>>;
 
 #[cfg(feature = "thruster_error_handling")]
 pub type MiddlewareResult<C> = Result<C, ThrusterError<C>>;
 #[cfg(feature = "thruster_error_handling")]
-pub type MiddlewareReturnValue<C> = Pin<Box<Future<Output=MiddlewareResult<C>> + Send + Sync>>;
+pub type MiddlewareReturnValue<C> = Pin<Box<dyn Future<Output=MiddlewareResult<C>> + Send + Sync>>;
 #[cfg(feature = "thruster_error_handling")]
-pub type MiddlewareNext<C> = Box<Fn(C) -> Pin<Box<Future<Output=MiddlewareResult<C>> + Send + Sync>> + Send + Sync>;
+pub type MiddlewareNext<C> = Box<dyn Fn(C) -> Pin<Box<dyn Future<Output=MiddlewareResult<C>> + Send + Sync>> + Send + Sync>;
 #[cfg(feature = "thruster_error_handling")]
-type MiddlewareFn<C> = fn(C, Box<((Fn(C) -> Pin<Box<Future<Output=MiddlewareResult<C>> + Send + Sync>>) + 'static + Send + Sync)>) -> Pin<Box<Future<Output=MiddlewareResult<C>> + Send + Sync>>;
+type MiddlewareFn<C> = fn(C, Box<((Fn(C) -> Pin<Box<dyn Future<Output=MiddlewareResult<C>> + Send + Sync>>) + 'static + Send + Sync)>) -> Pin<Box<dyn Future<Output=MiddlewareResult<C>> + Send + Sync>>;
 
 pub struct Middleware<C: 'static> {
   pub middleware: &'static [
@@ -54,7 +54,7 @@ impl<C: 'static> Chain<C> {
     }
   }
 
-  fn chained_run(&self, i: usize, j: usize) -> Box<Fn(C) -> Pin<Box<Future<Output=MiddlewareResult<C>> + Send + Sync>> + Send + Sync> {
+  fn chained_run(&self, i: usize, j: usize) -> Box<dyn Fn(C) -> Pin<Box<dyn Future<Output=MiddlewareResult<C>> + Send + Sync>> + Send + Sync> {
     chained_run(i, j, self.nodes.clone())
   }
 
@@ -62,7 +62,7 @@ impl<C: 'static> Chain<C> {
     self.built = self.chained_run(0, 0);
   }
 
-  fn run(&self, context: C) -> Pin<Box<Future<Output=MiddlewareResult<C>> + Send + Sync>> {
+  fn run(&self, context: C) -> Pin<Box<dyn Future<Output=MiddlewareResult<C>> + Send + Sync>> {
     (self.built)(context)
   }
 }
@@ -112,12 +112,12 @@ impl<T: 'static> MiddlewareChain<T> {
   /// Run the middleware chain once
   ///
   #[cfg(not(feature = "thruster_error_handling"))]
-  pub fn run(&self, context: T) -> Pin<Box<Future<Output=T> + Send + Sync>> {
+  pub fn run(&self, context: T) -> Pin<Box<dyn Future<Output=T> + Send + Sync>> {
     self.chain.run(context)
   }
 
   #[cfg(feature = "thruster_error_handling")]
-  pub fn run(&self, context: T) -> Pin<Box<Future<Output=MiddlewareResult<T>> + Send + Sync>> {
+  pub fn run(&self, context: T) -> Pin<Box<dyn Future<Output=MiddlewareResult<T>> + Send + Sync>> {
     self.chain.run(context)
   }
 
