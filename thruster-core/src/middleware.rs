@@ -3,9 +3,9 @@ use std::sync::Arc;
 use futures::Future;
 use std::io;
 
-pub type MiddlewareReturnValue<T> = Box<Future<Item=T, Error=io::Error> + Send>;
+pub type MiddlewareReturnValue<T> = Box<dyn Future<Item=T, Error=io::Error> + Send>;
 pub type Middleware<T, M> = fn(T, next: M) -> MiddlewareReturnValue<T>;
-pub type Runnable<T> = Box<Fn(T, &Option<Box<MiddlewareChain<T>>>) -> MiddlewareReturnValue<T> + Send + Sync>;
+pub type Runnable<T> = Box<dyn Fn(T, &Option<Box<MiddlewareChain<T>>>) -> MiddlewareReturnValue<T> + Send + Sync>;
 
 ///
 /// The MiddlewareChain is used to wrap a series of middleware functions in such a way that the tail can

@@ -30,13 +30,20 @@ async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
   context
 }
 
+#[middleware_fn]
+async fn test_fn_404(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+  context.body("404");
+  context
+}
+
 fn main() {
   println!("Starting server...");
 
   let mut app = App::<Request, Ctx>::new_basic();
 
-  app.use_middleware("/", async_middleware!(Ctx, [profiling]));
-  app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
+  // app.use_middleware("/", async_middleware!(Ctx, [profiling]));
+  app.get("/plaintext/:asd", async_middleware!(Ctx, [plaintext]));
+  app.set404(async_middleware!(Ctx, [test_fn_404]));
 
   let server = Server::new(app);
   server.start("0.0.0.0", 4321);

@@ -1,12 +1,13 @@
 #[macro_use] extern crate thruster;
-extern crate futures_legacy;
+extern crate futures;
 extern crate hyper;
 
 use std::boxed::Box;
-use futures_legacy::future;
+use futures::future;
 
-use thruster::{App, Context, MiddlewareChain, MiddlewareReturnValue};
-use thruster::server::{HyperServer, ThrusterServer};
+use thruster::{App, Context, MiddlewareChain, MiddlewareReturnValue, ThrusterServer};
+use thruster::server::{Server};
+use thruster::hyper_server::{HyperServer};
 use thruster::thruster_context::basic_hyper_context::{generate_context, BasicHyperContext as Ctx, HyperRequest};
 
 fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
@@ -23,6 +24,6 @@ fn main() {
 
   app.get("/plaintext", middleware![Ctx => plaintext]);
 
-  let server = Server::new(app);
+  let server = HyperServer::new(app);
   server.start("0.0.0.0", 4321);
 }

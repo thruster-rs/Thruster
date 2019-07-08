@@ -31,6 +31,10 @@ required-features = ["thruster_async_await", "thruster_error_handling"]
 name = "app"
 harness = false
 
+[[test]]
+name = "integration"
+path = "src/integration_tests.rs"
+
 [features]
 default = ["hyper_server"]
 hyper_server = [

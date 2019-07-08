@@ -35,6 +35,10 @@ impl Ctx {
   pub fn set_header(&mut self, key: &str, val: &str) {
     self.response.header(key, val);
   }
+
+  pub fn set(&mut self, key: &str, value: &str) {
+    self.headers.push((key.to_owned(), value.to_owned()));
+  }
 }
 
 impl Context for Ctx {
