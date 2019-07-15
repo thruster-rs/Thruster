@@ -154,7 +154,7 @@ impl Context for BasicContext {
   fn get_response(self) -> Self::Response {
     let mut response = Response::new();
 
-    response.body_bytes(&self.body_bytes);
+    response.body_bytes_from_vec(self.body_bytes);
 
     for (key, val) in self.headers {
       response.header(&key, &val);

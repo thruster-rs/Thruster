@@ -49,6 +49,11 @@ impl Response {
         self.response = b.to_vec();
         self
     }
+
+    pub fn body_bytes_from_vec(&mut self, b: Vec<u8>) -> &mut Response {
+        self.response = b;
+        self
+    }
 }
 
 pub fn encode(msg: &Response, buf: &mut BytesMut) {
@@ -56,10 +61,10 @@ pub fn encode(msg: &Response, buf: &mut BytesMut) {
     let now = crate::date::now();
 
     write!(FastWrite(buf), "\
-        HTTP/1.1 {}\r\n\
-        Content-Length: {}\r\n\
-        Date: {}\r\n\
-    ", msg.status_message, length, now).unwrap();
+HTTP/1.1 {}\r\n\
+Content-Length: {}\r\n\
+Date: {}\r\n\
+", msg.status_message, length, now).unwrap();
 
     buf.extend_from_slice(&msg.header_raw);
     buf.extend_from_slice(b"\r\n");
