@@ -34,12 +34,6 @@ impl Response {
         self
     }
 
-    pub fn header_raw(&mut self, buf: &BytesMut) -> &mut Response {
-        self.header_raw.extend_from_slice(buf);
-
-        self
-    }
-
     pub fn body(&mut self, s: &str) -> &mut Response {
         self.response = s.as_bytes().to_vec();
         self
@@ -63,8 +57,7 @@ pub fn encode(msg: &Response, buf: &mut BytesMut) {
     write!(FastWrite(buf), "\
 HTTP/1.1 {}\r\n\
 Content-Length: {}\r\n\
-Date: {}\r\n\
-", msg.status_message, length, now).unwrap();
+Date: {}\r\n\n", msg.status_message, length, now).unwrap();
 
     buf.extend_from_slice(&msg.header_raw);
     buf.extend_from_slice(b"\r\n");

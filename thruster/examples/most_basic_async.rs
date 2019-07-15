@@ -42,7 +42,7 @@ fn main() {
   let mut app = App::<Request, Ctx>::new_basic();
 
   // app.use_middleware("/", async_middleware!(Ctx, [profiling]));
-  app.get("/plaintext/:asd", async_middleware!(Ctx, [plaintext]));
+  app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
   app.set404(async_middleware!(Ctx, [test_fn_404]));
 
   let server = Server::new(app);
