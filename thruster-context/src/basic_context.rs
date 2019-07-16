@@ -50,11 +50,11 @@ impl BasicContext {
   /// Set the body as a string
   ///
   pub fn body(&mut self, body_string: &str) {
-    self.body_bytes = body_string.as_bytes().to_vec();
+    self.response.body_bytes_from_vec(body_string.as_bytes().to_vec());
   }
 
   pub fn get_body(&self) -> String {
-    str::from_utf8(&self.body_bytes).unwrap_or("").to_owned()
+    str::from_utf8(&self.response.response).unwrap_or("").to_owned()
   }
 
   ///

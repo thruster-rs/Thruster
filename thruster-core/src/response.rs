@@ -1,7 +1,6 @@
 use std::fmt::{self, Write};
 
 use bytes::BytesMut;
-use std::collections::HashMap;
 
 pub struct Response {
     pub response: Vec<u8>,
