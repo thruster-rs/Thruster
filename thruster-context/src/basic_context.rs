@@ -19,6 +19,7 @@ pub fn generate_context(request: Request) -> BasicContext {
 #[derive(Default)]
 pub struct BasicContext {
   body_bytes: Vec<u8>,
+  response: Response,
   pub cookies: Vec<Cookie>,
   pub params: HashMap<String, String>,
   pub query_params: HashMap<String, String>,
@@ -31,6 +32,7 @@ impl BasicContext {
   pub fn new() -> BasicContext {
     let mut ctx = BasicContext {
       body_bytes: Vec::new(),
+      response: Response::new(),
       cookies: Vec::new(),
       params: HashMap::new(),
       query_params: HashMap::new(),
@@ -59,7 +61,7 @@ impl BasicContext {
   /// Set a header on the response
   ///
   pub fn set(&mut self, key: &str, value: &str) {
-    self.headers.insert(key.to_owned(), value.to_owned());
+    self.response.header(key, value);
   }
 
   ///
@@ -151,18 +153,13 @@ impl BasicContext {
 impl Context for BasicContext {
   type Response = Response;
 
-  fn get_response(self) -> Self::Response {
-    let mut response = Response::new();
+  fn get_response(mut self) -> Self::Response {
+    self.response.body_bytes_from_vec(self.body_bytes);
 
-    response.body_bytes_from_vec(self.body_bytes);
+    self.response.status_code(self.status, "");
 
-    for (key, val) in self.headers {
-      response.header(&key, &val);
-    }
 
-    response.status_code(self.status, "");
-
-    response
+    self.response
   }
 
   fn set_body(&mut self, body: Vec<u8>) {

@@ -1,6 +1,7 @@
 use std::fmt::{self, Write};
 
 use bytes::BytesMut;
+use std::collections::HashMap;
 
 pub struct Response {
     pub response: Vec<u8>,
@@ -55,9 +56,10 @@ pub fn encode(msg: &Response, buf: &mut BytesMut) {
     let now = crate::date::now();
 
     write!(FastWrite(buf), "\
-HTTP/1.1 {}\r\n\
-Content-Length: {}\r\n\
-Date: {}\r\n\n", msg.status_message, length, now).unwrap();
+        HTTP/1.1 {}\r\n\
+        Content-Length: {}\r\n\
+        Date: {}\r\n\
+    ", msg.status_message, length, now).unwrap();
 
     buf.extend_from_slice(&msg.header_raw);
     buf.extend_from_slice(b"\r\n");
