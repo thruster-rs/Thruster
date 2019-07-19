@@ -27,6 +27,14 @@ required-features = ["thruster_async_await", "thruster_error_handling"]
 name = "errors_async"
 required-features = ["thruster_async_await", "thruster_error_handling"]
 
+[[example]]
+name = "hyper_most_basic_async"
+required-features = ["thruster_async_await", "hyper_server"]
+
+[[example]]
+name = "hyper_most_basic"
+required-features = ["hyper_server"]
+
 [[bench]]
 name = "app"
 harness = false
