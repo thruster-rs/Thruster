@@ -51,7 +51,7 @@ pub trait HasCookies {
   fn headers(&self) -> HashMap<String, String>;
 }
 
-pub fn cookies<T: 'static + Context + HasCookies + Send>(mut context: T, next: impl Fn(T) -> MiddlewareReturnValue<T>  + Send + Sync) -> MiddlewareReturnValue<T> {
+pub fn cookies<T: 'static + Context + HasCookies + Send>(mut context: T, next: impl Fn(T) -> MiddlewareReturnValue<T>  + Send) -> MiddlewareReturnValue<T> {
   let mut cookies = Vec::new();
 
   {

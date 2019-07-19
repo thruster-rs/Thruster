@@ -1,9 +1,10 @@
 use std::net::ToSocketAddrs;
 
 use futures_legacy::Future;
+use futures_preview::future::TryFutureExt;
 use tokio;
 use hyper::{Body, Response, Request, Server};
-use hyper::service::service_fn;
+use hyper::service::{make_service_fn, service_fn};
 use std::sync::Arc;
 
 use thruster_app::app::App;
@@ -34,18 +35,20 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for HyperServe
     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
     self.app._route_parser.optimize();
-    let arc_app = Arc::new(self.app);
 
-    let new_service = move || {
-      let clone = arc_app.clone();
-      service_fn(move |req: Request<Body>| {
-        let matched = clone.resolve_from_method_and_path(
+    let arc_app = Arc::new(self.app);
+    let new_service = make_service_fn(move |_| {
+      let app = arc_app.clone();
+
+      Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
+        let matched = app.resolve_from_method_and_path(
           &req.method().to_string(),
           &req.uri().to_string()
         );
-        clone.resolve(HyperRequest(req), matched)
-      })
-    };
+
+        app.resolve(HyperRequest(req), matched).compat()
+      }))
+    });
 
     let server = Server::bind(&addr)
       .serve(new_service)

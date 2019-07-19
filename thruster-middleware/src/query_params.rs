@@ -11,7 +11,7 @@ pub trait HasQueryParams {
   fn route(&self) -> &str;
 }
 
-pub fn query_params<T: 'static + Context + HasQueryParams + Send>(mut context: T, next: impl Fn(T) -> MiddlewareReturnValue<T>  + Send + Sync) -> MiddlewareReturnValue<T> {
+pub fn query_params<T: 'static + Context + HasQueryParams + Send>(mut context: T, next: impl Fn(T) -> MiddlewareReturnValue<T>  + Send) -> MiddlewareReturnValue<T> {
   let mut query_param_hash = HashMap::new();
 
   {

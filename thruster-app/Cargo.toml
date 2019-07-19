@@ -15,7 +15,7 @@ edition = "2018"
 debug = true
 
 [features]
-default = ["hyper_server"]
+default = []
 hyper_server = []
 thruster_async_await = [
   "thruster-core/thruster_async_await",
@@ -31,6 +31,7 @@ thruster_error_handling = [
 [dependencies]
 bytes = "0.4"
 futures = "0.1.23"
+futures-preview = { package = "futures-preview", version = "0.3.0-alpha.17", features = ["compat"] }
 templatify = "0.2.3"
 thruster-async-await = { version = "0.7", path = "../thruster-async-await", optional = true }
 thruster-context = { version = "0.7", path = "../thruster-context" }

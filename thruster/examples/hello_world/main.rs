@@ -15,7 +15,7 @@ use thruster::server::Server;
 use thruster::ThrusterServer;
 use crate::context::{generate_context, Ctx};
 
-fn not_found_404(context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn not_found_404(context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   let mut context = Ctx::new(context);
 
   context.body = "<html>
@@ -31,7 +31,7 @@ fn not_found_404(context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>
 struct JsonStruct<'a> {
   message: &'a str
 }
-fn json(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn json(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   let json = JsonStruct {
     message: "Hello, World!"
   };
@@ -44,7 +44,7 @@ fn json(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + S
   Box::new(future::ok(context))
 }
 
-fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
 
   context.body = val;

@@ -6,7 +6,7 @@ use thruster_core::{middleware};
 use thruster::testing;
 
 
-fn test_fn_1(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn test_fn_1(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   let body = &context.params.get("id").unwrap().clone();
 
   context.body(body);
@@ -14,7 +14,7 @@ fn test_fn_1(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>
   Box::new(future::ok(context))
 }
 
-fn test_fn_404(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn test_fn_404(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   context.body("404");
 
   Box::new(future::ok(context))
@@ -31,5 +31,6 @@ fn it_should_correctly_404_if_no_param_is_given() {
 
   let response = testing::get(&app, "/test");
 
+  println!("response.body: '{}'", response.body);
   assert!(response.body == "404");
 }

@@ -56,7 +56,7 @@ fn bench_route_match(c: &mut Criterion) {
   c.bench_function("Route match", |bench| {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
       context.body("world");
       Box::new(future::ok(context))
     };
@@ -77,7 +77,7 @@ fn optimized_bench_route_match(c: &mut Criterion) {
   c.bench_function("Optimized route match", |bench| {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
       context.body("world");
       Box::new(future::ok(context))
     };
@@ -99,7 +99,7 @@ fn bench_route_match_with_param(c: &mut Criterion) {
   c.bench_function("Route match with route params", |bench| {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
       let body = &context.params.get("hello").unwrap().clone();
       context.body(body);
       Box::new(future::ok(context))
@@ -121,7 +121,7 @@ fn bench_route_match_with_query_param(c: &mut Criterion) {
   c.bench_function("Route match with query params", |bench| {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
       let body = &context.query_params.get("hello").unwrap().clone();
       context.body(body);
       Box::new(future::ok(context))

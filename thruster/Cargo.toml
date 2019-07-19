@@ -36,9 +36,10 @@ name = "integration"
 path = "src/integration_tests.rs"
 
 [features]
-default = ["hyper_server"]
+default = []
 hyper_server = [
   "hyper",
+  "thruster-app/hyper_server",
   "thruster-server/hyper_server"
 ]
 thruster_async_await = [

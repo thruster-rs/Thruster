@@ -5,7 +5,7 @@ use std::io;
 
 pub type MiddlewareReturnValue<T> = Box<dyn Future<Item=T, Error=io::Error> + Send>;
 pub type Middleware<T, M> = fn(T, next: M) -> MiddlewareReturnValue<T>;
-pub type Runnable<T> = Box<dyn Fn(T, &Option<Box<MiddlewareChain<T>>>) -> MiddlewareReturnValue<T> + Send + Sync>;
+pub type Runnable<T> = Box<dyn Fn(T, &Option<Box<MiddlewareChain<T>>>) -> MiddlewareReturnValue<T> + Send>;
 
 ///
 /// The MiddlewareChain is used to wrap a series of middleware functions in such a way that the tail can
@@ -131,7 +131,7 @@ macro_rules! middleware {
 
     let mut chain: MiddlewareChain<$ctx> = MiddlewareChain::new();
 
-    fn dummy(context: $ctx, next: impl Fn($ctx) -> MiddlewareReturnValue<$ctx>  + Send + Sync) -> MiddlewareReturnValue<$ctx> {
+    fn dummy(context: $ctx, next: impl Fn($ctx) -> MiddlewareReturnValue<$ctx>  + Send) -> MiddlewareReturnValue<$ctx> {
       next(context)
     }
 
@@ -154,7 +154,7 @@ macro_rules! middleware {
 
     let mut chain = MiddlewareChain::new();
 
-    fn dummy(context: $ctx, next: impl Fn($ctx) -> MiddlewareReturnValue<$ctx>  + Send + Sync) -> MiddlewareReturnValue<$ctx> {
+    fn dummy(context: $ctx, next: impl Fn($ctx) -> MiddlewareReturnValue<$ctx>  + Send) -> MiddlewareReturnValue<$ctx> {
       next(context)
     }
 
