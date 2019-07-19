@@ -68,7 +68,7 @@ use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue,
 use thruster::builtins::server::Server;
 use thruster::server::ThrusterServer;
 
-fn plaintext(mut context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn plaintext(mut context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
   context.body = val;
 
@@ -102,7 +102,7 @@ use thruster::builtins::hyper_server::Server;
 use thruster::builtins::basic_hyper_context::{generate_context, BasicHyperContext as Ctx};
 use thruster::server::ThrusterServer;
 
-fn plaintext(mut context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn plaintext(mut context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!".to_owned();
   context.body = val;
 

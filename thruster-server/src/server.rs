@@ -4,7 +4,7 @@ use futures_legacy::future;
 use tokio;
 use tokio::net::{TcpStream, TcpListener};
 use tokio::prelude::*;
-use tokio_codec::Framed;
+use tokio::codec::Framed;
 use num_cpus;
 use net2::TcpBuilder;
 #[cfg(not(windows))]

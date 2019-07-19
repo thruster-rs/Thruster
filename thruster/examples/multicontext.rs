@@ -57,13 +57,13 @@ impl Into<BasicContext> for Ctx {
   }
 }
 
-fn log(context: BasicContext, next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+fn log(context: BasicContext, next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
   println!("[{}] {}", context.request.method(), context.request.path());
 
   next(context)
 }
 
-fn goodbye(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn goodbye(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   context.body = "Goodbye, world!".to_owned();
 
   Box::new(future::ok(context))

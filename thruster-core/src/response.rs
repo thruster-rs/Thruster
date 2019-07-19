@@ -34,12 +34,6 @@ impl Response {
         self
     }
 
-    pub fn header_raw(&mut self, buf: &BytesMut) -> &mut Response {
-        self.header_raw.extend_from_slice(buf);
-
-        self
-    }
-
     pub fn body(&mut self, s: &str) -> &mut Response {
         self.response = s.as_bytes().to_vec();
         self
@@ -47,6 +41,11 @@ impl Response {
 
     pub fn body_bytes(&mut self, b: &[u8]) -> &mut Response {
         self.response = b.to_vec();
+        self
+    }
+
+    pub fn body_bytes_from_vec(&mut self, b: Vec<u8>) -> &mut Response {
+        self.response = b;
         self
     }
 }

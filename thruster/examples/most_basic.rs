@@ -9,7 +9,7 @@ use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue,
 use thruster::server::Server;
 use thruster::ThrusterServer;
 
-fn profiling(context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn profiling(context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   println!("[start] {} -- {}",
     context.request.method(),
     context.request.path());
@@ -26,7 +26,7 @@ fn profiling(context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + S
   Box::new(ctx_future)
 }
 
-fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!";
   context.body(val);
 

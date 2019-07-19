@@ -12,8 +12,7 @@ repository = "https://github.com/trezm/thruster"
 edition = "2018"
 
 [features]
-# default = []
-default = ["hyper_server"]
+default = []
 hyper_server = ["hyper"]
 
 [dependencies]

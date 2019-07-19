@@ -131,7 +131,7 @@ macro_rules! middleware {
 
     let mut chain: MiddlewareChain<$ctx> = MiddlewareChain::new();
 
-    fn dummy(context: $ctx, next: impl Fn($ctx) -> MiddlewareReturnValue<$ctx>  + Send + Sync) -> MiddlewareReturnValue<$ctx> {
+    fn dummy(context: $ctx, next: impl Fn($ctx) -> MiddlewareReturnValue<$ctx>  + Send) -> MiddlewareReturnValue<$ctx> {
       next(context)
     }
 
@@ -154,7 +154,7 @@ macro_rules! middleware {
 
     let mut chain = MiddlewareChain::new();
 
-    fn dummy(context: $ctx, next: impl Fn($ctx) -> MiddlewareReturnValue<$ctx>  + Send + Sync) -> MiddlewareReturnValue<$ctx> {
+    fn dummy(context: $ctx, next: impl Fn($ctx) -> MiddlewareReturnValue<$ctx>  + Send) -> MiddlewareReturnValue<$ctx> {
       next(context)
     }
 

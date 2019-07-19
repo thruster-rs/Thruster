@@ -194,7 +194,7 @@ mod tests {
   fn it_should_match_a_simple_route() {
     let mut route_tree = RouteTree::new();
 
-    fn test_function(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+    fn test_function(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
       context.body("Hello");
 
       Box::new(future::ok(context))
@@ -214,7 +214,7 @@ mod tests {
   fn it_should_match_a_simple_route_with_a_param() {
     let mut route_tree = RouteTree::new();
 
-    fn test_function(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+    fn test_function(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
       let body = &context.params.get("key").unwrap().clone();
 
       context.body(body);
@@ -237,11 +237,11 @@ mod tests {
 
   #[test]
   fn it_should_compose_multiple_trees() {
-    fn test_function1(context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+    fn test_function1(context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
       Box::new(future::ok(context))
     }
 
-    fn test_function2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+    fn test_function2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
       context.body("Hello");
 
       Box::new(future::ok(context))

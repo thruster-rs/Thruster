@@ -9,7 +9,7 @@ use thruster::thruster_middleware::cookies::CookieOptions;
 use thruster::server::Server;
 use thruster::ThrusterServer;
 
-fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   let val = "Hello, World!";
   context.body(val);
   context.cookie("SomeCookie", "Some Value!", &CookieOptions::default());
@@ -17,7 +17,7 @@ fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>
   Box::new(future::ok(context))
 }
 
-fn redirect(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn redirect(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   context.redirect("/plaintext");
 
   Box::new(future::ok(context))

@@ -132,7 +132,7 @@ mod tests {
     }
   }
 
-  fn fake(_: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+  fn fake(_: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
     panic!("not implemented");
   }
 
@@ -183,11 +183,11 @@ mod tests {
 
   #[test]
   fn when_adding_a_route_with_method_agnostic_middleware() {
-    fn method_agnostic(context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+    fn method_agnostic(context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
       Box::new(future::ok(context))
     }
 
-    fn test_function(context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send + Sync) -> MiddlewareReturnValue<BasicContext> {
+    fn test_function(context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> MiddlewareReturnValue<BasicContext> {
       Box::new(future::ok(context))
     }
 

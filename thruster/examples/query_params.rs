@@ -9,7 +9,7 @@ use thruster::server::Server;
 use thruster::thruster_middleware::query_params::query_params;
 use thruster::ThrusterServer;
 
-fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send + Sync) -> MiddlewareReturnValue<Ctx> {
+fn plaintext(mut context: Ctx, _next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
   let val = serde_json::to_string(&context.query_params).unwrap();
   context.body(&val);
 

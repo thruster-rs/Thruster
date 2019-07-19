@@ -27,6 +27,14 @@ required-features = ["thruster_async_await", "thruster_error_handling"]
 name = "errors_async"
 required-features = ["thruster_async_await", "thruster_error_handling"]
 
+[[example]]
+name = "hyper_most_basic_async"
+required-features = ["thruster_async_await", "hyper_server"]
+
+[[example]]
+name = "hyper_most_basic"
+required-features = ["hyper_server"]
+
 [[bench]]
 name = "app"
 harness = false
@@ -36,9 +44,10 @@ name = "integration"
 path = "src/integration_tests.rs"
 
 [features]
-default = ["hyper_server"]
+default = []
 hyper_server = [
   "hyper",
+  "thruster-app/hyper_server",
   "thruster-server/hyper_server"
 ]
 thruster_async_await = [
@@ -63,6 +72,8 @@ thruster-proc = { version = "0.7", path = "../thruster-proc", optional = true }
 thruster-server = { version = "0.7", path = "../thruster-server" }
 
 [dev-dependencies]
+bytes = "0.4"
+criterion = "0.2.11"
 diesel = { version = "1.3", features = ["postgres", "r2d2"] }
 dotenv = "0.13.0"
 lazy_static = "1.1.0"
