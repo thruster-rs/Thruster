@@ -73,25 +73,30 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for SSLServer<T> {
             .expect("Could not create TLS acceptor.")
           );
 
-    let process = move |app, socket: TcpStream| {
+    // TODO(trezm): Add an argument here for the tls_acceptor to be passed in.
+    fn process<T: Context<Response = Response> + Send>(app: Arc<App<Request, T>>, socket: TcpStream) {
       let tls_accept = tls_acceptor
         .accept(socket)
         .and_then(move |tls| {
-          // let (tx, rx) = tls.split();
+          let framed = Framed::new(tls, Http);
+          let (tx, rx) = framed.split();
 
-          // let task = tx.send_all(rx.and_then(move |request: Request| {
-          //       let matched = app.resolve_from_method_and_path(request.method(), request.path());
-          //       app.resolve(request, matched)
-          //     }))
-          //     .then(|_| {
-          //       future::ok(())
-          //     });
+          let task = tx.send_all(rx.and_then(move |request: Request| {
+                let matched = app.resolve_from_method_and_path(request.method(), request.path());
+                app.resolve(request, matched)
+              }))
+              .then(|_| {
+                future::ok(())
+              });
 
-          // tokio::spawn(task);
+          tokio::spawn(task);
 
-          Ok::<(), native_tls::Error>(())
+          Ok(())
+        })
+        .map_err(|err| {
+          println!("TLS accept error: {:?}", err);
         });
-      // tokio::spawn(tls_accept);
+      tokio::spawn(tls_accept);
     };
 
     let server = listener.incoming()
