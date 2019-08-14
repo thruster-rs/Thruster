@@ -24,7 +24,12 @@ futures-preview = { package = "futures-preview", version = "0.3.0-alpha.17", fea
 hyper = { version = "0.12.25", optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-tokio = { version = "0.1.22" }
+# tokio = { version = "0.2.0-alpha.1" }
+# tokio-tls = { version = "0.3.0-alpha.1" }
+tokio = { version = "0.1" }
+tokio-tls = { version = "0.2" }
+native-tls = "0.2"
 thruster-core = { version = "0.7", path = "../thruster-core" }
 thruster-app = { version = "0.7", path = "../thruster-app" }
 thruster-context = { version = "0.7", path = "../thruster-context" }
+
