@@ -92,7 +92,7 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for SSLServer<T> {
     };
 
     let cert = self.cert.unwrap().clone();
-    let cert_pass = self.cert_pass.clone();
+    let cert_pass = self.cert_pass;
     let cert = Identity::from_pkcs12(&cert, cert_pass)
       .expect("Could not decrypt p12 file");
     let tls_acceptor =
