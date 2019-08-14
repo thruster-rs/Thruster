@@ -1,6 +1,6 @@
 [package]
 name = "thruster-app"
-version = "0.7.8"
+version = "0.7.9"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The App portion of the thruster web framework"
 readme = "README.md"

@@ -1,7 +1,6 @@
 #![feature(async_await, proc_macro_hygiene)]
 extern crate thruster;
 
-use std::time::Instant;
 use thruster::{MiddlewareNext, MiddlewareReturnValue};
 use thruster::{App, BasicContext as Ctx, Request};
 use thruster::ssl_server::SSLServer;
@@ -29,6 +28,8 @@ fn main() {
   app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
   app.set404(async_middleware!(Ctx, [test_fn_404]));
 
-  let server = SSLServer::new(app);
-  server.start_work_stealing_optimized(include_bytes!("identity.p12").to_vec(), "asdfasdfasdf", "0.0.0.0", 4321);
+  let mut server = SSLServer::new(app);
+  server.cert(include_bytes!("identity.p12").to_vec());
+  server.cert_pass("asdfasdfasdf");
+  server.start("0.0.0.0", 4321);
 }
