@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "0.7.8"
+version = "0.7.9"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
@@ -16,6 +16,10 @@ debug = true
 
 [[example]]
 name = "most_basic_async"
+required-features = ["thruster_async_await"]
+
+[[example]]
+name = "most_basic_ssl"
 required-features = ["thruster_async_await"]
 
 [[example]]
