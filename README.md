@@ -126,7 +126,7 @@ fn main() {
 Thruster also supports async/await on nightly! Once you've installed nightly (`rustup install nightly`,) you can use async await support in thruster by enabling the `thruster_async_await` feature,
 
 ```toml
-thruster = { version = "0.7", features = ["thruster_async_await"] }
+thruster = { version = "=0.7.11", features = ["thruster_async_await"] }
 ```
 
 The core parts that make the new async await code work is designating middleware functions with the `#[middleware_fn]` attribute (which marks the middleware so that it's compatible with the stable futures version that thruster is built on,) and then the `async_middleware!` macro in the actual routes.
@@ -199,7 +199,7 @@ To turn on experimental error handling, pass the flag `thruster_error_handling`.
 This ends up looking like:
 
 ```rust
-#![feature(await_macro, async_await, futures_api, proc_macro_hygiene)]
+#![feature(async_await, futures_api, proc_macro_hygiene)]
 extern crate thruster;
 
 use thruster::{MiddlewareNext, MiddlewareReturnValue, MiddlewareResult};

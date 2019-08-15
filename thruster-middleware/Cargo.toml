@@ -1,6 +1,6 @@
 [package]
 name = "thruster-middleware"
-version = "0.7.9"
+version = "0.7.11"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The middleware for the thruster web framework"
 readme = "README.md"
@@ -22,4 +22,4 @@ net2 = "0.2"
 num_cpus = "1.0"
 tokio = { version = "0.1.20" }
 tokio-codec = { version = "0.1.1" }
-thruster-core = { version = "0.7", path = "../thruster-core" }
+thruster-core = { version = "=0.7.11", path = "../thruster-core" }
