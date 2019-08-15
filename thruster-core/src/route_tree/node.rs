@@ -249,12 +249,12 @@ impl<T: 'static + Context + Send> Node<T> {
   ///   let mut app = App::create(generate_context);
   ///
   ///   app.get("/plaintext", middleware![plaintext]);
-  ///  println!("app: {}", app._route_parser.route_tree.root_node.to_string(""));
+  ///  println!("app: {}", app._route_parser.route_tree.root_node.tree_string(""));
   ///  for (route, middleware) in app._route_parser.route_tree.root_node.get_route_list() {
   ///    println!("{}: {}", route, middleware.len());
   ///  }
   /// ```
-  pub fn to_string(&self, indent: &str) -> String {
+  pub fn tree_string(&self, indent: &str) -> String {
     let mut in_progress = "".to_owned();
     let value = match self.param_key.clone() {
       Some(key) => format!(":{}", key),
@@ -269,11 +269,11 @@ impl<T: 'static + Context + Send> Node<T> {
       self.is_terminal_node);
 
     for child in self.children.values() {
-      in_progress = format!("{}{}", in_progress, child.to_string(&format!("{}  ", indent)));
+      in_progress = format!("{}{}", in_progress, child.tree_string(&format!("{}  ", indent)));
     }
 
     if let Some(wildcard_node) = &self.wildcard_node {
-      in_progress = format!("{}{}", in_progress, wildcard_node.to_string(&format!("{}  ", indent)));
+      in_progress = format!("{}{}", in_progress, wildcard_node.tree_string(&format!("{}  ", indent)));
     }
 
     in_progress
