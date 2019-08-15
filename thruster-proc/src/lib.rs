@@ -1,5 +1,5 @@
 #![feature(proc_macro_diagnostic, proc_macro_span)]
-#![feature(await_macro, async_await, futures_api, proc_macro_hygiene)]
+#![feature(async_await, futures_api, proc_macro_hygiene)]
 
 extern crate proc_macro;
 extern crate proc_macro2;

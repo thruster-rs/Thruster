@@ -199,7 +199,7 @@ To turn on experimental error handling, pass the flag `thruster_error_handling`.
 This ends up looking like:
 
 ```rust
-#![feature(await_macro, async_await, futures_api, proc_macro_hygiene)]
+#![feature(async_await, futures_api, proc_macro_hygiene)]
 extern crate thruster;
 
 use thruster::{MiddlewareNext, MiddlewareReturnValue, MiddlewareResult};
