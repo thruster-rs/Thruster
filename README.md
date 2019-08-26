@@ -18,33 +18,11 @@ Thruster also
 
 ## Opinionated
 
-thruster and thruster-cli strive to give a good way to do domain driven design. It's also designed to set you on the right path, but not obfuscate certain hard parts behind libraries. Made with science 🔭, not magic 🧙‍♂️.
+Thruster and thruster-cli strive to give a good way to do domain driven design. It's also designed to set you on the right path, but not obfuscate certain hard parts behind libraries. Made with science 🔭, not magic 🧙‍♂️.
 
 ## Fast
 
-Using the following wrk command, here are the results in `hello_world` examples for various frameworks
-
-```bash
-wrk -t12 -c400 -d30s http://127.0.0.1:4321/plaintext
-```
-
-```
->>> Framework: Cowboy
-Requests/sec:  14066.80
-Transfer/sec:      1.75MB
->>> Framework: Phoenix/Elixir (prod mode)
-Requests/sec:    531.22
-Transfer/sec:    131.25KB
->>> Framework: Actix (prod mode)
-Requests/sec:  48661.48
-Transfer/sec:      6.03MB
->>> Framework: Hyper (prod mode)
-Requests/sec:  52909.67
-Transfer/sec:      4.44MB
->>> Framework: Thruster (prod mode)
-Requests/sec:  53612.10
-Transfer/sec:      7.57MB
-```
+Thruster can be run with different server backends and represents a nicely packaged layer over them. This means that it can keep up with the latest and greatest changes from the likes of Hyper or ThrusterServer (a custom made server inspired by tokio-minihttp.)
 
 ## Intuitive
 
