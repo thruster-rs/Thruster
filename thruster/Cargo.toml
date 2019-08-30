@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "0.7.11"
+version = "0.7.12"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
@@ -54,6 +54,9 @@ hyper_server = [
   "thruster-app/hyper_server",
   "thruster-server/hyper_server"
 ]
+thruster_testing = [
+  "thruster-app/thruster_testing"
+]
 thruster_async_await = [
   "thruster-proc",
   "thruster-app/thruster_async_await",
@@ -68,12 +71,12 @@ thruster_error_handling = [
 
 [dependencies]
 hyper = { version = "0.12.25", optional = true }
-thruster-app = { version = "=0.7.11", path = "../thruster-app" }
-thruster-context = { version = "=0.7.11", path = "../thruster-context" }
-thruster-core = { version = "=0.7.11", path = "../thruster-core" }
-thruster-middleware = { version = "=0.7.11", path = "../thruster-middleware" }
-thruster-proc = { version = "=0.7.11", path = "../thruster-proc", optional = true }
-thruster-server = { version = "=0.7.11", path = "../thruster-server" }
+thruster-app = { version = "=0.7.12", path = "../thruster-app" }
+thruster-context = { version = "=0.7.12", path = "../thruster-context" }
+thruster-core = { version = "=0.7.12", path = "../thruster-core" }
+thruster-middleware = { version = "=0.7.12", path = "../thruster-middleware" }
+thruster-proc = { version = "=0.7.12", path = "../thruster-proc", optional = true }
+thruster-server = { version = "=0.7.12", path = "../thruster-server" }
 
 [dev-dependencies]
 bytes = "0.4"

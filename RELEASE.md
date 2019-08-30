@@ -2,6 +2,10 @@
 
 Below you'll find a set of notes for migrating between versions. It should be noted that although the intent is to follow semantic versioning, until thruster is released in earnest (1.x), the second digit will be the one that dictates breaking changes.
 
+## 0.7.12
+
+While async_await is still not stable (a month or so to go!) this release disables testing by default since it's not yet supported in an async await format. In order to enable, add the feature `thruster_testing` to your crate configuration.
+
 ## 0.7.11
 
 This release adds support for SSL servers via the `thruster::ssl_server::SSLServer` package. The new `SSLServer` works much like the old thruster server, except with the addition of needing to set `cert` and, optionally, `cert_pass` on the server struct.
