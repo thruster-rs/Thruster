@@ -1,4 +1,5 @@
 pub use thruster_app::app::App;
+#[cfg(feature = "thruster_testing")]
 pub use thruster_app::testing;
 
 pub use thruster_core::context::Context;
