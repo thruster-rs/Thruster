@@ -1,25 +1,46 @@
 use std::collections::HashMap;
 use std::str;
 use hyper::{Body, Response, Request, StatusCode};
+use http::request::{Builder, Parts};
+use std::convert::TryInto;
 
 use thruster_core::context::Context;
 use thruster_core::request::RequestWithParams;
 use thruster_middleware::query_params::HasQueryParams;
 
-pub struct HyperRequest(pub Request<Body>);
+pub fn generate_context(request: Request<Body>) -> BasicHyperContext {
+  let mut ctx = BasicHyperContext::new(request);
+
+  ctx
+}
+
+pub struct HyperRequest {
+  pub request: Request<Body>,
+  pub parts: Option<Parts>,
+  pub body: Option<Body>,
+  params: HashMap<String, String>,
+}
+
+impl HyperRequest {
+  pub fn new(request: Request<Body>) -> HyperRequest {
+    HyperRequest {
+      request,
+      parts: None,
+      body: None,
+      params: HashMap::new(),
+    }
+  }
+}
 
 impl RequestWithParams for HyperRequest {
   fn set_params(&mut self, params: HashMap<String, String>) {
-    let extensions = self.0
-      .extensions_mut();
-
-    extensions.insert(params);
+    self.params = params;
   }
 }
 
 impl Default for HyperRequest {
   fn default() -> Self {
-    HyperRequest(Request::default())
+    HyperRequest::new(Request::default())
   }
 }
 
@@ -54,36 +75,27 @@ impl CookieOptions {
   }
 }
 
-pub fn generate_context(request: HyperRequest) -> BasicHyperContext {
-  let mut ctx = BasicHyperContext::new();
-  ctx.request = request;
-
-  ctx
-}
-
 #[derive(Default)]
 pub struct BasicHyperContext {
   pub body: Body,
   pub query_params: HashMap<String, String>,
-  pub request: HyperRequest,
   pub status: u16,
-  pub headers: HashMap<String, String>
+  pub headers: HashMap<String, String>,
+  request_builder: Builder,
+  hyper_request: HyperRequest,
 }
 
 impl BasicHyperContext {
-  pub fn new() -> BasicHyperContext {
-    let mut req = Request::builder()
-      .body(Body::empty()).unwrap();
-
+  pub fn new(req: Request<Body>) -> BasicHyperContext {
     let param_map: HashMap<String, String> = HashMap::new();
-    req.extensions_mut().insert(param_map);
 
     let mut ctx = BasicHyperContext {
       body: Body::empty(),
       query_params: HashMap::new(),
-      request: HyperRequest(req),
       headers: HashMap::new(),
-      status: 200
+      status: 200,
+      request_builder: Builder::new(),
+      hyper_request: HyperRequest::new(req),
     };
 
     ctx.set("Server", "Thruster");
@@ -92,15 +104,17 @@ impl BasicHyperContext {
   }
 
   ///
-  /// Get a a parameter
+  /// Set the body as a string
   ///
-  pub fn param(&mut self, key: &str) -> Option<&String> {
-    let params = self.request.0
-      .extensions_mut()
-      .get_mut::<HashMap<String, String>>()
-      .unwrap();
+  pub fn body(&mut self, body_string: &str) {
+    self.body = Body::from(body_string.to_string());
+  }
 
-    params.get(key)
+  ///
+  /// Get the body as a string
+  ///
+  pub fn get_body(&self) -> String {
+    panic!("Unimplemented... sorry about that!");
   }
 
   ///
@@ -120,8 +134,8 @@ impl BasicHyperContext {
   ///
   /// Set the response status code
   ///
-  pub fn status(&mut self, code: u16) {
-    self.status = code;
+  pub fn status(&mut self, code: u32) {
+    self.status = code.try_into().unwrap();
   }
 
   ///
@@ -222,9 +236,9 @@ impl HasQueryParams for BasicHyperContext {
   }
 
   fn route(&self) -> &str {
-    match self.request.0.uri().path_and_query() {
+    match self.hyper_request.request.uri().path_and_query() {
       Some(val) => val.as_str(),
-      None => self.request.0.uri().path()
+      None => self.hyper_request.request.uri().path()
     }
   }
 }

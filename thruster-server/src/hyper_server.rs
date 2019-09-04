@@ -45,8 +45,8 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for HyperServe
           &req.method().to_string(),
           &req.uri().to_string()
         );
-
-        app.resolve(HyperRequest(req), matched).compat()
+        let req = HyperRequest::new(req);
+        app.resolve(req, matched).compat()
       }))
     });
 
