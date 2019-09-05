@@ -25,6 +25,6 @@ thruster_error_handling = [
 
 [dependencies]
 http = "0.1.18"
-hyper = { version = "0.12.25", optional = true }
+hyper = { version = "=0.13.0-alpha.1", optional = true }
 thruster-core = { version = "=0.7.12", path = "../thruster-core" }
 thruster-middleware = { version = "=0.7.12", path = "../thruster-middleware" }

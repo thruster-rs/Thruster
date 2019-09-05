@@ -70,7 +70,7 @@ thruster_error_handling = [
 ]
 
 [dependencies]
-hyper = { version = "0.12.25", optional = true }
+hyper = { version = "=0.13.0-alpha.1", optional = true }
 thruster-app = { version = "=0.7.12", path = "../thruster-app" }
 thruster-context = { version = "=0.7.12", path = "../thruster-context" }
 thruster-core = { version = "=0.7.12", path = "../thruster-core" }
