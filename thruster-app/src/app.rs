@@ -213,7 +213,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   }
 
   #[cfg(not(feature = "hyper_server"))]
-  pub fn resolve(&self, request: R, matched_route: MatchedRoute<T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
+  pub fn resolve(&self, request: R, matched_route: MatchedRoute<T>) -> impl Future<Output=Result<T::Response, Error=io::Error>> + Send {
     self._resolve(request, matched_route)
   }
 
@@ -226,14 +226,14 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   }
 
   // #[cfg(all(feature = "thruster_async_await", not(feature = "hyper_server")))]
-  // fn _resolve(&self, request: R, matched_route: MatchedRoute<T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
+  // fn _resolve(&self, request: R, matched_route: MatchedRoute<T>) -> impl Future<Output=Result<T::Response, Error=io::Error>> + Send {
   //   use thruster_async_await::resolve;
 
   //   resolve(self.context_generator, request, matched_route)
   // }
 
   #[cfg(not(feature = "thruster_async_await"))]
-  fn _resolve(&self, mut request: R, matched_route: MatchedRoute<T>) -> impl FutureLegacy<Item=T::Response, Error=io::Error> + Send {
+  fn _resolve(&self, mut request: R, matched_route: MatchedRoute<T>) -> impl Future<Output=Result<T::Response, Error=io::Error>> + Send {
     request.set_params(matched_route.params);
 
     let context = (self.context_generator)(request);
@@ -272,7 +272,7 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
@@ -289,12 +289,12 @@ mod tests {
   fn it_should_correctly_differentiate_wildcards_and_valid_routes() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
 
-    fn test_fn_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("2");
       Box::new(future::ok(context))
     };
@@ -312,7 +312,7 @@ mod tests {
   fn it_should_handle_query_parameters() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       let body = &context.query_params.get("hello").unwrap().clone();
 
       context.body(body);
@@ -331,7 +331,7 @@ mod tests {
   fn it_should_handle_cookies() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       let body = match context.cookies.get(0) {
         Some(cookie) => {
           assert!(cookie.options.same_site.is_some());
@@ -357,7 +357,7 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request_with_params() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       let body = &context.params.get("id").unwrap().clone();
 
       context.body(body);
@@ -375,7 +375,7 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request_with_params_in_a_subapp() {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       let body = &context.params.get("id").unwrap().clone();
 
       context.body(body);
@@ -396,7 +396,7 @@ mod tests {
   fn it_should_correctly_parse_params_in_subapps() {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       let body = &context.params.get("id").unwrap().clone();
 
       context.body(body);
@@ -489,14 +489,14 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request_based_on_method() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       let existing_body = context.get_body().clone();
 
       context.body(&format!("{}{}", existing_body, "1"));
       Box::new(future::ok(context))
     };
 
-    fn test_fn_2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       let existing_body = context.get_body().clone();
 
       context.body(&format!("{}{}", existing_body, "2"));
@@ -515,14 +515,14 @@ mod tests {
   fn it_should_execute_all_middlware_with_a_given_request_up_and_down() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       let existing_body = context.get_body().clone();
 
       context.body(&format!("{}{}", existing_body, "1"));
       Box::new(future::ok(context))
     };
 
-    fn test_fn_2(mut context: BasicContext, next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_2(mut context: BasicContext, next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       let existing_body = context.get_body().clone();
 
       context.body(&format!("{}{}", existing_body, "2"));
@@ -549,7 +549,7 @@ mod tests {
   fn it_should_return_whatever_was_set_as_the_body_of_the_context() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("Hello world");
       Box::new(future::ok(context))
     };
@@ -565,7 +565,7 @@ mod tests {
   fn it_should_first_run_use_then_methods() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn method_agnostic(mut context: BasicContext, next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn method_agnostic(mut context: BasicContext, next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("agnostic");
       let updated_context = next(context);
 
@@ -577,7 +577,7 @@ mod tests {
       Box::new(body_with_copied_context)
     }
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       let body = context.get_body().clone();
 
       context.body(&format!("{}-1", body));
@@ -596,7 +596,7 @@ mod tests {
   fn it_should_be_able_to_correctly_route_sub_apps() {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
@@ -615,7 +615,7 @@ mod tests {
   fn it_should_be_able_to_correctly_route_sub_apps_with_wildcards() {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
@@ -634,7 +634,7 @@ mod tests {
   fn it_should_be_able_to_correctly_prefix_route_sub_apps() {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
@@ -653,7 +653,7 @@ mod tests {
   fn it_should_be_able_to_correctly_prefix_the_root_of_sub_apps() {
     let mut app1 = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
@@ -672,12 +672,12 @@ mod tests {
   fn it_should_be_able_to_correctly_handle_not_found_routes() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
 
-    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("not found");
       Box::new(future::ok(context))
     };
@@ -695,12 +695,12 @@ mod tests {
   fn it_should_be_able_to_correctly_handle_not_found_at_the_root() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
 
-    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("not found");
       Box::new(future::ok(context))
     };
@@ -717,12 +717,12 @@ mod tests {
   fn it_should_be_able_to_correctly_handle_deep_not_found_routes() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
 
-    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("not found");
       Box::new(future::ok(context))
     };
@@ -739,12 +739,12 @@ mod tests {
   fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramaterized_routes() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
 
-    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("not found");
       Box::new(future::ok(context))
     };
@@ -761,12 +761,12 @@ mod tests {
   fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramaterized_routes_with_extra_pieces() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
 
-    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("not found");
       Box::new(future::ok(context))
     };
@@ -785,12 +785,12 @@ mod tests {
     let mut app2 = App::<Request, BasicContext>::new_basic();
     let mut app3 = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
 
-    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_404(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("not found");
       Box::new(future::ok(context))
     };
@@ -809,7 +809,7 @@ mod tests {
   fn it_should_handle_routes_without_leading_slash() {
     let mut app = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
@@ -826,7 +826,7 @@ mod tests {
     let mut app1 = App::<Request, BasicContext>::new_basic();
     let mut app2 = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
@@ -845,12 +845,12 @@ mod tests {
     let mut app2 = App::<Request, BasicContext>::new_basic();
     let mut app3 = App::<Request, BasicContext>::new_basic();
 
-    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_1(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("1");
       Box::new(future::ok(context))
     };
 
-    fn test_fn_2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Item=BasicContext, Error=io::Error> + Send> {
+    fn test_fn_2(mut context: BasicContext, _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext>  + Send) -> Box<dyn Future<Output=Result<BasicContext, Error=io::Error>> + Send> {
       context.body("2");
       Box::new(future::ok(context))
     };
