@@ -114,7 +114,7 @@ _Note:, for the short term, the argument style of this macro has changed from `m
 A simple example for using async await is:
 
 ```rust
-#![feature(async_await, proc_macro_hygiene)]
+#![feature(proc_macro_hygiene)]
 extern crate thruster;
 
 use std::boxed::Box;
@@ -177,7 +177,7 @@ To turn on experimental error handling, pass the flag `thruster_error_handling`.
 This ends up looking like:
 
 ```rust
-#![feature(async_await, futures_api, proc_macro_hygiene)]
+#![feature(proc_macro_hygiene)]
 extern crate thruster;
 
 use thruster::{MiddlewareNext, MiddlewareReturnValue, MiddlewareResult};

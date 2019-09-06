@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 use std::str;
 use hyper::{Body, Response, Request, StatusCode};
-use http::request::{Builder, Parts};
+use http::request::Parts;
 use std::convert::TryInto;
 
 use thruster_core::context::Context;
 use thruster_core::request::RequestWithParams;
 use thruster_middleware::query_params::HasQueryParams;
 
-pub fn generate_context(request: Request<Body>) -> BasicHyperContext {
-  let mut ctx = BasicHyperContext::new(request);
+pub fn generate_context(request: HyperRequest) -> BasicHyperContext {
+  let ctx = BasicHyperContext::new(request);
 
   ctx
 }
@@ -81,21 +81,17 @@ pub struct BasicHyperContext {
   pub query_params: HashMap<String, String>,
   pub status: u16,
   pub headers: HashMap<String, String>,
-  request_builder: Builder,
   hyper_request: HyperRequest,
 }
 
 impl BasicHyperContext {
-  pub fn new(req: Request<Body>) -> BasicHyperContext {
-    let param_map: HashMap<String, String> = HashMap::new();
-
+  pub fn new(req: HyperRequest) -> BasicHyperContext {
     let mut ctx = BasicHyperContext {
       body: Body::empty(),
       query_params: HashMap::new(),
       headers: HashMap::new(),
       status: 200,
-      request_builder: Builder::new(),
-      hyper_request: HyperRequest::new(req),
+      hyper_request: req,
     };
 
     ctx.set("Server", "Thruster");

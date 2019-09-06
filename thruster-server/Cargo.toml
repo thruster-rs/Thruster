@@ -19,15 +19,11 @@ hyper_server = [
 ]
 
 [dependencies]
-futures-legacy = { version = "0.1.23", package = "futures" }
-futures-preview = { package = "futures-preview", version = "0.3.0-alpha.17", features = ["compat"] }
 hyper = { version = "=0.13.0-alpha.1", optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-# tokio = { version = "0.2.0-alpha.1" }
-# tokio-tls = { version = "0.3.0-alpha.1" }
-tokio = { version = "0.1" }
-tokio-tls = { version = "0.2" }
+tokio = { version = "0.2.0-alpha.4" }
+tokio-tls = { version = "0.3.0-alpha.4" }
 native-tls = "0.2"
 thruster-core = { version = "=0.7.12", path = "../thruster-core" }
 thruster-app = { version = "=0.7.12", path = "../thruster-app" }

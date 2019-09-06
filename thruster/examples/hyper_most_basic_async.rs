@@ -1,4 +1,4 @@
-#![feature(async_await, proc_macro_hygiene)]
+#![feature(proc_macro_hygiene)]
 extern crate thruster;
 
 use thruster::{MiddlewareNext, MiddlewareReturnValue};
