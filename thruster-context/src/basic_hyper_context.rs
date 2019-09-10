@@ -18,7 +18,7 @@ pub struct HyperRequest {
   pub request: Request<Body>,
   pub parts: Option<Parts>,
   pub body: Option<Body>,
-  params: HashMap<String, String>,
+  pub params: HashMap<String, String>,
 }
 
 impl HyperRequest {
