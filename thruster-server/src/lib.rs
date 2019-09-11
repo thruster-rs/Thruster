@@ -1,6 +1,6 @@
 pub mod thruster_server;
 
-#[cfg(not(feature="hyper_server"))]
+#[cfg(feature="thruster_tls")]
 pub mod ssl_server;
 
 #[cfg(not(feature="hyper_server"))]

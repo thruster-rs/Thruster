@@ -54,6 +54,9 @@ hyper_server = [
   "thruster-app/hyper_server",
   "thruster-server/hyper_server"
 ]
+thruster_tls = [
+  "thruster-server/thruster-tls"
+]
 thruster_testing = [
   "thruster-app/thruster_testing"
 ]

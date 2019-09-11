@@ -25,7 +25,7 @@ pub use thruster_server::hyper_server;
 #[cfg(not(feature="hyper_server"))]
 pub use thruster_server::server;
 
-#[cfg(not(feature="hyper_server"))]
+#[cfg(feature="thruster_tls")]
 pub use thruster_server::ssl_server;
 
 pub use thruster_server::thruster_server::ThrusterServer;
