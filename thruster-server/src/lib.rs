@@ -9,6 +9,9 @@ pub mod server;
 #[cfg(feature="hyper_server")]
 pub mod hyper_server;
 
+#[cfg(feature="hyper_server")]
+pub mod ssl_hyper_server;
+
 #[cfg(not(feature="hyper_server"))]
 pub use crate::thruster_server::ThrusterServer;
 
@@ -17,3 +20,6 @@ pub use crate::ssl_server::SSLServer;
 
 #[cfg(feature="hyper_server")]
 pub use crate::hyper_server::HyperServer;
+
+#[cfg(feature="hyper_server")]
+pub use crate::ssl_hyper_server::SSLHyperServer;

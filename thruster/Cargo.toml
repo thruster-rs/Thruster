@@ -39,6 +39,10 @@ required-features = ["thruster_async_await", "hyper_server"]
 name = "hyper_most_basic"
 required-features = ["hyper_server"]
 
+[[example]]
+name = "hyper_most_basic_ssl"
+required-features = ["thruster_async_await", "hyper_server"]
+
 [[bench]]
 name = "app"
 harness = false
@@ -55,7 +59,7 @@ hyper_server = [
   "thruster-server/hyper_server"
 ]
 thruster_tls = [
-  "thruster-server/thruster-tls"
+  "thruster-server/thruster_tls"
 ]
 thruster_testing = [
   "thruster-app/thruster_testing"
