@@ -12,6 +12,7 @@ use native_tls;
 use native_tls::Identity;
 use tokio::net::{TcpStream, TcpListener};
 use tokio::prelude::*;
+use tokio_tls::TlsStream;
 use std::io;
 
 use crate::thruster_server::ThrusterServer;
@@ -49,24 +50,20 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
   }
 
   fn start(self, host: &str, port: u16) {
-    let arc_app = Arc::new(self.app);
-    let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-    let cert = self.cert.unwrap().clone();
-    let cert_pass = self.cert_pass;
-    let cert = Identity::from_pkcs12(&cert, cert_pass)
-      .expect("Could not decrypt p12 file");
-    let tls_acceptor =
-        tokio_tls::TlsAcceptor::from(
-          native_tls::TlsAcceptor::builder(cert)
-            .build()
-            .expect("Could not create TLS acceptor.")
-          );
-    let arc_acceptor = Arc::new(tls_acceptor);
-
     let rt = tokio::runtime::Runtime::new().unwrap();
     let _ = rt.block_on(async {
-      // A this point, we should break down the service fn into
-      // whatever the lowest point to get the stream is.
+      if self.cert.is_none() {
+        panic!("Cert is required to be set via SSLServer::cert() before starting the server");
+      }
+
+      let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+
+      self.app._route_parser.optimize();
+
+      let listener = TcpListener::bind(&addr).await.unwrap();
+      let mut incoming = listener.incoming();
+      let arc_app = Arc::new(self.app);
+
       let service = make_service_fn(|_| {
         let app = arc_app.clone();
 
@@ -82,28 +79,36 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
         }
       });
 
-      // let srv = TcpListener::bind(&addr).await.unwrap();
-      // let http_proto = Http::new();
-      // let https_service = http_proto
-      //   .serve_incoming(
-      //     async {
-      //       let cloned_tls_acceptor = arc_acceptor.clone();
-      //       let socket = srv.incoming();
-      //       cloned_tls_acceptor
-      //         .accept(socket)
-      //         .await
-      //         .unwrap();
-      //     },
-      //     service
-      //   );
+      let cert = self.cert.unwrap().clone();
+      let cert_pass = self.cert_pass;
+      let cert = Identity::from_pkcs12(&cert, cert_pass)
+        .expect("Could not decrypt p12 file");
+      let tls_acceptor =
+          tokio_tls::TlsAcceptor::from(
+            native_tls::TlsAcceptor::builder(cert)
+              .build()
+              .expect("Could not create TLS acceptor.")
+            );
+      let arc_acceptor = Arc::new(tls_acceptor);
+      let http_proto = Http::new();
 
-      // https_service.await?;
-      let server = Server::bind(&addr)
-          .serve(service);
+      while let Some(Ok(stream)) = incoming.next().await {
+          let cloned_app = arc_app.clone();
+          let cloned_tls_acceptor = arc_acceptor.clone();
+          let tls = tls_acceptor.accept(stream).await?;
 
-      server.await?;
-
-      Ok::<_, hyper::Error>(())
+          tokio::spawn(async move {
+            if let Err(e) = http_proto.serve_incoming(tls, service).await {
+            //if let Err(e) = http_proto.serve_incoming(stream, service).await {
+              println!("oops: {:#?}", e);
+            }
+          });
+//          tokio::spawn(async move {
+//              if let Err(e) = process(cloned_app, cloned_tls_acceptor, stream).await {
+//                  println!("failed to process connection; error = {}", e);
+//              }
+//          });
+      }
     });
   }
 }
