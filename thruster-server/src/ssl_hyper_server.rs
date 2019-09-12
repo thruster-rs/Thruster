@@ -11,6 +11,7 @@ use thruster_context::basic_hyper_context::HyperRequest;
 use native_tls;
 use native_tls::Identity;
 use tokio::net::{TcpStream, TcpListener};
+use tokio::prelude::*;
 use std::io;
 
 use crate::thruster_server::ThrusterServer;
@@ -81,26 +82,26 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
         }
       });
 
-      let srv = TcpListener::bind(&addr).await.unwrap();
-      let http_proto = Http::new();
-      let https_service = http_proto
-        .serve_incoming(
-          async {
-            let cloned_tls_acceptor = arc_acceptor.clone();
-            let socket = srv.incoming().await;
-            cloned_tls_acceptor
-              .accept(socket)
-              .await
-              .unwrap();
-          },
-          service
-        );
+      // let srv = TcpListener::bind(&addr).await.unwrap();
+      // let http_proto = Http::new();
+      // let https_service = http_proto
+      //   .serve_incoming(
+      //     async {
+      //       let cloned_tls_acceptor = arc_acceptor.clone();
+      //       let socket = srv.incoming();
+      //       cloned_tls_acceptor
+      //         .accept(socket)
+      //         .await
+      //         .unwrap();
+      //     },
+      //     service
+      //   );
 
-      https_service.await?;
-      // let server = Server::bind(&addr)
-      //     .serve(service);
+      // https_service.await?;
+      let server = Server::bind(&addr)
+          .serve(service);
 
-      // server.await?;
+      server.await?;
 
       Ok::<_, hyper::Error>(())
     });
