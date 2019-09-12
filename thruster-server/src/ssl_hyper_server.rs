@@ -1,6 +1,6 @@
 use std::net::ToSocketAddrs;
 
-use tokio;
+use hyper::server::conn::Http;
 use hyper::{Body, Response, Request, Server};
 use hyper::service::{make_service_fn, service_fn};
 use std::sync::Arc;
@@ -8,6 +8,10 @@ use std::sync::Arc;
 use thruster_app::app::App;
 use thruster_core::context::Context;
 use thruster_context::basic_hyper_context::HyperRequest;
+use native_tls;
+use native_tls::Identity;
+use tokio::net::{TcpStream, TcpListener};
+use std::io;
 
 use crate::thruster_server::ThrusterServer;
 
@@ -60,13 +64,12 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
 
     let rt = tokio::runtime::Runtime::new().unwrap();
     let _ = rt.block_on(async {
+      // A this point, we should break down the service fn into
+      // whatever the lowest point to get the stream is.
       let service = make_service_fn(|_| {
         let app = arc_app.clone();
-        let cloned_tls_acceptor = arc_acceptor.clone();
 
         async {
-          // A tthis point, we should break down the service fn into
-          // whatever the lowest point to get the stream is.
           Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
             let matched = app.resolve_from_method_and_path(
               &req.method().to_string(),
@@ -78,10 +81,26 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
         }
       });
 
-      let server = Server::bind(&addr)
-          .serve(service);
+      let srv = TcpListener::bind(&addr).await.unwrap();
+      let http_proto = Http::new();
+      let https_service = http_proto
+        .serve_incoming(
+          async {
+            let cloned_tls_acceptor = arc_acceptor.clone();
+            let socket = srv.incoming().await;
+            cloned_tls_acceptor
+              .accept(socket)
+              .await
+              .unwrap();
+          },
+          service
+        );
 
-      server.await?;
+      https_service.await?;
+      // let server = Server::bind(&addr)
+      //     .serve(service);
+
+      // server.await?;
 
       Ok::<_, hyper::Error>(())
     });
