@@ -20,7 +20,7 @@ required-features = ["thruster_async_await"]
 
 [[example]]
 name = "most_basic_ssl"
-required-features = ["thruster_async_await"]
+required-features = ["thruster_async_await", "thruster_tls"]
 
 [[example]]
 name = "async_await"

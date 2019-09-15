@@ -3,9 +3,10 @@ use std::sync::Arc;
 use std::error::Error;
 
 use tokio;
-use tokio::net::{TcpStream, TcpListener};
 use tokio::prelude::*;
+use tokio::net::{TcpListener, TcpStream};
 use tokio::codec::Framed;
+use tokio_tls;
 use native_tls;
 use native_tls::Identity;
 
@@ -91,7 +92,13 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for SSLServer<T> {
     });
 
     // TODO(trezm): Add an argument here for the tls_acceptor to be passed in.
-    async fn process<T: Context<Response = Response> + Send>(app: Arc<App<Request, T>>, tls_acceptor: Arc<tokio_tls::TlsAcceptor>, socket: TcpStream) -> Result<(), Box<dyn Error>> {
+    async fn process<
+      T: Context<Response = Response> + Send,
+    >(app: Arc<App<Request, T>>,
+      tls_acceptor: Arc<tokio_tls::TlsAcceptor>,
+      socket: TcpStream,
+    ) -> Result<(), Box<dyn Error>>
+    {
       let tls = tls_acceptor.accept(socket).await?;
       let mut framed = Framed::new(tls, Http);
 

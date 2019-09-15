@@ -23,12 +23,16 @@ hyper_server = [
 ]
 
 [dependencies]
+bytes = "0.4"
 hyper = { version = "=0.13.0-alpha.1", optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-tokio = { version = "0.2.0-alpha.4" }
+tokio = { version = "=0.2.0-alpha.4", path = "../../tokio/tokio", features = ["tcp"] }
+tokio-io = { version = "=0.2.0-alpha.4", path = "../../tokio/tokio-io" }
+tokio-tls = { version = "=0.3.0-alpha.4", path = "../../tokio/tokio-tls", optional = true }
+# tokio = { version = "0.2.0-alpha.4", features = ["io"] }
 # tokio-tls = { version = "=0.3.0-alpha.4", optional = true }
-tokio-tls = { git = "https://github.com/tokio-rs/tokio", branch = "master", optional = true }
+# tokio-tls = { git = "https://github.com/tokio-rs/tokio", branch = "master", optional = true }
 native-tls = "0.2"
 thruster-core = { version = "=0.7.12", path = "../thruster-core" }
 thruster-app = { version = "=0.7.12", path = "../thruster-app" }
