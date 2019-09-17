@@ -31,7 +31,7 @@ serde_derive = "1.0.24"
 smallvec = "0.6.2"
 templatify = "0.2.3"
 time = "0.1"
-tokio = { version = "=0.2.0-alpha.4", path = "../../tokio/tokio" }
-tokio-codec = { version = "=0.2.0-alpha.4", path = "../../tokio/tokio-codec" }
-tokio-io = { version = "=0.2.0-alpha.4", path = "../../tokio/tokio-io" }
+tokio = { version = "=0.2.0-alpha.4", branch = "master" }
+tokio-codec = { version = "=0.2.0-alpha.4", branch = "master" }
+tokio-io = { version = "=0.2.0-alpha.4", branch = "master" }
 thruster-core-async-await = { version = "=0.7.12", path = "../thruster-core-async-await", optional = true }

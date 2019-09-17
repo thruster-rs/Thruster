@@ -20,6 +20,6 @@ futures-legacy = { version = "0.1.23", package = "futures" }
 hyper = { version = "=0.13.0-alpha.1", optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-tokio = { version = "=0.2.0-alpha.4", path = "../../tokio/tokio" }
-tokio-codec = { version = "=0.2.0-alpha.4", path = "../../tokio/tokio-codec" }
+tokio = { version = "=0.2.0-alpha.4", branch = "master" }
+tokio-codec = { version = "=0.2.0-alpha.4", branch = "master" }
 thruster-core = { version = "=0.7.12", path = "../thruster-core" }

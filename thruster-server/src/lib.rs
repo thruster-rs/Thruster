@@ -15,7 +15,7 @@ pub mod ssl_hyper_server;
 #[cfg(not(feature="hyper_server"))]
 pub use crate::thruster_server::ThrusterServer;
 
-#[cfg(not(feature="hyper_server"))]
+#[cfg(all(not(feature="hyper_server"), feature="thruster_tls"))]
 pub use crate::ssl_server::SSLServer;
 
 #[cfg(feature="hyper_server")]
