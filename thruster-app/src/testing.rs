@@ -23,7 +23,7 @@ pub fn request<T: Context<Response = Response> + Send>(app: &App<Request, T>, me
 
 
   let request = decode(&mut bytes).unwrap().unwrap();
-  let matched_route = app.resolve_from_method_and_path("GET", route);
+  let matched_route = app.resolve_from_method_and_path(method, route);
   let response = app.resolve(request, matched_route).wait().unwrap();
 
   TestResponse::new(response)
