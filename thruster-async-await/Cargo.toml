@@ -1,6 +1,6 @@
 [package]
 name = "thruster-async-await"
-version = "0.7.12"
+version = "0.7.14"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "An async await shim for the thruster web framework"
 readme = "README.md"
@@ -24,5 +24,5 @@ thruster_error_handling = [
 futures-legacy = { version = "0.1.23", package = "futures" }
 futures-preview = { version = "0.3.0-alpha.16", features = ["compat"] }
 futures-util = "0.2.1"
-thruster-core = { version = "=0.7.12", path = "../thruster-core" }
-tokio = { version = "=0.2.0-alpha.4", branch = "master" }
+thruster-core = { version = "=0.7.14", path = "../thruster-core" }
+tokio = { version = "=0.2.0-alpha.5", branch = "master" }

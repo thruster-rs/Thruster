@@ -86,7 +86,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
       let listener = TcpListener::bind(&addr).await.unwrap();
       let incoming = listener.incoming();
       let server = Builder
-          ::new(incoming.filter_map(|socket| {
+          ::new(hyper::server::accept::from_stream(incoming.filter_map(|socket| {
             async {
               match socket {
                 Ok(stream) => {
@@ -104,7 +104,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
                 }
               }
             }
-          }), Http::new())
+          })), Http::new())
           .serve(service);
 
       server.await?;

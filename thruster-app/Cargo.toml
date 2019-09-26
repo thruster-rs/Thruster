@@ -1,6 +1,6 @@
 [package]
 name = "thruster-app"
-version = "0.7.12"
+version = "0.7.14"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The App portion of the thruster web framework"
 readme = "README.md"
@@ -34,8 +34,8 @@ bytes = "0.4"
 futures = "0.1.23"
 futures-preview = { package = "futures-preview", version = "0.3.0-alpha.17", features = ["compat"] }
 templatify = "0.2.3"
-thruster-async-await = { version = "=0.7.12", path = "../thruster-async-await" }
-thruster-context = { version = "=0.7.12", path = "../thruster-context" }
-thruster-core = { version = "=0.7.12", path = "../thruster-core" }
-thruster-middleware = { version = "=0.7.12", path = "../thruster-middleware" }
-thruster-proc = { version = "=0.7.12", path = "../thruster-proc", optional = true }
+thruster-async-await = { version = "=0.7.14", path = "../thruster-async-await" }
+thruster-context = { version = "=0.7.14", path = "../thruster-context" }
+thruster-core = { version = "=0.7.14", path = "../thruster-core" }
+thruster-middleware = { version = "=0.7.14", path = "../thruster-middleware" }
+thruster-proc = { version = "=0.7.14", path = "../thruster-proc", optional = true }

@@ -1,6 +1,6 @@
 [package]
 name = "thruster-core-async-await"
-version = "0.7.12"
+version = "0.7.14"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "An async await shim for the core features of the thruster web framework"
 readme = "README.md"

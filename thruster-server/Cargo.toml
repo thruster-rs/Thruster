@@ -1,6 +1,6 @@
 [package]
 name = "thruster-server"
-version = "0.7.12"
+version = "0.7.14"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The core future wrappers aroun the thruster web framework"
 readme = "README.md"
@@ -14,7 +14,7 @@ edition = "2018"
 [features]
 thruster_async_await = []
 thruster_tls = [
-  "tokio-tls"
+  "tokio-tls",
 ]
 hyper_server = [
   "hyper",
@@ -25,14 +25,15 @@ hyper_server = [
 [dependencies]
 bytes = "0.4"
 futures-util-preview = { version = "=0.3.0-alpha.18" }
-hyper = { version = "=0.13.0-alpha.1", optional = true }
+hyper = { version = "=0.13.0-alpha.2", features = ["unstable-stream"], optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-tokio = { version = "=0.2.0-alpha.4", branch = "master", features = ["tcp"] }
-tokio-io = { version = "=0.2.0-alpha.4", branch = "master" }
-tokio-tls = { version = "=0.3.0-alpha.4", git = "https://github.com/trezm/tokio", branch = "feat/temporarily_lock_tls_versions", optional = true }
+tokio = { version = "=0.2.0-alpha.5", branch = "master", features = ["tcp"] }
+tokio-io = { version = "=0.2.0-alpha.5", branch = "master" }
+# tokio-tls = { version = "=0.0.1", package = "trezm-temp-tokio-tls", optional = true }
+tokio-tls = { version = "=0.3.0-alpha.5", optional = true }
 native-tls = "0.2"
-thruster-core = { version = "=0.7.12", path = "../thruster-core" }
-thruster-app = { version = "=0.7.12", path = "../thruster-app" }
-thruster-context = { version = "=0.7.12", path = "../thruster-context" }
+thruster-core = { version = "=0.7.14", path = "../thruster-core" }
+thruster-app = { version = "=0.7.14", path = "../thruster-app" }
+thruster-context = { version = "=0.7.14", path = "../thruster-context" }
 
