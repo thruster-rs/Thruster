@@ -47,9 +47,14 @@ required-features = ["thruster_async_await", "hyper_server"]
 name = "app"
 harness = false
 
+# [[test]]
+# name = "integration"
+# path = "src/integration_tests.rs"
+
 [[test]]
-name = "integration"
-path = "src/integration_tests.rs"
+name = "integration_async"
+path = "src/integration_async_tests.rs"
+required-features = ["thruster_async_await", "thruster_testing"]
 
 [features]
 default = []
@@ -97,3 +102,4 @@ serde_json = "1.0.8"
 serde_derive = "1.0.24"
 smallvec = "0.6.2"
 snafu = "0.4.1"
+tokio = { version = "=0.2.0-alpha.5", branch = "master", features = ["tcp"] }

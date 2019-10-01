@@ -1,7 +1,8 @@
 pub use thruster_app::app::App;
-#[cfg(feature = "thruster_testing")]
+#[cfg(all(feature = "thruster_testing", not(feature = "thruster_async_await")))]
 pub use thruster_app::testing;
-
+#[cfg(all(feature = "thruster_testing", feature = "thruster_async_await"))]
+pub use thruster_app::testing_async as testing;
 pub use thruster_core::context::Context;
 pub use thruster_core::response::{encode, Response};
 pub use thruster_core::request::{decode, Request, RequestWithParams};

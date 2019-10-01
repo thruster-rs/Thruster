@@ -1323,6 +1323,7 @@ dependencies = [
  "thruster-middleware 0.7.14",
  "thruster-proc 0.7.14",
  "thruster-server 0.7.14",
+ "tokio 0.2.0-alpha.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
