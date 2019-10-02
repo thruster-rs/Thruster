@@ -104,6 +104,7 @@ pub fn update<T: Context<Response = Response> + Send>(app: &App<Request, T>, rou
   TestResponse::new(response)
 }
 
+#[derive(Debug)]
 pub struct TestResponse {
   pub body: String,
   pub headers: HashMap<String, String>,

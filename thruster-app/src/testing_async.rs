@@ -1,5 +1,4 @@
 use bytes::{BytesMut, BufMut};
-use futures::Future;
 use std::collections::HashMap;
 
 use crate::app::App;
@@ -104,6 +103,7 @@ pub async fn update<T: Context<Response = Response> + Send>(app: &App<Request, T
   TestResponse::new(response)
 }
 
+#[derive(Debug)]
 pub struct TestResponse {
   pub body: String,
   pub headers: HashMap<String, String>,
