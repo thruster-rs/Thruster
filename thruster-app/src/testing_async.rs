@@ -1,5 +1,4 @@
 use bytes::{BytesMut, BufMut};
-use futures::Future;
 use std::collections::HashMap;
 
 use crate::app::App;
@@ -9,7 +8,7 @@ use thruster_core::response::{Response, StatusMessage};
 use thruster_core::request::decode;
 use thruster_core::request::Request;
 
-pub fn request<T: Context<Response = Response> + Send>(app: &App<Request, T>, method: &str, route: &str, headers: &[(&str, &str)], body: &str) -> TestResponse {
+pub async fn request<T: Context<Response = Response> + Send>(app: &App<Request, T>, method: &str, route: &str, headers: &[(&str, &str)], body: &str) -> TestResponse {
   let headers_mapped: Vec<String> = headers
     .iter()
     .map(|val| format!("{}: {}", val.0, val.1))
@@ -23,14 +22,14 @@ pub fn request<T: Context<Response = Response> + Send>(app: &App<Request, T>, me
 
 
   let request = decode(&mut bytes).unwrap().unwrap();
-  let matched_route = app.resolve_from_method_and_path(method, route);
-  let response = app.resolve(request, matched_route).wait().unwrap();
+  let matched_route = app.resolve_from_method_and_path("GET", route);
+  let response = app.resolve(request, matched_route).await.unwrap();
 
   TestResponse::new(response)
 }
 
 
-pub fn get<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str) -> TestResponse {
+pub async fn get<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str) -> TestResponse {
   let body = format!("GET {} HTTP/1.1\nHost: localhost:8080\n\n", route);
 
   let mut bytes = BytesMut::with_capacity(body.len());
@@ -39,12 +38,12 @@ pub fn get<T: Context<Response = Response> + Send>(app: &App<Request, T>, route:
 
   let request = decode(&mut bytes).unwrap().unwrap();
   let matched_route = app.resolve_from_method_and_path("GET", route);
-  let response = app.resolve(request, matched_route).wait().unwrap();
+  let response = app.resolve(request, matched_route).await.unwrap();
 
   TestResponse::new(response)
 }
 
-pub fn delete<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str) -> TestResponse {
+pub async fn delete<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str) -> TestResponse {
   let body = format!("DELETE {} HTTP/1.1\nHost: localhost:8080\n\n", route);
 
   let mut bytes = BytesMut::with_capacity(body.len());
@@ -53,13 +52,13 @@ pub fn delete<T: Context<Response = Response> + Send>(app: &App<Request, T>, rou
 
   let request = decode(&mut bytes).unwrap().unwrap();
   let matched_route = app.resolve_from_method_and_path("DELETE", route);
-  let response = app.resolve(request, matched_route).wait().unwrap();
+  let response = app.resolve(request, matched_route).await.unwrap();
 
 
   TestResponse::new(response)
 }
 
-pub fn post<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
+pub async fn post<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
   let body = format!("POST {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
 
   let mut bytes = BytesMut::with_capacity(body.len());
@@ -68,13 +67,13 @@ pub fn post<T: Context<Response = Response> + Send>(app: &App<Request, T>, route
 
   let request = decode(&mut bytes).unwrap().unwrap();
   let matched_route = app.resolve_from_method_and_path("POST", route);
-  let response = app.resolve(request, matched_route).wait().unwrap();
+  let response = app.resolve(request, matched_route).await.unwrap();
 
 
   TestResponse::new(response)
 }
 
-pub fn put<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
+pub async fn put<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
   let body = format!("PUT {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
 
   let mut bytes = BytesMut::with_capacity(body.len());
@@ -83,13 +82,13 @@ pub fn put<T: Context<Response = Response> + Send>(app: &App<Request, T>, route:
 
   let request = decode(&mut bytes).unwrap().unwrap();
   let matched_route = app.resolve_from_method_and_path("PUT", route);
-  let response = app.resolve(request, matched_route).wait().unwrap();
+  let response = app.resolve(request, matched_route).await.unwrap();
 
 
   TestResponse::new(response)
 }
 
-pub fn update<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
+pub async fn update<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
   let body = format!("UPDATE {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
 
   let mut bytes = BytesMut::with_capacity(body.len());
@@ -98,7 +97,7 @@ pub fn update<T: Context<Response = Response> + Send>(app: &App<Request, T>, rou
 
   let request = decode(&mut bytes).unwrap().unwrap();
   let matched_route = app.resolve_from_method_and_path("UPDATE", route);
-  let response = app.resolve(request, matched_route).wait().unwrap();
+  let response = app.resolve(request, matched_route).await.unwrap();
 
 
   TestResponse::new(response)

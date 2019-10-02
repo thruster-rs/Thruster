@@ -1,6 +1,6 @@
 [package]
 name = "thruster-middleware"
-version = "0.7.11"
+version = "0.7.15"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The middleware for the thruster web framework"
 readme = "README.md"
@@ -13,13 +13,15 @@ edition = "2018"
 
 [features]
 default = []
-hyper_server = ["hyper"]
+hyper_server = [
+  "hyper",
+]
 
 [dependencies]
 futures-legacy = { version = "0.1.23", package = "futures" }
-hyper = { version = "0.12.25", optional = true }
+hyper = { version = "=0.13.0-alpha.2", features = ["unstable-stream"], optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-tokio = { version = "0.1.20" }
-tokio-codec = { version = "0.1.1" }
-thruster-core = { version = "=0.7.11", path = "../thruster-core" }
+tokio = { version = "=0.2.0-alpha.5", branch = "master" }
+tokio-codec = { version = "=0.2.0-alpha.5", branch = "master" }
+thruster-core = { version = "=0.7.14", path = "../thruster-core" }

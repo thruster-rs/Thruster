@@ -1,9 +1,11 @@
 pub use thruster_app::app::App;
+#[cfg(all(feature = "thruster_testing", not(feature = "thruster_async_await")))]
 pub use thruster_app::testing;
-
+#[cfg(all(feature = "thruster_testing", feature = "thruster_async_await"))]
+pub use thruster_app::testing_async as testing;
 pub use thruster_core::context::Context;
 pub use thruster_core::response::{encode, Response};
-pub use thruster_core::request::{decode, Request};
+pub use thruster_core::request::{decode, Request, RequestWithParams};
 pub use thruster_core::http::Http;
 #[cfg(feature = "thruster_error_handling")]
 pub use thruster_core::{errors, map_try};
@@ -21,10 +23,13 @@ pub use thruster_middleware;
 #[cfg(feature="hyper_server")]
 pub use thruster_server::hyper_server;
 
+#[cfg(feature="hyper_server")]
+pub use thruster_server::ssl_hyper_server;
+
 #[cfg(not(feature="hyper_server"))]
 pub use thruster_server::server;
 
-#[cfg(not(feature="hyper_server"))]
+#[cfg(feature="thruster_tls")]
 pub use thruster_server::ssl_server;
 
 pub use thruster_server::thruster_server::ThrusterServer;
@@ -34,4 +39,4 @@ pub use thruster_context::basic_context::BasicContext;
 pub use thruster_proc;
 
 #[cfg(feature="hyper_server")]
-pub use thruster_context::basic_hyper_context::BasicHyperContext;
+pub use thruster_context::basic_hyper_context::{BasicHyperContext, HyperRequest};

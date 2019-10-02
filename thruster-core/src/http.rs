@@ -1,5 +1,5 @@
 use bytes::BytesMut;
-use tokio_io::codec::{Encoder, Decoder};
+use tokio::codec::{Encoder, Decoder};
 
 use crate::response::{self, Response};
 use crate::request::{self, Request};

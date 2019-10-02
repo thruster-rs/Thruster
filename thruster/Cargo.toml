@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "0.7.11"
+version = "0.7.15"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
@@ -20,7 +20,7 @@ required-features = ["thruster_async_await"]
 
 [[example]]
 name = "most_basic_ssl"
-required-features = ["thruster_async_await"]
+required-features = ["thruster_async_await", "thruster_tls"]
 
 [[example]]
 name = "async_await"
@@ -39,13 +39,22 @@ required-features = ["thruster_async_await", "hyper_server"]
 name = "hyper_most_basic"
 required-features = ["hyper_server"]
 
+[[example]]
+name = "hyper_most_basic_ssl"
+required-features = ["thruster_async_await", "hyper_server"]
+
 [[bench]]
 name = "app"
 harness = false
 
+# [[test]]
+# name = "integration"
+# path = "src/integration_tests.rs"
+
 [[test]]
-name = "integration"
-path = "src/integration_tests.rs"
+name = "integration_async"
+path = "src/integration_async_tests.rs"
+required-features = ["thruster_async_await", "thruster_testing"]
 
 [features]
 default = []
@@ -53,6 +62,12 @@ hyper_server = [
   "hyper",
   "thruster-app/hyper_server",
   "thruster-server/hyper_server"
+]
+thruster_tls = [
+  "thruster-server/thruster_tls"
+]
+thruster_testing = [
+  "thruster-app/thruster_testing"
 ]
 thruster_async_await = [
   "thruster-proc",
@@ -67,13 +82,13 @@ thruster_error_handling = [
 ]
 
 [dependencies]
-hyper = { version = "0.12.25", optional = true }
-thruster-app = { version = "=0.7.11", path = "../thruster-app" }
-thruster-context = { version = "=0.7.11", path = "../thruster-context" }
-thruster-core = { version = "=0.7.11", path = "../thruster-core" }
-thruster-middleware = { version = "=0.7.11", path = "../thruster-middleware" }
-thruster-proc = { version = "=0.7.11", path = "../thruster-proc", optional = true }
-thruster-server = { version = "=0.7.11", path = "../thruster-server" }
+hyper = { version = "=0.13.0-alpha.2", features = ["unstable-stream"], optional = true }
+thruster-app = { version = "=0.7.14", path = "../thruster-app" }
+thruster-context = { version = "=0.7.14", path = "../thruster-context" }
+thruster-core = { version = "=0.7.14", path = "../thruster-core" }
+thruster-middleware = { version = "=0.7.14", path = "../thruster-middleware" }
+thruster-proc = { version = "=0.7.14", path = "../thruster-proc", optional = true }
+thruster-server = { version = "=0.7.14", path = "../thruster-server" }
 
 [dev-dependencies]
 bytes = "0.4"
@@ -87,3 +102,4 @@ serde_json = "1.0.8"
 serde_derive = "1.0.24"
 smallvec = "0.6.2"
 snafu = "0.4.1"
+tokio = { version = "=0.2.0-alpha.5", branch = "master", features = ["tcp"] }

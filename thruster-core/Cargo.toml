@@ -1,6 +1,6 @@
 [package]
 name = "thruster-core"
-version = "0.7.11"
+version = "0.7.15"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The core pieces of the thruster web framework"
 readme = "README.md"
@@ -31,6 +31,7 @@ serde_derive = "1.0.24"
 smallvec = "0.6.2"
 templatify = "0.2.3"
 time = "0.1"
-tokio-codec = { version = "0.1.1" }
-tokio-io = { version = "0.1.12" }
-thruster-core-async-await = { version = "=0.7.11", path = "../thruster-core-async-await", optional = true }
+tokio = { version = "=0.2.0-alpha.5", branch = "master" }
+tokio-codec = { version = "=0.2.0-alpha.5", branch = "master" }
+tokio-io = { version = "=0.2.0-alpha.5", branch = "master" }
+thruster-core-async-await = { version = "=0.7.14", path = "../thruster-core-async-await", optional = true }
