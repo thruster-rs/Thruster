@@ -1,6 +1,6 @@
 [package]
 name = "thruster-core"
-version = "0.7.15"
+version = "0.7.16"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The core pieces of the thruster web framework"
 readme = "README.md"

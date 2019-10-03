@@ -1,6 +1,6 @@
 [package]
 name = "thruster-context"
-version = "0.7.15"
+version = "0.7.16"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The context portion of the thruster web framework"
 readme = "README.md"
