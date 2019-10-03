@@ -24,4 +24,4 @@ net2 = "0.2"
 num_cpus = "1.0"
 tokio = { version = "=0.2.0-alpha.5", branch = "master" }
 tokio-codec = { version = "=0.2.0-alpha.5", branch = "master" }
-thruster-core = { version = "=0.7.14", path = "../thruster-core" }
+thruster-core = { version = "=0.7.16", path = "../thruster-core" }

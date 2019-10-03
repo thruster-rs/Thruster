@@ -33,7 +33,7 @@ tokio-io = { version = "=0.2.0-alpha.5", branch = "master" }
 # tokio-tls = { version = "=0.0.1", package = "trezm-temp-tokio-tls", optional = true }
 tokio-tls = { version = "=0.3.0-alpha.5", optional = true }
 native-tls = "0.2"
-thruster-core = { version = "=0.7.14", path = "../thruster-core" }
-thruster-app = { version = "=0.7.14", path = "../thruster-app" }
-thruster-context = { version = "=0.7.14", path = "../thruster-context" }
+thruster-core = { version = "=0.7.16", path = "../thruster-core" }
+thruster-app = { version = "=0.7.16", path = "../thruster-app" }
+thruster-context = { version = "=0.7.16", path = "../thruster-context" }
 
