@@ -1,6 +1,6 @@
 [package]
 name = "thruster-context"
-version = "0.7.16"
+version = "0.7.17"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The context portion of the thruster web framework"
 readme = "README.md"
@@ -26,5 +26,5 @@ thruster_error_handling = [
 [dependencies]
 http = "0.1.18"
 hyper = { version = "=0.13.0-alpha.2", features = ["unstable-stream"], optional = true }
-thruster-core = { version = "=0.7.16", path = "../thruster-core" }
-thruster-middleware = { version = "=0.7.16", path = "../thruster-middleware" }
+thruster-core = { version = "=0.7.17", path = "../thruster-core" }
+thruster-middleware = { version = "=0.7.17", path = "../thruster-middleware" }

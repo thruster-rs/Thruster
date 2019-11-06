@@ -15,14 +15,14 @@ pub async fn request<T: Context<Response = Response> + Send>(app: &App<Request, 
     .collect();
   let headers = headers_mapped
     .join("\n");
-  let body = format!("{} {} HTTP/1.1\nHost: localhost:8080\n{}\n\n{}", method, route, headers, body);
+  let body = format!("{} {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n{}\n\n{}", method, route, body.len(), headers, body);
 
   let mut bytes = BytesMut::with_capacity(body.len());
   bytes.put(&body);
 
 
   let request = decode(&mut bytes).unwrap().unwrap();
-  let matched_route = app.resolve_from_method_and_path("GET", route);
+  let matched_route = app.resolve_from_method_and_path(method, route);
   let response = app.resolve(request, matched_route).await.unwrap();
 
   TestResponse::new(response)
