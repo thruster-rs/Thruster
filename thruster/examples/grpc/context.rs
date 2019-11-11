@@ -1,47 +1,22 @@
 use std::collections::HashMap;
 use std::str;
-use hyper::{Body, Response, Request, StatusCode};
+use hyper::{Response, Request, StatusCode};
 use http::request::Parts;
 use std::convert::TryInto;
+use tonic::body::BoxBody;
 
 use thruster_core::context::Context;
 use thruster_core::request::RequestWithParams;
 use thruster_middleware::query_params::HasQueryParams;
+use thruster::thruster_context::basic_hyper_context::{HyperRequest};
+
+use hyper::Body;
+// use tonic::body::{BoxBody as Body};
 
 pub fn generate_context(request: HyperRequest) -> BasicHyperContext {
   let ctx = BasicHyperContext::new(request);
 
   ctx
-}
-
-pub struct HyperRequest {
-  pub request: Request<Body>,
-  pub parts: Option<Parts>,
-  pub body: Option<Body>,
-  pub params: HashMap<String, String>,
-}
-
-impl HyperRequest {
-  pub fn new(request: Request<Body>) -> HyperRequest {
-    HyperRequest {
-      request,
-      parts: None,
-      body: None,
-      params: HashMap::new(),
-    }
-  }
-}
-
-impl RequestWithParams for HyperRequest {
-  fn set_params(&mut self, params: HashMap<String, String>) {
-    self.params = params;
-  }
-}
-
-impl Default for HyperRequest {
-  fn default() -> Self {
-    HyperRequest::new(Request::default())
-  }
 }
 
 pub enum SameSite {
@@ -82,7 +57,7 @@ pub struct BasicHyperContext {
   pub headers: HashMap<String, String>,
   pub params: HashMap<String, String>,
   pub hyper_request: Option<HyperRequest>,
-  pub hyper_response: Option<Response<Body>>,
+  pub hyper_response: Option<Response<BoxBody>>,
   request_body: Option<Body>,
   request_parts: Option<Parts>,
 }
@@ -228,7 +203,7 @@ impl Default for BasicHyperContext {
 }
 
 impl Context for BasicHyperContext {
-  type Response = Response<Body>;
+  type Response = Response<BoxBody>;
 
   fn get_response(self) -> Self::Response {
     match self.hyper_response {
@@ -244,7 +219,8 @@ impl Context for BasicHyperContext {
 
         response_builder.status(StatusCode::from_u16(self.status).unwrap());
 
-        response_builder.body(self.body).unwrap()
+        // response_builder.body(self.body).unwrap()
+        response_builder.body(BoxBody::empty()).unwrap()
       }
     }
   }

@@ -23,7 +23,7 @@ pub use thruster_middleware;
 #[cfg(feature="hyper_server")]
 pub use thruster_server::hyper_server;
 
-#[cfg(feature="hyper_server")]
+#[cfg(all(feature="hyper_server", feature="thruster_tls"))]
 pub use thruster_server::ssl_hyper_server;
 
 #[cfg(not(feature="hyper_server"))]

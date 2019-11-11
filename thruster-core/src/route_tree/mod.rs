@@ -104,7 +104,9 @@ impl<T: 'static + Context + Send> RouteTree<T> {
   }
 
   pub fn match_route(&self, route: &str) -> (HashMap<String, String>, &MiddlewareChain<T>) {
-    let results = self.root_node.match_route(route.split('/'));
+    let split = route.split('/');
+
+    let results = self.root_node.match_route(split);
 
     (results.0, results.2)
   }

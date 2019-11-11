@@ -36,6 +36,15 @@ fn _add_method_to_route(method: &Method, path: &str) -> String {
 
 #[inline]
 fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
+  let mut path = path;
+
+  if &path[0..4] == "http" {
+    // 8 represents http://a or https://
+    let root_slash_index: usize = path[8..].find("/").unwrap_or(path.len() - 8);
+
+    path = &path[8 + root_slash_index..];
+  }
+
   templatify!("__" ; method ; "__" ; path ; "")
 }
 
@@ -193,6 +202,8 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
   }
 
   pub fn resolve_from_method_and_path(&self, method: &str, path: &str) -> MatchedRoute<T> {
+
+
     let path_with_method = &_add_method_to_route_from_str(method, path);
 
     self._route_parser.match_route(path_with_method)
