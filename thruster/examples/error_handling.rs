@@ -1,4 +1,3 @@
-#![feature(proc_macro_hygiene)]
 extern crate thruster;
 
 use snafu::{ResultExt, Snafu};

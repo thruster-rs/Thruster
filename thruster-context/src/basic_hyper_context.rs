@@ -213,12 +213,12 @@ impl Context for BasicHyperContext {
     for (key, val) in self.headers {
       let key: &str = &key;
       let val: &str = &val;
-      response_builder.header(key, val);
+      response_builder = response_builder.header(key, val);
     }
 
-    response_builder.status(StatusCode::from_u16(self.status).unwrap());
-
-    response_builder.body(self.body).unwrap()
+    response_builder
+      .status(StatusCode::from_u16(self.status).unwrap())
+      .body(self.body).unwrap()
   }
 
   fn set_body(&mut self, body: Vec<u8>) {

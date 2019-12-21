@@ -5,7 +5,7 @@ use std::error::Error;
 use tokio;
 use tokio::prelude::*;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::codec::Framed;
+use tokio_util::codec::Framed;
 use tokio_tls;
 use native_tls;
 use native_tls::Identity;
@@ -54,8 +54,8 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for SSLServer<T> {
   /// Alias for start_work_stealing_optimized
   ///
   fn start(mut self, host: &str, port: u16) {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let _ = rt.block_on(async {
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
       if self.cert.is_none() {
         panic!("Cert is required to be set via SSLServer::cert() before starting the server");
       }
@@ -64,7 +64,7 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for SSLServer<T> {
 
       self.app._route_parser.optimize();
 
-      let listener = TcpListener::bind(&addr).await.unwrap();
+      let mut listener = TcpListener::bind(&addr).await.unwrap();
       let mut incoming = listener.incoming();
       let arc_app = Arc::new(self.app);
 

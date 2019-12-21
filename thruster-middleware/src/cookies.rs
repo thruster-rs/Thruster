@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
 use thruster_core::context::Context;
-#[cfg(not(feature = "thruster_async_await"))]
-use thruster_core::middleware::{MiddlewareReturnValue};
-#[cfg(feature = "thruster_async_await")]
 use thruster_core::middleware::{MiddlewareReturnValue};
 
 #[derive(Debug)]

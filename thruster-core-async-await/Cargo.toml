@@ -1,6 +1,6 @@
 [package]
 name = "thruster-core-async-await"
-version = "0.7.16"
+version = "0.7.18"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "An async await shim for the core features of the thruster web framework"
 readme = "README.md"
@@ -12,7 +12,6 @@ repository = "https://github.com/trezm/thruster"
 edition = "2018"
 
 [features]
-thruster_async_await = []
 thruster_error_handling = []
 
 [dependencies]

@@ -55,7 +55,7 @@ impl<C: 'static> Chain<C> {
     }
   }
 
-  fn chained_run(&self, i: usize, j: usize) -> Box<dyn Fn(C) -> Pin<Box<dyn Future<Output=MiddlewareResult<C>> + Send>> + Send + Sync> {
+  fn chained_run(&self, i: usize, j: usize) -> MiddlewareNext<C> {
     chained_run(i, j, self.nodes.clone())
   }
 

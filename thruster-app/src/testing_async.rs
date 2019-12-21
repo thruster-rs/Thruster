@@ -18,7 +18,7 @@ pub async fn request<T: Context<Response = Response> + Send>(app: &App<Request, 
   let body = format!("{} {} HTTP/1.1\nHost: localhost:8080\n{}\n\n{}", method, route, headers, body);
 
   let mut bytes = BytesMut::with_capacity(body.len());
-  bytes.put(&body);
+  bytes.put(body.as_bytes());
 
 
   let request = decode(&mut bytes).unwrap().unwrap();
@@ -33,7 +33,7 @@ pub async fn get<T: Context<Response = Response> + Send>(app: &App<Request, T>, 
   let body = format!("GET {} HTTP/1.1\nHost: localhost:8080\n\n", route);
 
   let mut bytes = BytesMut::with_capacity(body.len());
-  bytes.put(&body);
+  bytes.put(body.as_bytes());
 
 
   let request = decode(&mut bytes).unwrap().unwrap();
@@ -47,7 +47,7 @@ pub async fn delete<T: Context<Response = Response> + Send>(app: &App<Request, T
   let body = format!("DELETE {} HTTP/1.1\nHost: localhost:8080\n\n", route);
 
   let mut bytes = BytesMut::with_capacity(body.len());
-  bytes.put(&body);
+  bytes.put(body.as_bytes());
 
 
   let request = decode(&mut bytes).unwrap().unwrap();
@@ -62,7 +62,7 @@ pub async fn post<T: Context<Response = Response> + Send>(app: &App<Request, T>,
   let body = format!("POST {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
 
   let mut bytes = BytesMut::with_capacity(body.len());
-  bytes.put(&body);
+  bytes.put(body.as_bytes());
 
 
   let request = decode(&mut bytes).unwrap().unwrap();
@@ -77,7 +77,7 @@ pub async fn put<T: Context<Response = Response> + Send>(app: &App<Request, T>, 
   let body = format!("PUT {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
 
   let mut bytes = BytesMut::with_capacity(body.len());
-  bytes.put(&body);
+  bytes.put(body.as_bytes());
 
 
   let request = decode(&mut bytes).unwrap().unwrap();
@@ -92,7 +92,7 @@ pub async fn update<T: Context<Response = Response> + Send>(app: &App<Request, T
   let body = format!("UPDATE {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
 
   let mut bytes = BytesMut::with_capacity(body.len());
-  bytes.put(&body);
+  bytes.put(body.as_bytes());
 
 
   let request = decode(&mut bytes).unwrap().unwrap();

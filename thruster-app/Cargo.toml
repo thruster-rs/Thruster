@@ -1,6 +1,6 @@
 [package]
 name = "thruster-app"
-version = "0.7.16"
+version = "0.7.18"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The App portion of the thruster web framework"
 readme = "README.md"
@@ -16,26 +16,19 @@ debug = true
 
 [features]
 default = []
-thruster_testing = []
 hyper_server = []
-thruster_async_await = [
-  "thruster-core/thruster_async_await",
-  "thruster-context/thruster_async_await",
-  "thruster-async-await/thruster_async_await",
-  "thruster-proc"
-]
 thruster_error_handling = [
   "thruster-core/thruster_error_handling",
   "thruster-async-await/thruster_error_handling"
 ]
 
 [dependencies]
-bytes = "0.4"
+bytes = "0.5"
 futures = "0.1.23"
 futures-preview = { package = "futures-preview", version = "0.3.0-alpha.17", features = ["compat"] }
 templatify = "0.2.3"
-thruster-async-await = { version = "=0.7.16", path = "../thruster-async-await" }
-thruster-context = { version = "=0.7.16", path = "../thruster-context" }
-thruster-core = { version = "=0.7.16", path = "../thruster-core" }
-thruster-middleware = { version = "=0.7.16", path = "../thruster-middleware" }
-thruster-proc = { version = "=0.7.16", path = "../thruster-proc", optional = true }
+thruster-async-await = { version = "=0.7.18", path = "../thruster-async-await" }
+thruster-context = { version = "=0.7.18", path = "../thruster-context" }
+thruster-core = { version = "=0.7.18", path = "../thruster-core" }
+thruster-middleware = { version = "=0.7.18", path = "../thruster-middleware" }
+thruster-proc = { version = "=0.7.18", path = "../thruster-proc" }

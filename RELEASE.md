@@ -2,6 +2,13 @@
 
 Below you'll find a set of notes for migrating between versions. It should be noted that although the intent is to follow semantic versioning, until thruster is released in earnest (1.x), the second digit will be the one that dictates breaking changes.
 
+## 0.8.0
+
+What a time it has been! This release includes a lot of various bug and stability fixes along with a few big things:
+- `async_middleware` has been migrated from proc macro to normal macro, which means... **Async/Await thruster is now usable on stable!!!** 🎉🎉🎉
+- `thruster_async_await` flag has been removed as now that's the default
+- If you're not using async/await, migrate over before making the switch. We will no longer be supporting non-async thruster. Subsequent releases will focus on cleaning up the code a little more.
+
 ## 0.7.12
 
 While async_await is still not stable (a month or so to go!) this release disables testing by default since it's not yet supported in an async await format. In order to enable, add the feature `thruster_testing` to your crate configuration.

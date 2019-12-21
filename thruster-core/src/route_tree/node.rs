@@ -4,9 +4,6 @@ use std::str::Split;
 
 
 use crate::context::Context;
-#[cfg(not(feature = "thruster_async_await"))]
-use crate::middleware::{MiddlewareChain};
-#[cfg(feature = "thruster_async_await")]
 use thruster_core_async_await::{MiddlewareChain};
 
 // A route with params that may or may not be a terminal node.
@@ -358,7 +355,7 @@ impl<T: 'static + Context + Send> Node<T> {
     // Copy over wildcards
     if let Some(ref mut wildcard_node) = self.wildcard_node {
       if let Some(other_wildcard_node) = &other_node.wildcard_node {
-        wildcard_node.push_middleware_to_populated_nodes(other_wildcard_node, &accumulating_chain.clone());
+        wildcard_node.push_middleware_to_populated_nodes(other_wildcard_node, &accumulating_chain);
       }
     }
   }

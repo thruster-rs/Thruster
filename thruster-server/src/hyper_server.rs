@@ -29,12 +29,14 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for HyperServe
     }
   }
 
-  fn start(self, host: &str, port: u16) {
+  fn start(mut self, host: &str, port: u16) {
+    self.app._route_parser.optimize();
+
     let arc_app = Arc::new(self.app);
     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let _ = rt.block_on(async {
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
       let service = make_service_fn(|_| {
         let app = arc_app.clone();
 
@@ -44,6 +46,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for HyperServe
               &req.method().to_string(),
               &req.uri().to_string()
             );
+
             let req = HyperRequest::new(req);
             app.resolve(req, matched)
           }))

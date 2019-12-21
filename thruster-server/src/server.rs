@@ -1,11 +1,12 @@
 use std::net::ToSocketAddrs;
 use std::error::Error;
 use std::sync::Arc;
+use futures::SinkExt;
 
 use tokio;
 use tokio::net::{TcpStream, TcpListener};
-use tokio::prelude::*;
-use tokio::codec::Framed;
+use tokio_util::codec::Framed;
+use tokio::stream::StreamExt;
 
 use thruster_app::app::App;
 use thruster_core::context::Context;
@@ -115,13 +116,13 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for Server<T> {
   /// Alias for start_work_stealing_optimized
   ///
   fn start(mut self, host: &str, port: u16) {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let _ = rt.block_on(async {
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
       let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
       self.app._route_parser.optimize();
 
-      let listener = TcpListener::bind(&addr).await.unwrap();
+      let mut listener = TcpListener::bind(&addr).await.unwrap();
       let mut incoming = listener.incoming();
       let arc_app = Arc::new(self.app);
 
