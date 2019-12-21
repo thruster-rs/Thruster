@@ -1,41 +1,41 @@
 use std::io;
 
 use std::future::Future;
+use thruster_context::basic_context::{generate_context, BasicContext};
 use thruster_core::context::Context;
+use thruster_core::middleware::MiddlewareChain;
 use thruster_core::request::{Request, RequestWithParams};
 use thruster_core::route_parser::{MatchedRoute, RouteParser};
-use thruster_core::middleware::{MiddlewareChain};
-use thruster_context::basic_context::{generate_context, BasicContext};
 
 enum Method {
-  DELETE,
-  GET,
-  OPTIONS,
-  POST,
-  PUT,
-  UPDATE
+    DELETE,
+    GET,
+    OPTIONS,
+    POST,
+    PUT,
+    UPDATE,
 }
 
 // Warning, this method is slow and shouldn't be used for route matching, only for route adding
 fn _add_method_to_route(method: &Method, path: &str) -> String {
-  let prefix = match method {
-    Method::DELETE => "__DELETE__",
-    Method::GET => "__GET__",
-    Method::OPTIONS => "__OPTIONS__",
-    Method::POST => "__POST__",
-    Method::PUT => "__PUT__",
-    Method::UPDATE => "__UPDATE__"
-  };
+    let prefix = match method {
+        Method::DELETE => "__DELETE__",
+        Method::GET => "__GET__",
+        Method::OPTIONS => "__OPTIONS__",
+        Method::POST => "__POST__",
+        Method::PUT => "__PUT__",
+        Method::UPDATE => "__UPDATE__",
+    };
 
-  match &path[0..1] {
-    "/" => format!("{}{}", prefix, path),
-    _ => format!("{}/{}", prefix, path)
-  }
+    match &path[0..1] {
+        "/" => format!("{}{}", prefix, path),
+        _ => format!("{}/{}", prefix, path),
+    }
 }
 
 #[inline]
 fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
-  templatify!("__" ; method ; "__" ; path ; "")
+    templatify!("__" ; method ; "__" ; path ; "")
 }
 
 ///
@@ -78,139 +78,177 @@ fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
 /// application.
 ///
 pub struct App<R: RequestWithParams, T: 'static + Context + Send> {
-  pub _route_parser: RouteParser<T>,
-  ///
-  /// Generate context is common to all `App`s. It's the function that's called upon receiving a request
-  /// that translates an acutal `Request` struct to your custom Context type. It should be noted that
-  /// the context_generator should be as fast as possible as this is called with every request, including
-  /// 404s.
-  pub context_generator: fn(R) -> T
+    pub _route_parser: RouteParser<T>,
+    ///
+    /// Generate context is common to all `App`s. It's the function that's called upon receiving a request
+    /// that translates an acutal `Request` struct to your custom Context type. It should be noted that
+    /// the context_generator should be as fast as possible as this is called with every request, including
+    /// 404s.
+    pub context_generator: fn(R) -> T,
 }
 
 impl<R: RequestWithParams, T: Context + Send> App<R, T> {
-  /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
-  /// examples, likely not a good solution for real code bases. The advantage is that the
-  /// context_generator is already supplied for the developer.
-  pub fn new_basic() -> App<Request, BasicContext> {
-    App::create(generate_context)
-  }
-
-  /// Create a new app with the given context generator. The app does not begin listening until start
-  /// is called.
-  pub fn create(generate_context: fn(R) -> T) -> App<R, T> {
-    App {
-      _route_parser: RouteParser::new(),
-      context_generator: generate_context
+    /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
+    /// examples, likely not a good solution for real code bases. The advantage is that the
+    /// context_generator is already supplied for the developer.
+    pub fn new_basic() -> App<Request, BasicContext> {
+        App::create(generate_context)
     }
-  }
 
-  /// Add method-agnostic middleware for a route. This is useful for applying headers, logging, and
-  /// anything else that might not be sensitive to the HTTP method for the endpoint.
-  pub fn use_middleware(&mut self, path: &'static str, middleware: MiddlewareChain<T>) -> &mut App<R, T> {
-    self._route_parser.add_method_agnostic_middleware(path, middleware);
+    /// Create a new app with the given context generator. The app does not begin listening until start
+    /// is called.
+    pub fn create(generate_context: fn(R) -> T) -> App<R, T> {
+        App {
+            _route_parser: RouteParser::new(),
+            context_generator: generate_context,
+        }
+    }
 
-    self
-  }
+    /// Add method-agnostic middleware for a route. This is useful for applying headers, logging, and
+    /// anything else that might not be sensitive to the HTTP method for the endpoint.
+    pub fn use_middleware(
+        &mut self,
+        path: &'static str,
+        middleware: MiddlewareChain<T>,
+    ) -> &mut App<R, T> {
+        self._route_parser
+            .add_method_agnostic_middleware(path, middleware);
 
-  /// Add an app as a predetermined set of routes and middleware. Will prefix whatever string is passed
-  /// in to all of the routes. This is a main feature of Thruster, as it allows projects to be extermely
-  /// modular and composeable in nature.
-  pub fn use_sub_app(&mut self, prefix: &'static str, app: App<R, T>) -> &mut App<R, T> {
-    self._route_parser.route_tree
-      .add_route_tree(prefix, app._route_parser.route_tree);
+        self
+    }
 
-    self
-  }
+    /// Add an app as a predetermined set of routes and middleware. Will prefix whatever string is passed
+    /// in to all of the routes. This is a main feature of Thruster, as it allows projects to be extermely
+    /// modular and composeable in nature.
+    pub fn use_sub_app(&mut self, prefix: &'static str, app: App<R, T>) -> &mut App<R, T> {
+        self._route_parser
+            .route_tree
+            .add_route_tree(prefix, app._route_parser.route_tree);
 
-  /// Return the route parser for a given app
-  pub fn get_route_parser(&self) -> &RouteParser<T> {
-    &self._route_parser
-  }
+        self
+    }
 
-  /// Add a route that responds to `GET`s to a given path
-  pub fn get(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::GET, path), middlewares);
+    /// Return the route parser for a given app
+    pub fn get_route_parser(&self) -> &RouteParser<T> {
+        &self._route_parser
+    }
 
-    self
-  }
+    /// Add a route that responds to `GET`s to a given path
+    pub fn get(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
+        self._route_parser
+            .add_route(&_add_method_to_route(&Method::GET, path), middlewares);
 
-  /// Add a route that responds to `OPTION`s to a given path
-  pub fn options(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::OPTIONS, path), middlewares);
+        self
+    }
 
-    self
-  }
+    /// Add a route that responds to `OPTION`s to a given path
+    pub fn options(
+        &mut self,
+        path: &'static str,
+        middlewares: MiddlewareChain<T>,
+    ) -> &mut App<R, T> {
+        self._route_parser
+            .add_route(&_add_method_to_route(&Method::OPTIONS, path), middlewares);
 
-  /// Add a route that responds to `POST`s to a given path
-  pub fn post(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::POST, path), middlewares);
+        self
+    }
 
-    self
-  }
+    /// Add a route that responds to `POST`s to a given path
+    pub fn post(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
+        self._route_parser
+            .add_route(&_add_method_to_route(&Method::POST, path), middlewares);
 
-  /// Add a route that responds to `PUT`s to a given path
-  pub fn put(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::PUT, path), middlewares);
+        self
+    }
 
-    self
-  }
+    /// Add a route that responds to `PUT`s to a given path
+    pub fn put(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
+        self._route_parser
+            .add_route(&_add_method_to_route(&Method::PUT, path), middlewares);
 
-  /// Add a route that responds to `DELETE`s to a given path
-  pub fn delete(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::DELETE, path), middlewares);
+        self
+    }
 
-    self
-  }
+    /// Add a route that responds to `DELETE`s to a given path
+    pub fn delete(
+        &mut self,
+        path: &'static str,
+        middlewares: MiddlewareChain<T>,
+    ) -> &mut App<R, T> {
+        self._route_parser
+            .add_route(&_add_method_to_route(&Method::DELETE, path), middlewares);
 
-  /// Add a route that responds to `UPDATE`s to a given path
-  pub fn update(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::UPDATE, path), middlewares);
+        self
+    }
 
-    self
-  }
+    /// Add a route that responds to `UPDATE`s to a given path
+    pub fn update(
+        &mut self,
+        path: &'static str,
+        middlewares: MiddlewareChain<T>,
+    ) -> &mut App<R, T> {
+        self._route_parser
+            .add_route(&_add_method_to_route(&Method::UPDATE, path), middlewares);
 
-  /// Sets the middleware if no route is successfully matched.
-  pub fn set404(&mut self, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::GET, "/*"), middlewares.clone());
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::POST, "/*"), middlewares.clone());
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::PUT, "/*"), middlewares.clone());
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::UPDATE, "/*"), middlewares.clone());
-    self._route_parser.add_route(
-      &_add_method_to_route(&Method::DELETE, "/*"), middlewares);
+        self
+    }
 
-    self
-  }
+    /// Sets the middleware if no route is successfully matched.
+    pub fn set404(&mut self, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
+        self._route_parser.add_route(
+            &_add_method_to_route(&Method::GET, "/*"),
+            middlewares.clone(),
+        );
+        self._route_parser.add_route(
+            &_add_method_to_route(&Method::POST, "/*"),
+            middlewares.clone(),
+        );
+        self._route_parser.add_route(
+            &_add_method_to_route(&Method::PUT, "/*"),
+            middlewares.clone(),
+        );
+        self._route_parser.add_route(
+            &_add_method_to_route(&Method::UPDATE, "/*"),
+            middlewares.clone(),
+        );
+        self._route_parser
+            .add_route(&_add_method_to_route(&Method::DELETE, "/*"), middlewares);
 
-  pub fn resolve_from_method_and_path(&self, method: &str, path: &str) -> MatchedRoute<T> {
-    let path_with_method = &_add_method_to_route_from_str(method, path);
+        self
+    }
 
-    self._route_parser.match_route(path_with_method)
-  }
+    pub fn resolve_from_method_and_path(&self, method: &str, path: &str) -> MatchedRoute<T> {
+        let path_with_method = &_add_method_to_route_from_str(method, path);
 
-  /// Resolves a request, returning a future that is processable into a Response
-  #[cfg(feature = "hyper_server")]
-  pub fn resolve(&self, request: R, matched_route: MatchedRoute<T>) -> impl Future<Output=Result<T::Response, io::Error>> + Send {
-    self._resolve(request, matched_route)
-  }
+        self._route_parser.match_route(path_with_method)
+    }
 
-  #[cfg(not(feature = "hyper_server"))]
-  pub fn resolve(&self, request: R, matched_route: MatchedRoute<T>) -> impl Future<Output=Result<T::Response, io::Error>> + Send {
-    self._resolve(request, matched_route)
-  }
+    /// Resolves a request, returning a future that is processable into a Response
+    #[cfg(feature = "hyper_server")]
+    pub fn resolve(
+        &self,
+        request: R,
+        matched_route: MatchedRoute<T>,
+    ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {
+        self._resolve(request, matched_route)
+    }
 
-  fn _resolve(&self, request: R, matched_route: MatchedRoute<T>) -> impl Future<Output=Result<T::Response, io::Error>> + Send {
-    use thruster_async_await::resolve;
+    #[cfg(not(feature = "hyper_server"))]
+    pub fn resolve(
+        &self,
+        request: R,
+        matched_route: MatchedRoute<T>,
+    ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {
+        self._resolve(request, matched_route)
+    }
 
-    resolve(self.context_generator, request, matched_route)
-  }
+    fn _resolve(
+        &self,
+        request: R,
+        matched_route: MatchedRoute<T>,
+    ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {
+        use thruster_async_await::resolve;
+
+        resolve(self.context_generator, request, matched_route)
+    }
 }

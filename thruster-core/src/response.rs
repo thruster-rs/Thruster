@@ -5,12 +5,12 @@ use bytes::BytesMut;
 pub struct Response {
     pub response: Vec<u8>,
     pub status_message: StatusMessage,
-    pub header_raw: BytesMut
+    pub header_raw: BytesMut,
 }
 
 pub enum StatusMessage {
     Ok,
-    Custom(u32, String)
+    Custom(u32, String),
 }
 
 impl Response {
@@ -18,7 +18,7 @@ impl Response {
         Response {
             response: Vec::new(),
             status_message: StatusMessage::Ok,
-            header_raw: BytesMut::new()
+            header_raw: BytesMut::new(),
         }
     }
 
@@ -54,11 +54,18 @@ pub fn encode(msg: &Response, buf: &mut BytesMut) {
     let length = msg.response.len();
     let now = crate::date::now();
 
-    write!(FastWrite(buf), "\
-        HTTP/1.1 {}\r\n\
-        Content-Length: {}\r\n\
-        Date: {}\r\n\
-    ", msg.status_message, length, now).unwrap();
+    write!(
+        FastWrite(buf),
+        "\
+         HTTP/1.1 {}\r\n\
+         Content-Length: {}\r\n\
+         Date: {}\r\n\
+         ",
+        msg.status_message,
+        length,
+        now
+    )
+    .unwrap();
 
     buf.extend_from_slice(&msg.header_raw);
     buf.extend_from_slice(b"\r\n");
