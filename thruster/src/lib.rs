@@ -1,7 +1,4 @@
 pub use thruster_app::app::App;
-#[cfg(all(feature = "thruster_testing", not(feature = "thruster_async_await")))]
-pub use thruster_app::testing;
-#[cfg(all(feature = "thruster_testing", feature = "thruster_async_await"))]
 pub use thruster_app::testing_async as testing;
 pub use thruster_core::context::Context;
 pub use thruster_core::response::{encode, Response};
@@ -11,11 +8,6 @@ pub use thruster_core::http::Http;
 pub use thruster_core::{errors, map_try};
 #[cfg(feature = "thruster_error_handling")]
 pub use thruster_core::middleware::MiddlewareResult;
-
-#[cfg(not(feature = "thruster_async_await"))]
-pub use thruster_core::{middleware, Middleware, MiddlewareChain, MiddlewareReturnValue};
-
-#[cfg(feature = "thruster_async_await")]
 pub use thruster_core::{Chain, Middleware, MiddlewareChain, MiddlewareNext, MiddlewareReturnValue};
 
 pub use thruster_middleware;
@@ -23,7 +15,7 @@ pub use thruster_middleware;
 #[cfg(feature="hyper_server")]
 pub use thruster_server::hyper_server;
 
-#[cfg(feature="hyper_server")]
+#[cfg(all(feature="hyper_server", feature="thruster_tls"))]
 pub use thruster_server::ssl_hyper_server;
 
 #[cfg(not(feature="hyper_server"))]
@@ -35,8 +27,14 @@ pub use thruster_server::ssl_server;
 pub use thruster_server::thruster_server::ThrusterServer;
 pub use thruster_context;
 pub use thruster_context::basic_context::BasicContext;
-#[cfg(feature = "thruster_async_await")]
-pub use thruster_proc;
+
+// This backwards compats since the async_middleware user to live in
+// thruster_proc.
+pub mod thruster_proc {
+  pub use thruster_proc::*;
+  pub use thruster_core::async_middleware;
+}
+pub use thruster_core::async_middleware;
 
 #[cfg(feature="hyper_server")]
 pub use thruster_context::basic_hyper_context::{BasicHyperContext, HyperRequest};

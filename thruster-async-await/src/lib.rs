@@ -1,5 +1,3 @@
-#![feature(proc_macro_hygiene)]
-
 use std::io;
 use std::future::Future;
 
@@ -15,7 +13,7 @@ pub fn resolve<R: RequestWithParams, T: 'static + Context + Send>(context_genera
   let context = (context_generator)(request);
 
   let copy = matched_route.middleware.clone();
-  let context_future = async move {
+  async move {
     let ctx = copy.run(context).await;
 
     #[cfg(feature = "thruster_error_handling")]
@@ -27,7 +25,5 @@ pub fn resolve<R: RequestWithParams, T: 'static + Context + Send>(context_genera
     };
 
     Ok(ctx.get_response())
-  };
-
-  context_future
+  }
 }

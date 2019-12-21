@@ -66,8 +66,8 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
           );
     let _arc_acceptor = Arc::new(tls_acceptor);
 
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let _ = rt.block_on(async {
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
       let service = make_service_fn(|_| {
         let app = arc_app.clone();
 

@@ -145,11 +145,11 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         let mut r = httparse::Request::new(&mut headers);
         let mut body_len: usize = 0;
         let mut header_vec = SmallVec::new();
-        let status = r#try!(r.parse(buf).map_err(|e| {
+        let status = r.parse(buf).map_err(|e| {
             let msg = format!("failed to parse http request: {:?}", e);
             eprintln!("msg: {}", msg);
             io::Error::new(io::ErrorKind::Other, msg)
-        }));
+        })?;
         let amt = match status {
             httparse::Status::Complete(amt) => amt,
             httparse::Status::Partial => {

@@ -3,9 +3,6 @@ use std::collections::HashMap;
 use crate::context::Context;
 use crate::route_tree::RouteTree;
 
-#[cfg(not(feature = "thruster_async_await"))]
-use crate::middleware::{MiddlewareChain};
-#[cfg(feature = "thruster_async_await")]
 use thruster_core_async_await::{MiddlewareChain};
 
 pub struct MatchedRoute<'a, T: 'static + Context + Send> {
@@ -93,10 +90,6 @@ mod tests {
   use crate::request::Request;
   use crate::response::Response;
   use crate::context::Context;
-
-  #[cfg(not(feature = "thruster_async_await"))]
-  use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
-  #[cfg(feature = "thruster_async_await")]
   use crate::middleware::{MiddlewareChain, MiddlewareReturnValue};
 
   use futures::future;

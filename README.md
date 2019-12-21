@@ -16,13 +16,9 @@ Thruster also
 - Does not use `unsafe`
 - Works in stable rust
 
-## Opinionated
-
-Thruster and thruster-cli strive to give a good way to do domain driven design. It's also designed to set you on the right path, but not obfuscate certain hard parts behind libraries. Made with science 🔭, not magic 🧙‍♂️.
-
 ## Fast
 
-Thruster can be run with different server backends and represents a nicely packaged layer over them. This means that it can keep up with the latest and greatest changes from the likes of Hyper or ThrusterServer (a custom made server inspired by tokio-minihttp.)
+Thruster can be run with different server backends and represents a nicely packaged layer over them. This means that it can keep up with the latest and greatest changes from the likes of Hyper, Actix, or even ThrusterServer, a home-grown http engine.
 
 ## Intuitive
 
@@ -33,88 +29,13 @@ Based on frameworks like Koa, and Express, thruster aims to be a pleasure to dev
 To run the example `cargo run --example <example-name>`.
 For example, `cargo run --example hello_world` and open [http://localhost:4321/](http://localhost:4321/)
 
-### The most basic example
-
-```rust
-extern crate thruster;
-extern crate futures;
-
-use std::boxed::Box;
-use futures::future;
-
-use thruster::{App, BasicContext as Ctx, MiddlewareChain, MiddlewareReturnValue, Request};
-use thruster::builtins::server::Server;
-use thruster::server::ThrusterServer;
-
-fn plaintext(mut context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
-  let val = "Hello, World!".to_owned();
-  context.body = val;
-
-  Box::new(future::ok(context))
-}
-
-fn main() {
-  println!("Starting server...");
-
-  let mut app = App::<Request, Ctx>::new_basic();
-
-  app.get("/plaintext", middleware![Ctx => plaintext]);
-
-  let server = Server::new(app);
-  server.start("0.0.0.0", 4321);
-}
-```
-
-### The most basic example with Hyper
-```rust
-extern crate thruster;
-extern crate futures;
-extern crate hyper;
-
-use std::boxed::Box;
-use futures::future;
-
-use hyper::{Body, Request};
-use thruster::{App, MiddlewareChain, MiddlewareReturnValue};
-use thruster::builtins::hyper_server::Server;
-use thruster::builtins::basic_hyper_context::{generate_context, BasicHyperContext as Ctx};
-use thruster::server::ThrusterServer;
-
-fn plaintext(mut context: Ctx, next: impl Fn(Ctx) -> MiddlewareReturnValue<Ctx>  + Send) -> MiddlewareReturnValue<Ctx> {
-  let val = "Hello, World!".to_owned();
-  context.body = val;
-
-  Box::new(future::ok(context))
-}
-
-fn main() {
-  println!("Starting server...");
-
-  let mut app = App::<Request<Body>, Ctx>::create(generate_context);
-
-  app.get("/plaintext", middleware![Ctx => plaintext]);
-
-  let server = Server::new(app);
-  server.start("0.0.0.0", 4321);
-}
-```
-
-### Async/Await
-
-Thruster also supports async/await on nightly! Once you've installed nightly (`rustup install nightly`,) you can use async await support in thruster by enabling the `thruster_async_await` feature,
-
-```toml
-thruster = { version = "=0.7.12", features = ["thruster_async_await"] }
-```
+### Middleware Based
 
 The core parts that make the new async await code work is designating middleware functions with the `#[middleware_fn]` attribute (which marks the middleware so that it's compatible with the stable futures version that thruster is built on,) and then the `async_middleware!` macro in the actual routes.
-
-_Note:, for the short term, the argument style of this macro has changed from `middleware!`. It now is of the form `async_middleware!(<Context Type>, [<middleware_fn>, <middleware_fn>, ...])`._
 
 A simple example for using async await is:
 
 ```rust
-#![feature(proc_macro_hygiene)]
 extern crate thruster;
 
 use std::boxed::Box;
@@ -170,14 +91,13 @@ fn main() {
 }
 ```
 
-### Async/Await with error handling
+### Error handling
 
 To turn on experimental error handling, pass the flag `thruster_error_handling`. This will enable the useage of the `map_try!` macro from the main package. This has the same function as `try!`, but with the ability to properly map the error in a way that the compiler knows that execution ends (so there's no movement issues with `context`.)
 
 This ends up looking like:
 
 ```rust
-#![feature(proc_macro_hygiene)]
 extern crate thruster;
 
 use thruster::{MiddlewareNext, MiddlewareReturnValue, MiddlewareResult};
@@ -288,7 +208,7 @@ let mut app = App::<Request, Ctx>::new_basic();
 
 ...
 
-app.get("/plaintext", middleware![Ctx => plaintext]);
+app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
 
 ...
 
