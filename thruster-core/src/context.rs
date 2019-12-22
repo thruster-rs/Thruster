@@ -3,8 +3,8 @@
 /// incomming request, it's important to keep this struct lean and quick, as
 /// well as the `context_generator` associated with it.
 pub trait Context {
-  type Response: Send;
+    type Response: Send;
 
-  fn get_response(self) -> Self::Response;
-  fn set_body(&mut self, _: Vec<u8>);
+    fn get_response(self) -> Self::Response;
+    fn set_body(&mut self, _: Vec<u8>);
 }

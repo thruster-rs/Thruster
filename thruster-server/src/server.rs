@@ -1,18 +1,18 @@
-use std::net::ToSocketAddrs;
-use std::error::Error;
-use std::sync::Arc;
 use futures::SinkExt;
+use std::error::Error;
+use std::net::ToSocketAddrs;
+use std::sync::Arc;
 
 use tokio;
-use tokio::net::{TcpStream, TcpListener};
-use tokio_util::codec::Framed;
+use tokio::net::{TcpListener, TcpStream};
 use tokio::stream::StreamExt;
+use tokio_util::codec::Framed;
 
 use thruster_app::app::App;
 use thruster_core::context::Context;
 use thruster_core::http::Http;
-use thruster_core::response::Response;
 use thruster_core::request::Request;
+use thruster_core::response::Response;
 
 // use std::thread;
 // use num_cpus;
@@ -23,7 +23,7 @@ use thruster_core::request::Request;
 use crate::thruster_server::ThrusterServer;
 
 pub struct Server<T: 'static + Context<Response = Response> + Send> {
-  app: App<Request, T>
+    app: App<Request, T>,
 }
 
 // impl<T: 'static + Context<Response = Response> + Send> Server<T> {
@@ -102,55 +102,57 @@ pub struct Server<T: 'static + Context<Response = Response> + Send> {
 // }
 
 impl<T: Context<Response = Response> + Send> ThrusterServer for Server<T> {
-  type Context = T;
-  type Response = Response;
-  type Request = Request;
+    type Context = T;
+    type Response = Response;
+    type Request = Request;
 
-  fn new(app: App<Self::Request, T>) -> Self {
-    Server {
-      app
+    fn new(app: App<Self::Request, T>) -> Self {
+        Server { app }
     }
-  }
 
-  ///
-  /// Alias for start_work_stealing_optimized
-  ///
-  fn start(mut self, host: &str, port: u16) {
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(async {
-      let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+    ///
+    /// Alias for start_work_stealing_optimized
+    ///
+    fn start(mut self, host: &str, port: u16) {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
-      self.app._route_parser.optimize();
+            self.app._route_parser.optimize();
 
-      let mut listener = TcpListener::bind(&addr).await.unwrap();
-      let mut incoming = listener.incoming();
-      let arc_app = Arc::new(self.app);
+            let mut listener = TcpListener::bind(&addr).await.unwrap();
+            let mut incoming = listener.incoming();
+            let arc_app = Arc::new(self.app);
 
-      while let Some(Ok(stream)) = incoming.next().await {
-          let cloned = arc_app.clone();
-          tokio::spawn(async move {
-              if let Err(e) = process(cloned, stream).await {
-                  println!("failed to process connection; error = {}", e);
-              }
-          });
-      }
-    });
-
-    async fn process<T: Context<Response = Response> + Send>(app: Arc<App<Request, T>>, socket: TcpStream) -> Result<(), Box<dyn Error>> {
-      let mut framed = Framed::new(socket, Http);
-
-      while let Some(request) = framed.next().await {
-        match request {
-            Ok(request) => {
-              let matched = app.resolve_from_method_and_path(request.method(), request.path());
-              let response = app.resolve(request, matched).await?;
-              framed.send(response).await?;
+            while let Some(Ok(stream)) = incoming.next().await {
+                let cloned = arc_app.clone();
+                tokio::spawn(async move {
+                    if let Err(e) = process(cloned, stream).await {
+                        println!("failed to process connection; error = {}", e);
+                    }
+                });
             }
-            Err(e) => return Err(e.into()),
-        }
-      }
+        });
 
-      Ok(())
+        async fn process<T: Context<Response = Response> + Send>(
+            app: Arc<App<Request, T>>,
+            socket: TcpStream,
+        ) -> Result<(), Box<dyn Error>> {
+            let mut framed = Framed::new(socket, Http);
+
+            while let Some(request) = framed.next().await {
+                match request {
+                    Ok(request) => {
+                        let matched =
+                            app.resolve_from_method_and_path(request.method(), request.path());
+                        let response = app.resolve(request, matched).await?;
+                        framed.send(response).await?;
+                    }
+                    Err(e) => return Err(e.into()),
+                }
+            }
+
+            Ok(())
+        }
     }
-  }
 }

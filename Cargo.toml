@@ -1,0 +1,13 @@
+[workspace]
+
+members = [
+    "thruster",
+    "thruster-app",
+    "thruster-async-await",
+    "thruster-context",
+    "thruster-core",
+    "thruster-core-async-await",
+    "thruster-middleware",
+    "thruster-proc",
+    "thruster-server",
+]

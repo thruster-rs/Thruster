@@ -1,13 +1,12 @@
-use std::{io, str, fmt};
-use std::collections::HashMap;
-use serde;
 use bytes::BytesMut;
+use serde;
 use serde_json;
 use smallvec::SmallVec;
+use std::collections::HashMap;
+use std::{fmt, io, str};
 
-use httparse;
 use crate::httplib;
-
+use httparse;
 
 pub trait RequestWithParams {
     fn set_params(&mut self, _: HashMap<String, String>);
@@ -26,7 +25,7 @@ pub struct Request {
     version: u8,
     pub headers: SmallVec<[(Slice, Slice); 8]>,
     data: BytesMut,
-    pub params: HashMap<String, String>
+    pub params: HashMap<String, String>,
 }
 
 type Slice = (usize, usize);
@@ -36,15 +35,15 @@ impl Request {
     /// Create a new, blank, request.
     ///
     pub fn new() -> Self {
-      Request  {
-        body: (0,0),
-        method: (0,0),
-        path: (0,0),
-        version: 0,
-        headers: SmallVec::new(),
-        data: BytesMut::new(),
-        params: HashMap::new(),
-      }
+        Request {
+            body: (0, 0),
+            method: (0, 0),
+            path: (0, 0),
+            version: 0,
+            headers: SmallVec::new(),
+            data: BytesMut::new(),
+            params: HashMap::new(),
+        }
     }
 
     ///
@@ -91,8 +90,13 @@ impl Request {
 
         for slice_pair in self.headers.iter() {
             header_map.insert(
-                str::from_utf8(self.slice(&slice_pair.0)).unwrap().to_owned().to_lowercase(),
-                str::from_utf8(self.slice(&slice_pair.1)).unwrap().to_owned()
+                str::from_utf8(self.slice(&slice_pair.0))
+                    .unwrap()
+                    .to_owned()
+                    .to_lowercase(),
+                str::from_utf8(self.slice(&slice_pair.1))
+                    .unwrap()
+                    .to_owned(),
             );
         }
 
@@ -103,7 +107,8 @@ impl Request {
     /// Automatically apply a serde deserialization to the body
     ///
     pub fn body_as<'a, T>(&self, body: &'a str) -> serde_json::Result<T>
-        where T: serde::de::Deserialize<'a>
+    where
+        T: serde::de::Deserialize<'a>,
     {
         serde_json::from_str(body)
     }
@@ -136,7 +141,6 @@ impl fmt::Debug for Request {
     }
 }
 
-
 pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
     // TODO: we should grow this headers array if parsing fails and asks
     //       for more headers
@@ -152,9 +156,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         })?;
         let amt = match status {
             httparse::Status::Complete(amt) => amt,
-            httparse::Status::Partial => {
-                return Ok(None)
-            },
+            httparse::Status::Partial => return Ok(None),
         };
         let toslice = |a: &[u8]| {
             let start = a.as_ptr() as usize - buf.as_ptr() as usize;
@@ -172,12 +174,14 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
             header_vec.push((toslice(header.name.as_bytes()), toslice(header.value)));
         }
 
-        (toslice(r.method.unwrap().as_bytes()),
-         toslice(r.path.unwrap().as_bytes()),
-         r.version.unwrap(),
-         header_vec,
-         amt,
-         body_len)
+        (
+            toslice(r.method.unwrap().as_bytes()),
+            toslice(r.path.unwrap().as_bytes()),
+            r.version.unwrap(),
+            header_vec,
+            amt,
+            body_len,
+        )
     };
 
     if amt + body_len != buf.len() {
@@ -190,7 +194,8 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
             headers,
             data: buf.split_to(amt + body_len),
             body: (amt, amt + body_len),
-            params: HashMap::new()
-        }.into())
+            params: HashMap::new(),
+        }
+        .into())
     }
 }

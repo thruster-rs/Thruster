@@ -1,9 +1,9 @@
+extern crate lazy_static;
 extern crate proc_macro;
 extern crate proc_macro2;
-extern crate lazy_static;
 extern crate uuid;
 
-use crate::proc_macro::{TokenStream};
+use crate::proc_macro::TokenStream;
 use crate::proc_macro2::{Ident, Span as Span2};
 use quote::quote;
 use syn;
@@ -20,7 +20,7 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         let context_type = match &arguments[0] {
             syn::FnArg::Captured(cap) => &cap.ty,
-            _ => panic!("Expected the first argument to be a context type")
+            _ => panic!("Expected the first argument to be a context type"),
         };
 
         let gen = quote! {
