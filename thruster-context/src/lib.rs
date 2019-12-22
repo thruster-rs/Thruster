@@ -1,6 +1,3 @@
-#[cfg(feature = "hyper_server")]
-extern crate hyper;
-
 pub mod basic_context;
 
 #[cfg(feature = "hyper_server")]

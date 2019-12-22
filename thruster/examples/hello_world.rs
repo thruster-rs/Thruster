@@ -1,5 +1,3 @@
-extern crate thruster;
-
 use thruster::server::Server;
 use thruster::thruster_proc::{async_middleware, middleware_fn};
 use thruster::ThrusterServer;

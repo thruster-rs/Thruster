@@ -1,7 +1,7 @@
 #[cfg(feature = "thruster_error_handling")]
 use crate::errors::ThrusterError;
-use futures::future::Future;
 use std::boxed::Box;
+use std::future::Future;
 use std::pin::Pin;
 
 #[cfg(not(feature = "thruster_error_handling"))]

@@ -11,9 +11,6 @@ homepage = "https://thruster.pete.pm"
 repository = "https://github.com/trezm/thruster"
 edition = "2018"
 
-[profile.release]
-debug = true
-
 [features]
 default = []
 hyper_server = []
@@ -25,7 +22,6 @@ thruster_error_handling = [
 [dependencies]
 bytes = "0.5"
 futures = "0.1.23"
-futures-preview = { package = "futures-preview", version = "0.3.0-alpha.17", features = ["compat"] }
 templatify = "0.2.3"
 thruster-async-await = { version = "=0.8.0", path = "../thruster-async-await" }
 thruster-context = { version = "=0.8.0", path = "../thruster-context" }

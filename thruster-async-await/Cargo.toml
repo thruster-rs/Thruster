@@ -18,8 +18,4 @@ thruster_error_handling = [
 ]
 
 [dependencies]
-futures-legacy = { version = "0.1.23", package = "futures" }
-futures-preview = { version = "0.3.0-alpha.16", features = ["compat"] }
-futures-util = "0.2.1"
 thruster-core = { version = "=0.8.0", path = "../thruster-core" }
-tokio = { version = "=0.2.5", branch = "master" }

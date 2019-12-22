@@ -1,5 +1,3 @@
-extern crate thruster;
-
 use thruster::ssl_server::SSLServer;
 use thruster::thruster_proc::{async_middleware, middleware_fn};
 use thruster::ThrusterServer;

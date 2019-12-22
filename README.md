@@ -36,8 +36,6 @@ The core parts that make the new async await code work is designating middleware
 A simple example for using async await is:
 
 ```rust
-extern crate thruster;
-
 use std::boxed::Box;
 use std::pin::Pin;
 use std::future::Future;
@@ -98,8 +96,6 @@ To turn on experimental error handling, pass the flag `thruster_error_handling`.
 This ends up looking like:
 
 ```rust
-extern crate thruster;
-
 use thruster::{MiddlewareNext, MiddlewareReturnValue, MiddlewareResult};
 use thruster::{App, BasicContext as Ctx, Request, map_try};
 use thruster::server::Server;

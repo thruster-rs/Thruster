@@ -2,12 +2,10 @@ use std::error::Error;
 use std::net::ToSocketAddrs;
 use std::sync::Arc;
 
-use native_tls;
+use futures::sink::SinkExt;
 use native_tls::Identity;
-use tokio;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::prelude::*;
-use tokio_tls;
+use tokio::stream::StreamExt;
 use tokio_util::codec::Framed;
 
 use thruster_app::app::App;
