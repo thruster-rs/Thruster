@@ -1,5 +1,3 @@
-extern crate thruster;
-
 use hyper::Body;
 use thruster::hyper_server::HyperServer;
 use thruster::thruster_context::basic_hyper_context::{

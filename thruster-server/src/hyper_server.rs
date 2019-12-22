@@ -55,6 +55,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for HyperServe
             server.await?;
 
             Ok::<_, hyper::Error>(())
-        });
+        })
+        .expect("hyper server failed");
     }
 }

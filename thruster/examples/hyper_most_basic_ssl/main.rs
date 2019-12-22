@@ -1,5 +1,3 @@
-extern crate thruster;
-
 use thruster::ssl_hyper_server::SSLHyperServer;
 use thruster::thruster_context::basic_hyper_context::{
     generate_context, BasicHyperContext as Ctx, HyperRequest,

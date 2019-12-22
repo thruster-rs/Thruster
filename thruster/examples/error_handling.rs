@@ -1,5 +1,3 @@
-extern crate thruster;
-
 use snafu::{ResultExt, Snafu};
 
 use thruster::errors::ThrusterError;

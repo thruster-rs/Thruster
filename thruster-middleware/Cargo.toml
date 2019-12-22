@@ -22,6 +22,6 @@ futures-legacy = { version = "0.1.23", package = "futures" }
 hyper = { version = "0.13", optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-tokio = { version = "=0.2.5", branch = "master" }
-tokio-util = { version = "=0.2.0", branch = "master", features = ["full"] }
+tokio = { version = "0.2" }
+tokio-util = { version = "0.2", features = ["full"] }
 thruster-core = { version = "=0.8.0", path = "../thruster-core" }

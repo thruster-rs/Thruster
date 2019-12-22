@@ -1,6 +1,3 @@
-extern crate http as httplib;
-extern crate httparse;
-
 #[macro_use]
 extern crate templatify;
 

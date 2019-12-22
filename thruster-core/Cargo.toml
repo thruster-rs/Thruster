@@ -19,7 +19,7 @@ thruster_error_handling = [
 [dependencies]
 bytes = "0.5"
 futures = "0.1.23"
-http = "0.1.7"
+httplib = { package = "http", version = "0.1.7" }
 httparse = "1.1.2"
 regex = "1.1.6"
 serde = "1.0.24"
@@ -28,6 +28,6 @@ serde_derive = "1.0.24"
 smallvec = "0.6.2"
 templatify = "0.2.3"
 time = "0.1"
-tokio = { version = "=0.2.5", branch = "master" }
-tokio-util = { version = "=0.2.0", branch = "master", features = ["full"]  }
+tokio = { version = "0.2" }
+tokio-util = { version = "0.2", features = ["full"]  }
 thruster-core-async-await = { version = "=0.8.0", path = "../thruster-core-async-await" }

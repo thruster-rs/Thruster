@@ -1,6 +1,3 @@
-extern crate bytes;
-extern crate futures;
-
 #[macro_use]
 extern crate criterion;
 #[macro_use]
@@ -63,7 +60,7 @@ fn bench_route_match(c: &mut Criterion) {
             _next: impl Fn(BasicContext) -> MiddlewareReturnValue<BasicContext> + Send,
         ) -> MiddlewareReturnValue<BasicContext> {
             context.body("world");
-            Box::new(future::ok(context))
+            Box::pin(future::ok(context))
         };
 
         app.get("/test/hello", middleware![BasicContext => test_fn_1]);

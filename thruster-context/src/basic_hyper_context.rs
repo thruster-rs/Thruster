@@ -9,9 +9,7 @@ use thruster_core::request::RequestWithParams;
 use thruster_middleware::query_params::HasQueryParams;
 
 pub fn generate_context(request: HyperRequest) -> BasicHyperContext {
-    let ctx = BasicHyperContext::new(request);
-
-    ctx
+    BasicHyperContext::new(request)
 }
 
 pub struct HyperRequest {

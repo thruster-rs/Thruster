@@ -1,12 +1,8 @@
-extern crate lazy_static;
 extern crate proc_macro;
-extern crate proc_macro2;
-extern crate uuid;
 
-use crate::proc_macro::TokenStream;
-use crate::proc_macro2::{Ident, Span as Span2};
+use proc_macro::TokenStream;
+use proc_macro2::{Ident, Span as Span2};
 use quote::quote;
-use syn;
 
 #[proc_macro_attribute]
 pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {

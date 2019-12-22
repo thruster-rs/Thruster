@@ -1,12 +1,7 @@
 use bytes::BytesMut;
-use serde;
-use serde_json;
 use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::{fmt, io, str};
-
-use crate::httplib;
-use httparse;
 
 pub trait RequestWithParams {
     fn set_params(&mut self, _: HashMap<String, String>);

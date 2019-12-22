@@ -1,4 +1,4 @@
-use futures_util::stream::StreamExt;
+use futures::stream::StreamExt;
 use std::net::ToSocketAddrs;
 
 use hyper::server::conn::Http;
@@ -8,12 +8,10 @@ use hyper::{Body, Request, Response};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
-use native_tls;
 use native_tls::Identity;
 use thruster_app::app::App;
 use thruster_context::basic_hyper_context::HyperRequest;
 use thruster_core::context::Context;
-use tokio;
 
 use crate::thruster_server::ThrusterServer;
 
@@ -54,7 +52,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
 
         let arc_app = Arc::new(self.app);
 
-        let cert = self.cert.unwrap().clone();
+        let cert = self.cert.unwrap();
         let cert_pass = self.cert_pass;
         let cert = Identity::from_pkcs12(&cert, cert_pass).expect("Could not decrypt p12 file");
         let tls_acceptor = tokio_tls::TlsAcceptor::from(
@@ -81,7 +79,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
                 }
             });
 
-            let listener = TcpListener::bind(&addr).await.unwrap();
+            let mut listener = TcpListener::bind(&addr).await.unwrap();
             let incoming = listener.incoming();
             let server = Builder::new(
                 hyper::server::accept::from_stream(incoming.filter_map(|socket| {
@@ -108,6 +106,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
             server.await?;
 
             Ok::<_, hyper::Error>(())
-        });
+        })
+        .expect("SSL hyper server failed");
     }
 }
