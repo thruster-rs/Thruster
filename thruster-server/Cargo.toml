@@ -1,6 +1,6 @@
 [package]
 name = "thruster-server"
-version = "0.7.18"
+version = "0.8.0"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The core future wrappers aroun the thruster web framework"
 readme = "README.md"
@@ -33,7 +33,7 @@ tokio = { version = "=0.2.5", branch = "master", features = ["tcp", "rt-core", "
 tokio-tls = { version = "=0.3.0", optional = true }
 tokio-util = { version = "=0.2.0", branch = "master", features = ["full"]  }
 native-tls = { version = "0.2", optional = true }
-thruster-core = { version = "=0.7.18", path = "../thruster-core" }
-thruster-app = { version = "=0.7.18", path = "../thruster-app" }
-thruster-context = { version = "=0.7.18", path = "../thruster-context" }
+thruster-core = { version = "=0.8.0", path = "../thruster-core" }
+thruster-app = { version = "=0.8.0", path = "../thruster-app" }
+thruster-context = { version = "=0.8.0", path = "../thruster-context" }
 

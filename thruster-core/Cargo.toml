@@ -1,6 +1,6 @@
 [package]
 name = "thruster-core"
-version = "0.7.18"
+version = "0.8.0"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The core pieces of the thruster web framework"
 readme = "README.md"
@@ -30,4 +30,4 @@ templatify = "0.2.3"
 time = "0.1"
 tokio = { version = "=0.2.5", branch = "master" }
 tokio-util = { version = "=0.2.0", branch = "master", features = ["full"]  }
-thruster-core-async-await = { version = "=0.7.18", path = "../thruster-core-async-await" }
+thruster-core-async-await = { version = "=0.8.0", path = "../thruster-core-async-await" }
