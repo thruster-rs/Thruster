@@ -47,7 +47,7 @@ fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
 /// There are three main parts to creating a thruster app:
 /// 1. Use `App.create` to create a new app with a custom context generator
 /// 2. Add routes and middleware via `.get`, `.post`, etc.
-/// 3. Start the app with `App.start`
+/// 3. Build the app future with `App.build` and spawn it on the executor
 ///
 /// # Examples
 /// Subapp

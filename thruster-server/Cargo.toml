@@ -23,6 +23,7 @@ hyper_server = [
 ]
 
 [dependencies]
+async-trait = "0.1"
 bytes = "0.5"
 futures = "0.3"
 hyper = { version = "0.13", optional = true }
