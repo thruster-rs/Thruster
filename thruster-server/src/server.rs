@@ -3,7 +3,7 @@ use std::error::Error;
 use std::net::ToSocketAddrs;
 use std::sync::Arc;
 
-use tokio;
+use async_trait::async_trait;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::stream::StreamExt;
 use tokio_util::codec::Framed;
@@ -101,6 +101,7 @@ pub struct Server<T: 'static + Context<Response = Response> + Send> {
 //   }
 // }
 
+#[async_trait]
 impl<T: Context<Response = Response> + Send> ThrusterServer for Server<T> {
     type Context = T;
     type Response = Response;
@@ -110,29 +111,23 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for Server<T> {
         Server { app }
     }
 
-    ///
-    /// Alias for start_work_stealing_optimized
-    ///
-    fn start(mut self, host: &str, port: u16) {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
-            let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+    async fn build(mut self, host: &str, port: u16) {
+        let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
-            self.app._route_parser.optimize();
+        self.app._route_parser.optimize();
 
-            let mut listener = TcpListener::bind(&addr).await.unwrap();
-            let mut incoming = listener.incoming();
-            let arc_app = Arc::new(self.app);
+        let mut listener = TcpListener::bind(&addr).await.unwrap();
+        let mut incoming = listener.incoming();
+        let arc_app = Arc::new(self.app);
 
-            while let Some(Ok(stream)) = incoming.next().await {
-                let cloned = arc_app.clone();
-                tokio::spawn(async move {
-                    if let Err(e) = process(cloned, stream).await {
-                        println!("failed to process connection; error = {}", e);
-                    }
-                });
-            }
-        });
+        while let Some(Ok(stream)) = incoming.next().await {
+            let cloned = arc_app.clone();
+            tokio::spawn(async move {
+                if let Err(e) = process(cloned, stream).await {
+                    println!("failed to process connection; error = {}", e);
+                }
+            });
+        }
 
         async fn process<T: Context<Response = Response> + Send>(
             app: Arc<App<Request, T>>,

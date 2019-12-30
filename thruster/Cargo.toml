@@ -35,6 +35,10 @@ required-features = ["hyper_server"]
 name = "hyper_most_basic_ssl"
 required-features = ["hyper_server"]
 
+[[example]]
+name = "multiple_services"
+required-features = []
+
 [[bench]]
 name = "app"
 harness = false

@@ -1,6 +1,7 @@
 use futures::stream::StreamExt;
 use std::net::ToSocketAddrs;
 
+use async_trait::async_trait;
 use hyper::server::conn::Http;
 use hyper::server::Builder;
 use hyper::service::{make_service_fn, service_fn};
@@ -34,6 +35,7 @@ impl<T: 'static + Context + Send> SSLHyperServer<T> {
     }
 }
 
+#[async_trait]
 impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperServer<T> {
     type Context = T;
     type Response = Response<Body>;
@@ -47,7 +49,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
         }
     }
 
-    fn start(self, host: &str, port: u16) {
+    async fn build(self, host: &str, port: u16) {
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
         let arc_app = Arc::new(self.app);
