@@ -1,6 +1,6 @@
 [package]
 name = "thruster-app"
-version = "0.8.0"
+version = "0.9.0-alpha.1"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The App portion of the thruster web framework"
 readme = "README.md"
@@ -23,8 +23,8 @@ thruster_error_handling = [
 bytes = "0.5"
 futures = "0.1.23"
 templatify = "0.2.3"
-thruster-async-await = { version = "=0.8.0", path = "../thruster-async-await" }
-thruster-context = { version = "=0.8.0", path = "../thruster-context" }
-thruster-core = { version = "=0.8.0", path = "../thruster-core" }
-thruster-middleware = { version = "=0.8.0", path = "../thruster-middleware" }
-thruster-proc = { version = "=0.8.0", path = "../thruster-proc" }
+thruster-async-await = { version = "=0.9.0-alpha.1", path = "../thruster-async-await" }
+thruster-context = { version = "=0.9.0-alpha.1", path = "../thruster-context" }
+thruster-core = { version = "=0.9.0-alpha.1", path = "../thruster-core" }
+thruster-middleware = { version = "=0.9.0-alpha.1", path = "../thruster-middleware" }
+thruster-proc = { version = "=0.9.0-alpha.1", path = "../thruster-proc" }
