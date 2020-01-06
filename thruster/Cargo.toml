@@ -85,4 +85,4 @@ smallvec = "0.6.2"
 snafu = "0.4.1"
 tokio = { version = "0.2", features = ["tcp"] }
 prost = "0.5.0"
-http = "0.1"
+http = "0.2"

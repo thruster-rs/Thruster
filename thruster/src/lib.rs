@@ -9,7 +9,7 @@ pub use thruster_core::response::{encode, Response};
 #[cfg(feature = "thruster_error_handling")]
 pub use thruster_core::{errors, map_try};
 pub use thruster_core::{
-    Chain, Middleware, MiddlewareChain, MiddlewareNext, MiddlewareReturnValue,
+    Chain, Middleware, MiddlewareChain, MiddlewareFn, MiddlewareNext, MiddlewareReturnValue,
 };
 
 pub use thruster_middleware;
