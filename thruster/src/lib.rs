@@ -9,7 +9,7 @@ pub use thruster_core::response::{encode, Response};
 #[cfg(feature = "thruster_error_handling")]
 pub use thruster_core::{errors, map_try};
 pub use thruster_core::{
-    Chain, Middleware, MiddlewareChain, MiddlewareNext, MiddlewareReturnValue,
+    Chain, Middleware, MiddlewareChain, MiddlewareFn, MiddlewareNext, MiddlewareReturnValue,
 };
 
 pub use thruster_middleware;
@@ -23,8 +23,8 @@ pub use thruster_server::ssl_hyper_server;
 #[cfg(not(feature = "hyper_server"))]
 pub use thruster_server::server;
 
-#[cfg(feature = "thruster_tls")]
-pub use thruster_server::ssl_server;
+// #[cfg(feature = "thruster_tls")]
+// pub use thruster_server::ssl_server;
 
 pub use thruster_context;
 pub use thruster_context::basic_context::BasicContext;

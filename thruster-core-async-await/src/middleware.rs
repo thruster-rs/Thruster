@@ -12,7 +12,7 @@ pub type MiddlewareReturnValue<T> = Pin<Box<dyn Future<Output = T> + Send>>;
 pub type MiddlewareNext<C> =
     Box<dyn Fn(C) -> Pin<Box<dyn Future<Output = C> + Send>> + Send + Sync>;
 #[cfg(not(feature = "thruster_error_handling"))]
-type MiddlewareFn<C> = fn(C, MiddlewareNext<C>) -> Pin<Box<dyn Future<Output = C> + Send>>;
+pub type MiddlewareFn<C> = fn(C, MiddlewareNext<C>) -> Pin<Box<dyn Future<Output = C> + Send>>;
 
 #[cfg(feature = "thruster_error_handling")]
 pub type MiddlewareResult<C> = Result<C, ThrusterError<C>>;
@@ -22,7 +22,7 @@ pub type MiddlewareReturnValue<C> = Pin<Box<dyn Future<Output = MiddlewareResult
 pub type MiddlewareNext<C> =
     Box<dyn Fn(C) -> Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>> + Send + Sync>;
 #[cfg(feature = "thruster_error_handling")]
-type MiddlewareFn<C> =
+pub type MiddlewareFn<C> =
     fn(C, MiddlewareNext<C>) -> Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>>;
 
 pub struct Middleware<C: 'static> {
