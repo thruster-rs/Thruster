@@ -64,8 +64,7 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
         );
         let _arc_acceptor = Arc::new(tls_acceptor);
 
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
-        rt.block_on(async {
+        async {
             let service = make_service_fn(|_| {
                 let app = arc_app.clone();
 
@@ -108,7 +107,8 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
             server.await?;
 
             Ok::<_, hyper::Error>(())
-        })
-        .expect("SSL hyper server failed");
+        }
+        .await
+        .expect("hyper server failed");
     }
 }
