@@ -1,6 +1,6 @@
 [package]
 name = "thruster-async-await"
-version = "0.9.0-alpha.1"
+version = "0.9.0-alpha.2"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "An async await shim for the thruster web framework"
 readme = "README.md"
@@ -18,4 +18,4 @@ thruster_error_handling = [
 ]
 
 [dependencies]
-thruster-core = { version = "=0.9.0-alpha.1", path = "../thruster-core" }
+thruster-core = { version = "=0.9.0-alpha.2", path = "../thruster-core" }
