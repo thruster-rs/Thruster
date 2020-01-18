@@ -66,7 +66,7 @@ fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
 /// app1.get("/:id", middleware![BasicContext => test_fn_1]);
 ///
 /// let mut app2 = App::<Request, BasicContext>::new();
-/// app2.use_sub_app("/test", &app1);
+/// app2.use_sub_app("/test", app1);
 /// ```
 ///
 /// In the above example, the route `/test/some-id` will return `some-id` in the body of the response.
