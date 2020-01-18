@@ -29,7 +29,7 @@ futures = "0.3"
 hyper = { version = "0.13", optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
-tokio = { version = "0.2", features = ["tcp", "rt-core", "stream"] }
+tokio = { version = "0.2", features = ["tcp", "rt-core", "stream", "time"] }
 tokio-tls = { version = "0.3", optional = true }
 tokio-util = { version = "0.2", features = ["full"]  }
 native-tls = { version = "0.2", optional = true }

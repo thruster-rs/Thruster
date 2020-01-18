@@ -31,7 +31,7 @@ impl<T: 'static + Context + Send> SSLHyperServer<T> {
     }
 
     pub fn cert_pass(&mut self, cert_pass: &'static str) {
-        self.cert_pass = cert_pass;
+        self.cert_pass    = cert_pass;
     }
 }
 
@@ -62,42 +62,47 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
                 .build()
                 .expect("Could not create TLS acceptor."),
         );
-        let _arc_acceptor = Arc::new(tls_acceptor);
+        let arc_acceptor = Arc::new(tls_acceptor);
+
+        let service = make_service_fn(|_| {
+            let app = arc_app.clone();
+
+            async {
+                Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
+                    let matched = app.resolve_from_method_and_path(
+                        &req.method().to_string(),
+                        &req.uri().to_string(),
+                    );
+                    let req = HyperRequest::new(req);
+                    app.resolve(req, matched)
+                }))
+            }
+        });
+
+        let mut listener = TcpListener::bind(&addr).await.unwrap();
+        let incoming = listener.incoming();
 
         async {
-            let service = make_service_fn(|_| {
-                let app = arc_app.clone();
-
-                async {
-                    Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
-                        let matched = app.resolve_from_method_and_path(
-                            &req.method().to_string(),
-                            &req.uri().to_string(),
-                        );
-                        let req = HyperRequest::new(req);
-                        app.resolve(req, matched)
-                    }))
-                }
-            });
-
-            let mut listener = TcpListener::bind(&addr).await.unwrap();
-            let incoming = listener.incoming();
             let server = Builder::new(
-                hyper::server::accept::from_stream(incoming.filter_map(|socket| {
-                    async {
-                        match socket {
-                            Ok(stream) => match _arc_acceptor.clone().accept(stream).await {
-                                Ok(val) => Some(Ok::<_, hyper::Error>(val)),
+                hyper::server::accept::from_stream(incoming.filter_map(|socket| async {
+                    match socket {
+                        Ok(stream) => {
+                            let timed_out =  arc_acceptor.clone().accept(stream).await;
+
+                            match timed_out {
+                                Ok(val) => {
+                                    Some(Ok::<_, std::io::Error>(val))
+                                },
                                 Err(e) => {
                                     println!("TLS error: {}", e);
                                     None
                                 }
-                            },
-                            Err(e) => {
-                                println!("TCP socket error: {}", e);
-                                None
                             }
-                        }
+                        },
+                        Err(e) => {
+                            println!("TCP socket error: {}", e);
+                            None
+                        },
                     }
                 })),
                 Http::new(),
