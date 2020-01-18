@@ -90,12 +90,13 @@ pub struct BasicHyperContext {
 
 impl BasicHyperContext {
   pub fn new(req: HyperRequest) -> BasicHyperContext {
+    let params = req.params.clone();
     let mut ctx = BasicHyperContext {
       body: Body::empty(),
       query_params: HashMap::new(),
       headers: HashMap::new(),
       status: 200,
-      params: HashMap::new(),
+      params: params,
       hyper_request: Some(req),
       request_body: None,
       request_parts: None,

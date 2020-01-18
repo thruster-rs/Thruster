@@ -18,13 +18,13 @@ cd $DIR/thruster-core;
 cargo publish --allow-dirty;
 sleep 60;
 
-# Context
-cd $DIR/thruster-context;
+# Middleware
+cd $DIR/thruster-middleware;
 cargo publish --allow-dirty;
 sleep 60;
 
-# Middleware
-cd $DIR/thruster-middleware;
+# Context
+cd $DIR/thruster-context;
 cargo publish --allow-dirty;
 sleep 60;
 

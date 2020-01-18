@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "0.9.0-alpha.1"
+version = "0.9.0-alpha.2"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
@@ -64,12 +64,12 @@ thruster_error_handling = [
 
 [dependencies]
 hyper = { version = "0.13.1", optional = true }
-thruster-app = { version = "=0.9.0-alpha.1", path = "../thruster-app" }
-thruster-context = { version = "=0.9.0-alpha.1", path = "../thruster-context" }
-thruster-core = { version = "=0.9.0-alpha.1", path = "../thruster-core" }
-thruster-middleware = { version = "=0.9.0-alpha.1", path = "../thruster-middleware" }
-thruster-proc = { version = "=0.9.0-alpha.1", path = "../thruster-proc" }
-thruster-server = { version = "=0.9.0-alpha.1", path = "../thruster-server" }
+thruster-app = { version = "=0.9.0-alpha.2", path = "../thruster-app" }
+thruster-context = { version = "=0.9.0-alpha.2", path = "../thruster-context" }
+thruster-core = { version = "=0.9.0-alpha.2", path = "../thruster-core" }
+thruster-middleware = { version = "=0.9.0-alpha.2", path = "../thruster-middleware" }
+thruster-proc = { version = "=0.9.0-alpha.2", path = "../thruster-proc" }
+thruster-server = { version = "=0.9.0-alpha.2", path = "../thruster-server" }
 
 [dev-dependencies]
 bytes = "0.5"
