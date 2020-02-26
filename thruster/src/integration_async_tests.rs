@@ -853,3 +853,39 @@ fn it_should_handle_multiple_subapps_with_wildcards() {
         assert!(response.body == "1");
     });
 }
+
+
+#[test]
+fn it_should_prefer_specificity_to_ambiguity() {
+    let mut app1 = App::<Request, BasicContext>::new_basic();
+
+    #[middleware_fn]
+    async fn test_fn_1(
+        mut context: BasicContext,
+        _next: MiddlewareNext<BasicContext>,
+    ) -> BasicContext {
+        context.body("1");
+        context
+    };
+
+    #[middleware_fn]
+    async fn test_fn_2(
+        mut context: BasicContext,
+        _next: MiddlewareNext<BasicContext>,
+    ) -> BasicContext {
+        context.body("2");
+        context
+    };
+
+    app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
+    app1.get("/order", async_middleware!(BasicContext, [test_fn_2]));
+
+    let mut app2 = App::<Request, BasicContext>::new_basic();
+    app2.use_sub_app("/b", app1);
+
+    let _ = Runtime::new().unwrap().block_on(async {
+        let response = testing::get(&app2, "/b/order").await;
+
+        assert!(response.body == "2");
+    });
+}

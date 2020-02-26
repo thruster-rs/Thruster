@@ -141,19 +141,19 @@ impl<T: 'static + Context + Send> Node<T> {
                 if let Some(wildcard_node) = &subtree.wildcard_node {
                     if wildcard_node.param_key.is_some() {
                         if let Some(ref mut existing_wildcard) = self.wildcard_node {
-                            for (key, child) in subtree.children.drain() {
-                                existing_wildcard.children.insert(key, child);
+                            for (key, child) in &wildcard_node.children {
+                                existing_wildcard.children.insert(key.to_string(), child.clone());
                             }
 
                             existing_wildcard.param_key = wildcard_node.param_key.clone();
                             existing_wildcard.is_terminal_node = existing_wildcard.is_terminal_node
                                 || wildcard_node.is_terminal_node;
                         }
-                    } else {
-                        for (key, child) in subtree.children.drain() {
-                            self.children.insert(key, child);
-                        }
                     }
+                }
+
+                for (key, child) in subtree.children.drain() {
+                    self.children.insert(key, child);
                 }
 
                 self.wildcard_node = subtree.wildcard_node;
