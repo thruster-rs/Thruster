@@ -5,7 +5,6 @@ use thruster_core::middleware::MiddlewareReturnValue;
 
 pub trait HasQueryParams {
     fn set_query_params(&mut self, query_params: HashMap<String, String>);
-    fn route(&self) -> &str;
 }
 
 pub fn query_params<T: 'static + Context + HasQueryParams + Send>(

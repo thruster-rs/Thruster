@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::str;
+use bytes::Bytes;
 use hyper::{Body, Error, Response, Request, StatusCode};
 use http::request::Parts;
 use std::convert::TryInto;
@@ -167,20 +168,6 @@ impl BasicHyperContext {
   }
 
   ///
-  /// Set a header on the response
-  ///
-  pub fn set(&mut self, key: &str, value: &str) {
-    self.headers.insert(key.to_owned(), value.to_owned());
-  }
-
-  ///
-  /// Remove a header on the response
-  ///
-  pub fn remove(&mut self, key: &str) {
-    self.headers.remove(key);
-  }
-
-  ///
   /// Set the response status code
   ///
   pub fn status(&mut self, code: u32) {
@@ -277,11 +264,9 @@ impl Context for BasicHyperContext {
   fn set_body(&mut self, body: Vec<u8>) {
     self.body = Body::from(body);
   }
-}
 
-impl HasQueryParams for BasicHyperContext {
-  fn set_query_params(&mut self, query_params: HashMap<String, String>) {
-    self.query_params = query_params;
+  fn set_body_bytes(&mut self, bytes: Bytes) {
+    self.body = Body::from(bytes);
   }
 
   fn route(&self) -> &str {
@@ -289,5 +274,19 @@ impl HasQueryParams for BasicHyperContext {
       Some(val) => val.as_str(),
       None => self.parts().uri.path()
     }
+  }
+
+  fn set(&mut self, key: &str, value: &str) {
+    self.headers.insert(key.to_owned(), value.to_owned());
+  }
+
+  fn remove(&mut self, key: &str) {
+    self.headers.remove(key);
+  }
+}
+
+impl HasQueryParams for BasicHyperContext {
+  fn set_query_params(&mut self, query_params: HashMap<String, String>) {
+    self.query_params = query_params;
   }
 }

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::str;
+use bytes::Bytes;
 
 use thruster_core::context::Context;
 use thruster_core::request::Request;
@@ -56,20 +57,6 @@ impl BasicContext {
         str::from_utf8(&self.response.response)
             .unwrap_or("")
             .to_owned()
-    }
-
-    ///
-    /// Set a header on the response
-    ///
-    pub fn set(&mut self, key: &str, value: &str) {
-        self.response.header(key, value);
-    }
-
-    ///
-    /// Remove a header on the response
-    ///
-    pub fn remove(&mut self, key: &str) {
-        self.headers.remove(key);
     }
 
     ///
@@ -163,15 +150,29 @@ impl Context for BasicContext {
     fn set_body(&mut self, body: Vec<u8>) {
         self.response.body_bytes_from_vec(body);
     }
+
+
+    fn set_body_bytes(&mut self, body_bytes: Bytes) {
+        self.response
+            .body_bytes(&body_bytes);
+    }
+
+    fn route(&self) -> &str {
+        self.request.path()
+    }
+
+    fn set(&mut self, key: &str, value: &str) {
+        self.headers.insert(key.to_owned(), value.to_owned());
+    }
+
+    fn remove(&mut self, key: &str) {
+        self.headers.remove(key);
+    }
 }
 
 impl HasQueryParams for BasicContext {
     fn set_query_params(&mut self, query_params: HashMap<String, String>) {
         self.query_params = query_params;
-    }
-
-    fn route(&self) -> &str {
-        self.request.path()
     }
 }
 
