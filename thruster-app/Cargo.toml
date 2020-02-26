@@ -14,10 +14,6 @@ edition = "2018"
 [features]
 default = []
 hyper_server = []
-thruster_error_handling = [
-  "thruster-core/thruster_error_handling",
-  "thruster-async-await/thruster_error_handling"
-]
 
 [dependencies]
 bytes = "0.5"

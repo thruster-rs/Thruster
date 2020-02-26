@@ -9,6 +9,7 @@ use std::iter::FromIterator;
 use thruster_core::context::Context;
 use thruster_proc::middleware_fn;
 use thruster_core::{MiddlewareNext, MiddlewareReturnValue, MiddlewareResult, map_try};
+use thruster_core::errors::{ErrorSet, ThrusterError as Error};
 
 lazy_static! {
   static ref CACHE: CHashMap<String, Vec<u8>> = {
@@ -17,8 +18,7 @@ lazy_static! {
 }
 
 ///
-/// Middleware to set send a static file. Requires
-/// `thruster_error_handling` to be turned on.
+/// Middleware to set send a static file.
 ///
 /// The `file` middleware takes the currently requested route
 /// and checks the local filesystem for that file. If found,

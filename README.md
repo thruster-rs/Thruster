@@ -93,7 +93,7 @@ fn main() {
 
 ### Error handling
 
-To turn on experimental error handling, pass the flag `thruster_error_handling`. This will enable the useage of the `map_try!` macro from the main package. This has the same function as `try!`, but with the ability to properly map the error in a way that the compiler knows that execution ends (so there's no movement issues with `context`.)
+It's recommended to use the `map_try!` macro from the main package. This has the same function as `try!`, but with the ability to properly map the error in a way that the compiler knows that execution ends (so there's no movement issues with `context`.)
 
 This ends up looking like:
 

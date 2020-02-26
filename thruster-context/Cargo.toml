@@ -16,9 +16,6 @@ default = []
 hyper_server = [
   "hyper",
 ]
-thruster_error_handling = [
-  "thruster-core/thruster_error_handling"
-]
 
 [dependencies]
 bytes = "0.5"

@@ -2,7 +2,6 @@ use std::future::Future;
 use std::io;
 
 use thruster_core::context::Context;
-#[cfg(feature = "thruster_error_handling")]
 use thruster_core::errors::Error;
 use thruster_core::request::RequestWithParams;
 use thruster_core::route_parser::MatchedRoute;
@@ -20,7 +19,6 @@ pub fn resolve<R: RequestWithParams, T: 'static + Context + Send>(
     async move {
         let ctx = copy.run(context).await;
 
-        #[cfg(feature = "thruster_error_handling")]
         let ctx = match ctx {
             Ok(val) => val,
             Err(e) => e.build_context(),

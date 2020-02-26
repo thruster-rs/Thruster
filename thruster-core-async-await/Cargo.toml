@@ -12,7 +12,6 @@ repository = "https://github.com/trezm/thruster"
 edition = "2018"
 
 [features]
-thruster_error_handling = []
 
 [dependencies]
 futures-legacy = { version = "0.1.23", package = "futures" }

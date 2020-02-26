@@ -13,9 +13,6 @@ edition = "2018"
 
 [features]
 default = []
-thruster_error_handling = [
-  "thruster-core/thruster_error_handling"
-]
 
 [dependencies]
 thruster-core = { version = "=0.9.0-alpha.2", path = "../thruster-core" }

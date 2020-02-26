@@ -16,13 +16,20 @@ default = []
 hyper_server = [
   "hyper",
 ]
+file = [
+  "chashmap"
+]
+profiling = [
+  "log"
+]
 
 [dependencies]
 bytes = "0.5.4"
-chashmap = "2.2"
+chashmap = { version = "2.2", optional = true }
 futures-legacy = { version = "0.1.23", package = "futures" }
 hyper = { version = "0.13", optional = true }
 lazy_static = "1.4.0"
+log = { version = "0.4.8", optional = true }
 net2 = "0.2"
 num_cpus = "1.0"
 tokio = { version = "0.2" }

@@ -2,11 +2,9 @@ pub use thruster_app::app::App;
 pub use thruster_app::testing_async as testing;
 pub use thruster_core::context::Context;
 pub use thruster_core::http::Http;
-#[cfg(feature = "thruster_error_handling")]
 pub use thruster_core::middleware::MiddlewareResult;
 pub use thruster_core::request::{decode, Request, RequestWithParams};
 pub use thruster_core::response::{encode, Response};
-#[cfg(feature = "thruster_error_handling")]
 pub use thruster_core::{errors, map_try};
 pub use thruster_core::{
     Chain, Middleware, MiddlewareChain, MiddlewareFn, MiddlewareNext, MiddlewareReturnValue,

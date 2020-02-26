@@ -1,27 +1,12 @@
-#[cfg(feature = "thruster_error_handling")]
 use crate::errors::ThrusterError;
 use std::boxed::Box;
 use std::future::Future;
 use std::pin::Pin;
 
-#[cfg(not(feature = "thruster_error_handling"))]
-pub type MiddlewareResult<C> = C;
-#[cfg(not(feature = "thruster_error_handling"))]
-pub type MiddlewareReturnValue<T> = Pin<Box<dyn Future<Output = T> + Send>>;
-#[cfg(not(feature = "thruster_error_handling"))]
-pub type MiddlewareNext<C> =
-    Box<dyn Fn(C) -> Pin<Box<dyn Future<Output = C> + Send>> + Send + Sync>;
-#[cfg(not(feature = "thruster_error_handling"))]
-pub type MiddlewareFn<C> = fn(C, MiddlewareNext<C>) -> Pin<Box<dyn Future<Output = C> + Send>>;
-
-#[cfg(feature = "thruster_error_handling")]
 pub type MiddlewareResult<C> = Result<C, ThrusterError<C>>;
-#[cfg(feature = "thruster_error_handling")]
 pub type MiddlewareReturnValue<C> = Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>>;
-#[cfg(feature = "thruster_error_handling")]
 pub type MiddlewareNext<C> =
     Box<dyn Fn(C) -> Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>> + Send + Sync>;
-#[cfg(feature = "thruster_error_handling")]
 pub type MiddlewareFn<C> =
     fn(C, MiddlewareNext<C>) -> Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>>;
 
@@ -39,6 +24,7 @@ fn chained_run<C: 'static>(
             Some(m) => m(ctx, chained_run(i, j + 1, nodes.clone())),
             None => chained_run(i + 1, 0, nodes.clone())(ctx),
         },
+        // TODO(trezm): Make this somehow default to a 404
         None => panic!("Chain ran into end of cycle"),
     })
 }
@@ -110,15 +96,6 @@ impl<T: 'static> MiddlewareChain<T> {
         self.assign(chain);
     }
 
-    ///
-    /// Run the middleware chain once
-    ///
-    #[cfg(not(feature = "thruster_error_handling"))]
-    pub fn run(&self, context: T) -> Pin<Box<dyn Future<Output = T> + Send>> {
-        self.chain.run(context)
-    }
-
-    #[cfg(feature = "thruster_error_handling")]
     pub fn run(&self, context: T) -> Pin<Box<dyn Future<Output = MiddlewareResult<T>> + Send>> {
         self.chain.run(context)
     }

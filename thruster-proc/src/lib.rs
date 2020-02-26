@@ -13,6 +13,7 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         let visibility = function_item.vis.clone();
         let arguments = function_item.decl.inputs.clone();
+        let generics = function_item.decl.generics.clone();
 
         let context_type = match &arguments[0] {
             syn::FnArg::Captured(cap) => &cap.ty,
@@ -22,7 +23,7 @@ pub fn middleware_fn(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let gen = quote! {
             #function_item
 
-            #visibility fn #name(ctx: #context_type, next: MiddlewareNext<#context_type>) -> MiddlewareReturnValue<#context_type> {
+            #visibility fn #name#generics(ctx: #context_type, next: MiddlewareNext<#context_type>) -> MiddlewareReturnValue<#context_type> {
                 Box::pin(#new_name(ctx, next))
             }
         };

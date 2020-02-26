@@ -12,9 +12,6 @@ repository = "https://github.com/trezm/thruster"
 edition = "2018"
 
 [features]
-thruster_error_handling = [
-  "thruster-core-async-await/thruster_error_handling"
-]
 
 [dependencies]
 bytes = "0.5"

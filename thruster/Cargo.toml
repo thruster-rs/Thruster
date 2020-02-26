@@ -25,7 +25,7 @@ required-features = ["thruster_tls"]
 
 [[example]]
 name = "error_handling"
-required-features = ["thruster_error_handling"]
+required-features = []
 
 [[example]]
 name = "hyper_most_basic"
@@ -56,10 +56,6 @@ hyper_server = [
 ]
 thruster_tls = [
   "thruster-server/thruster_tls"
-]
-thruster_error_handling = [
-  "thruster-core/thruster_error_handling",
-  "thruster-app/thruster_error_handling"
 ]
 
 [dependencies]
