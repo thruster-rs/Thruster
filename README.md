@@ -40,14 +40,11 @@ use std::future::Future;
 use std::pin::Pin;
 use std::time::Instant;
 
-use thruster::server::Server;
-use thruster::proc::{async_middleware, middleware_fn};
-use thruster::ThrusterServer;
 use thruster::{App, BasicContext as Ctx, Request};
-use thruster::{Chain, Middleware, MiddlewareChain, MiddlewareNext};
+use thruster::{async_middleware, middleware_fn, MiddlewareNext, MiddlewareResult, Server, ThrusterServer};
 
 #[middleware_fn]
-async fn profile(context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
+async fn profile(context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     let start_time = Instant::now();
 
     context = next(context).await;
@@ -60,21 +57,21 @@ async fn profile(context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
         context.request.path()
     );
 
-    context
+    Ok(context)
 }
 
 #[middleware_fn]
-async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     let val = "Hello, World!";
     context.body(val);
-    context
+    Ok(context)
 }
 
 #[middleware_fn]
-async fn four_oh_four(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn four_oh_four(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     context.status(404);
     context.body("Whoops! That route doesn't exist!");
-    context
+    Ok(context)
 }
 
 #[tokio::main]
@@ -99,11 +96,9 @@ This ends up looking like:
 
 ```rust
 use thruster::errors::ThrusterError as Error;
-use thruster::server::Server;
 use thruster::proc::{async_middleware, middleware_fn};
-use thruster::ThrusterServer;
 use thruster::{map_try, App, BasicContext as Ctx, Request};
-use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
+use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue, Server, ThrusterServer};
 
 #[middleware_fn]
 async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
