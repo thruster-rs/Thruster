@@ -1,10 +1,8 @@
 use snafu::{ResultExt, Snafu};
 
 use thruster::errors::ThrusterError;
-use thruster::server::Server;
-use thruster::thruster_proc::{async_middleware, middleware_fn};
-use thruster::ThrusterServer;
-use thruster::{map_try, App, BasicContext as Ctx, Request};
+use thruster::{async_middleware, middleware_fn};
+use thruster::{map_try, App, BasicContext as Ctx, Request, Server, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
 
 #[derive(Debug, Snafu)]

@@ -1,4 +1,5 @@
-pub mod server;
+mod homegrown_server;
+pub use homegrown_server::Server;
 
 #[cfg(feature = "tls")]
 pub mod ssl_server;

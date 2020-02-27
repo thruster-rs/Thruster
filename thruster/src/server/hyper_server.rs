@@ -5,10 +5,9 @@ use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
 use std::sync::Arc;
 
-use app::app::App;
-use context::basic_hyper_context::HyperRequest;
-use core::context::Context;
-
+use crate::app::App;
+use crate::context::basic_hyper_context::HyperRequest;
+use crate::core::context::Context;
 use crate::server::ThrusterServer;
 
 pub struct HyperServer<T: 'static + Context + Send> {

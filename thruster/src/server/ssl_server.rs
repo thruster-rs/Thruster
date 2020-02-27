@@ -9,11 +9,11 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::stream::StreamExt;
 use tokio_util::codec::Framed;
 
-use app::app::App;
-use core::context::Context;
-use core::http::Http;
-use core::request::Request;
-use core::response::Response;
+use crate::app::App;
+use crate::core::context::Context;
+use crate::core::http::Http;
+use crate::core::request::Request;
+use crate::core::response::Response;
 
 use crate::server::ThrusterServer;
 

@@ -1,15 +1,13 @@
 use std::time::Instant;
-use thruster::server::Server;
-use thruster::thruster_proc::{async_middleware, middleware_fn};
-use thruster::ThrusterServer;
-use thruster::{App, BasicContext as Ctx, Request};
-use thruster::{MiddlewareNext, MiddlewareReturnValue, MiddlewareResult};
+use thruster::{async_middleware, middleware_fn};
+use thruster::{App, BasicContext as Ctx, Request, Server, ThrusterServer};
+use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
 
 #[middleware_fn]
 async fn profiling(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     let start_time = Instant::now();
 
-    context = next(context).await;
+    context = next(context).await?;
 
     let elapsed_time = start_time.elapsed();
     println!(

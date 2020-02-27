@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 
-use core::context::Context;
+use crate::core::context::Context;
 
 pub fn file<T: Context>(mut context: T, file_name: &str) -> T {
     let file = File::open(file_name).unwrap();

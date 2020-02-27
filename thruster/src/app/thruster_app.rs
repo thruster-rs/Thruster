@@ -1,12 +1,12 @@
 use std::io;
 
-use std::future::Future;
 use crate::context::basic_context::{generate_context, BasicContext};
 use crate::core::context::Context;
+use crate::core::errors::Error;
 use crate::core::middleware::MiddlewareChain;
 use crate::core::request::{Request, RequestWithParams};
 use crate::core::route_parser::{MatchedRoute, RouteParser};
-use crate::core::errors::Error;
+use std::future::Future;
 
 enum Method {
     DELETE,
@@ -245,7 +245,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
 
     fn _resolve(
         &self,
-        request: R,
+        mut request: R,
         matched_route: MatchedRoute<T>,
     ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {
         request.set_params(matched_route.params);

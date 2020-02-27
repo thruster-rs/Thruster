@@ -16,6 +16,7 @@ edition = "2018"
 [dependencies]
 bytes = "0.5"
 futures = "0.1.23"
+http = "0.2"
 httplib = { package = "http", version = "0.1.7" }
 httparse = "1.1.2"
 regex = "1.1.6"

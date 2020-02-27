@@ -1,5 +1,5 @@
-use std::error::Error as StdError;
 use crate::core::context::Context;
+use std::error::Error as StdError;
 
 #[derive(Debug)]
 pub struct ThrusterError<C> {
@@ -26,7 +26,6 @@ impl<C: Context> Error<C> for ThrusterError<C> {
     }
 }
 
-
 pub trait ErrorSet<C> {
     fn parsing_error(context: C, error: &str) -> ThrusterError<C>;
     fn generic_error(context: C) -> ThrusterError<C>;
@@ -35,39 +34,39 @@ pub trait ErrorSet<C> {
 }
 
 impl<C: Context> ErrorSet<C> for ThrusterError<C> {
-fn parsing_error(context: C, error: &str) -> ThrusterError<C> {
-    ThrusterError {
-    context,
-    message: format!("Failed to parse '{}'", error),
-    status: 400,
-    cause: None
+    fn parsing_error(context: C, error: &str) -> ThrusterError<C> {
+        ThrusterError {
+            context,
+            message: format!("Failed to parse '{}'", error),
+            status: 400,
+            cause: None,
+        }
     }
-}
 
-fn generic_error(context: C) -> ThrusterError<C> {
-    ThrusterError {
-    context,
-    message: "Something didn't work!".to_string(),
-    status: 400,
-    cause: None
+    fn generic_error(context: C) -> ThrusterError<C> {
+        ThrusterError {
+            context,
+            message: "Something didn't work!".to_string(),
+            status: 400,
+            cause: None,
+        }
     }
-}
 
-fn unauthorized_error(context: C) -> ThrusterError<C> {
-    ThrusterError {
-    context,
-    message: "Unauthorized".to_string(),
-    status: 401,
-    cause: None
+    fn unauthorized_error(context: C) -> ThrusterError<C> {
+        ThrusterError {
+            context,
+            message: "Unauthorized".to_string(),
+            status: 401,
+            cause: None,
+        }
     }
-}
 
-fn not_found_error(context: C) -> ThrusterError<C> {
-    ThrusterError {
-    context,
-    message: "Not found".to_string(),
-    status: 404,
-    cause: None
+    fn not_found_error(context: C) -> ThrusterError<C> {
+        ThrusterError {
+            context,
+            message: "Not found".to_string(),
+            status: 404,
+            cause: None,
+        }
     }
-}
 }

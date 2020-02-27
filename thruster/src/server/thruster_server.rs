@@ -1,7 +1,7 @@
+use crate::app::App;
+use crate::core::context::Context;
+use crate::core::request::RequestWithParams;
 use async_trait::async_trait;
-use app::app::App;
-use core::context::Context;
-use core::request::RequestWithParams;
 
 #[async_trait]
 pub trait ThrusterServer {

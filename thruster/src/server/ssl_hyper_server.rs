@@ -6,13 +6,13 @@ use hyper::server::conn::Http;
 use hyper::server::Builder;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response};
+use native_tls::Identity;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
-use native_tls::Identity;
-use app::app::App;
-use context::basic_hyper_context::HyperRequest;
-use core::context::Context;
+use crate::app::App;
+use crate::context::basic_hyper_context::HyperRequest;
+use crate::core::context::Context;
 
 use crate::server::ThrusterServer;
 
@@ -31,7 +31,7 @@ impl<T: 'static + Context + Send> SSLHyperServer<T> {
     }
 
     pub fn cert_pass(&mut self, cert_pass: &'static str) {
-        self.cert_pass    = cert_pass;
+        self.cert_pass = cert_pass;
     }
 }
 
@@ -87,22 +87,20 @@ impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for SSLHyperSe
                 hyper::server::accept::from_stream(incoming.filter_map(|socket| async {
                     match socket {
                         Ok(stream) => {
-                            let timed_out =  arc_acceptor.clone().accept(stream).await;
+                            let timed_out = arc_acceptor.clone().accept(stream).await;
 
                             match timed_out {
-                                Ok(val) => {
-                                    Some(Ok::<_, std::io::Error>(val))
-                                },
+                                Ok(val) => Some(Ok::<_, std::io::Error>(val)),
                                 Err(e) => {
                                     println!("TLS error: {}", e);
                                     None
                                 }
                             }
-                        },
+                        }
                         Err(e) => {
                             println!("TCP socket error: {}", e);
                             None
-                        },
+                        }
                     }
                 })),
                 Http::new(),

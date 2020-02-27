@@ -1,6 +1,6 @@
+use bytes::Bytes;
 use std::collections::HashMap;
 use std::str;
-use bytes::Bytes;
 
 use crate::core::context::Context;
 use crate::core::request::Request;
@@ -151,10 +151,8 @@ impl Context for BasicContext {
         self.response.body_bytes_from_vec(body);
     }
 
-
     fn set_body_bytes(&mut self, body_bytes: Bytes) {
-        self.response
-            .body_bytes(&body_bytes);
+        self.response.body_bytes(&body_bytes);
     }
 
     fn route(&self) -> &str {

@@ -1,5 +1,5 @@
-pub mod app;
+mod thruster_app;
 
 pub mod testing_async;
 
-pub use app::*;
+pub use thruster_app::*;

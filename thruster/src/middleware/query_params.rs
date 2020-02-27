@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use core::context::Context;
-use core::middleware::MiddlewareReturnValue;
+use crate::core::context::Context;
+use crate::core::middleware::MiddlewareReturnValue;
 
 pub trait HasQueryParams {
     fn set_query_params(&mut self, query_params: HashMap<String, String>);

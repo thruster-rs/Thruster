@@ -1,8 +1,8 @@
 use thruster::ssl_server::SSLServer;
-use thruster::thruster_proc::{async_middleware, middleware_fn};
 use thruster::ThrusterServer;
+use thruster::{async_middleware, middleware_fn};
 use thruster::{App, BasicContext as Ctx, Request};
-use thruster::{MiddlewareNext, MiddlewareReturnValue, MiddlewareResult};
+use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
 
 #[middleware_fn]
 async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {

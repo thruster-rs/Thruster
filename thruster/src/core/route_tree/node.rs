@@ -142,7 +142,9 @@ impl<T: 'static + Context + Send> Node<T> {
                     if wildcard_node.param_key.is_some() {
                         if let Some(ref mut existing_wildcard) = self.wildcard_node {
                             for (key, child) in &wildcard_node.children {
-                                existing_wildcard.children.insert(key.to_string(), child.clone());
+                                existing_wildcard
+                                    .children
+                                    .insert(key.to_string(), child.clone());
                             }
 
                             existing_wildcard.param_key = wildcard_node.param_key.clone();
