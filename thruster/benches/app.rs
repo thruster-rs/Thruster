@@ -9,7 +9,7 @@ use std::boxed::Box;
 use std::collections::HashMap;
 
 use criterion::Criterion;
-use thruster::thruster_middleware::query_params::query_params;
+use thruster::middleware::query_params::query_params;
 use thruster::{decode, App, BasicContext, MiddlewareChain, MiddlewareReturnValue, Request};
 
 fn bench_no_check(c: &mut Criterion) {

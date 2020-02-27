@@ -41,7 +41,7 @@ use std::pin::Pin;
 use std::time::Instant;
 
 use thruster::server::Server;
-use thruster::thruster_proc::{async_middleware, middleware_fn};
+use thruster::proc::{async_middleware, middleware_fn};
 use thruster::ThrusterServer;
 use thruster::{App, BasicContext as Ctx, Request};
 use thruster::{Chain, Middleware, MiddlewareChain, MiddlewareNext};
@@ -100,7 +100,7 @@ This ends up looking like:
 ```rust
 use thruster::errors::ThrusterError as Error;
 use thruster::server::Server;
-use thruster::thruster_proc::{async_middleware, middleware_fn};
+use thruster::proc::{async_middleware, middleware_fn};
 use thruster::ThrusterServer;
 use thruster::{map_try, App, BasicContext as Ctx, Request};
 use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
@@ -247,7 +247,7 @@ Within the `build` function, the server implementation should:
 
 ## Using cargo generate
 
-_Note: This hasn't yet been update for the latest version of thruster_
+_Note: This hasn't yet been update for the latest version of
 
 If you have `cargo generate` installed, you can simply run the [cargo generator](https://github.com/ami44/thruster-basic-template)
 

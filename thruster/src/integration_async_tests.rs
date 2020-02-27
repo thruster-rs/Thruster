@@ -1,8 +1,8 @@
 use std::boxed::Box;
 
 use thruster::testing;
-use thruster::thruster_middleware::{cookies, query_params};
-use thruster::thruster_proc::{async_middleware, middleware_fn};
+use thruster::middleware::{cookies, query_params};
+use thruster::proc::{async_middleware, middleware_fn};
 use thruster::BasicContext;
 use thruster::{App, BasicContext as Ctx, MiddlewareNext, MiddlewareReturnValue, Request};
 use tokio::runtime::Runtime;
