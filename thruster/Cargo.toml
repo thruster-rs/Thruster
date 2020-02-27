@@ -55,6 +55,9 @@ hyper_server = [
 tls = [
   "native-tls",
 ]
+file = [
+  "chashmap",
+]
 
 [dependencies]
 async-trait = "0.1"
