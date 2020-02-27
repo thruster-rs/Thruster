@@ -8,6 +8,7 @@ Breaking changes:
 - `thruster::thruster_proc::async_middleware -> thruster::async_middleware`
 - `thruster::server::Server -> thruster::Server`
 - `thruster::thruster_context -> thruster::context`
+- You'll have to change middleware that returns a `Context` into middleware that returns a `MiddlewareResult`, so `async fn foo(context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx` becomes ``async fn foo(context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx>`. In addition, the return value is now a result, so `context` becomes `Ok(context)`.
 
 ## 0.8.0
 
