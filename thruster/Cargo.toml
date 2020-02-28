@@ -39,6 +39,10 @@ required-features = ["hyper_server"]
 name = "multiple_services"
 required-features = []
 
+[[example]]
+name = "static_file"
+required-features = ["hyper_server", "file"]
+
 [[bench]]
 name = "app"
 harness = false
