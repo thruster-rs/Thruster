@@ -7,6 +7,7 @@ use bytes::{BufMut, BytesMut};
 use futures::{future, Future};
 use std::boxed::Box;
 use std::collections::HashMap;
+use tokio;
 
 use criterion::Criterion;
 use thruster::middleware::query_params::query_params;
@@ -70,7 +71,9 @@ fn bench_route_match(c: &mut Criterion) {
             bytes.put(&b"GET /test/hello HTTP/1.1\nHost: localhost:8080\n\n"[..]);
             let request = decode(&mut bytes).unwrap().unwrap();
             let matched = app.resolve_from_method_and_path(request.method(), request.path());
-            let _response = app.resolve(request, matched).wait().unwrap();
+            tokio::block_on(|| {
+                let _response = app.resolve(request, matched).wait().unwrap();
+            });
         });
     });
 }
@@ -95,7 +98,9 @@ fn optimized_bench_route_match(c: &mut Criterion) {
             bytes.put(&b"GET /test/hello HTTP/1.1\nHost: localhost:8080\n\n"[..]);
             let request = decode(&mut bytes).unwrap().unwrap();
             let matched = app.resolve_from_method_and_path(request.method(), request.path());
-            let _response = app.resolve(request, matched).wait().unwrap();
+            tokio::block_on(|| {
+                let _response = app.resolve(request, matched).wait().unwrap();
+            });
         });
     });
 }
@@ -120,7 +125,9 @@ fn bench_route_match_with_param(c: &mut Criterion) {
             bytes.put(&b"GET /test/world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
             let request = decode(&mut bytes).unwrap().unwrap();
             let matched = app.resolve_from_method_and_path(request.method(), request.path());
-            let _response = app.resolve(request, matched).wait().unwrap();
+            tokio::block_on(|| {
+                let _response = app.resolve(request, matched).wait().unwrap();
+            });
         });
     });
 }
@@ -146,7 +153,9 @@ fn bench_route_match_with_query_param(c: &mut Criterion) {
             bytes.put(&b"GET /test?hello=world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
             let request = decode(&mut bytes).unwrap().unwrap();
             let matched = app.resolve_from_method_and_path(request.method(), request.path());
-            let _response = app.resolve(request, matched).wait().unwrap();
+            tokio::block_on(|| {
+                let _response = app.resolve(request, matched).wait().unwrap();
+            });
         });
     });
 }
