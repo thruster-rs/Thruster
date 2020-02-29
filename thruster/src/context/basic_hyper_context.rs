@@ -10,7 +10,7 @@ use thruster_proc::middleware_fn;
 use crate::core::context::Context;
 use crate::core::request::RequestWithParams;
 use crate::middleware::query_params::HasQueryParams;
-use crate::core::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
+use crate::core::{MiddlewareNext, MiddlewareResult};
 
 pub struct HyperRequest {
     pub request: Request<Body>,
@@ -82,7 +82,7 @@ impl CookieOptions {
 /// context. This request moves ownership of the parts and the body of
 /// the raw hyper request into the context itself for easier access.
 ///
-#[middleware_fn]
+#[middleware_fn(_internal)]
 pub async fn to_owned_request(
     context: BasicHyperContext,
     next: MiddlewareNext<BasicHyperContext>,

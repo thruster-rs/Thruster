@@ -18,7 +18,7 @@ use thruster::context::basic_hyper_context::{
 use thruster::hyper_server::HyperServer;
 use thruster::{async_middleware, middleware_fn};
 use thruster::{App, ThrusterServer};
-use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
+use thruster::{MiddlewareNext, MiddlewareResult};
 use thruster::middleware::file::{file, get_file};
 
 #[middleware_fn]

@@ -5,7 +5,7 @@ use thruster::ssl_hyper_server::SSLHyperServer;
 use thruster::App;
 use thruster::ThrusterServer;
 use thruster::{async_middleware, middleware_fn};
-use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
+use thruster::{MiddlewareNext, MiddlewareResult};
 
 #[middleware_fn]
 async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {

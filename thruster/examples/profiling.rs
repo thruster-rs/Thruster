@@ -1,7 +1,7 @@
 use std::time::Instant;
 use thruster::{async_middleware, middleware_fn};
 use thruster::{App, BasicContext as Ctx, Request, Server, ThrusterServer};
-use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
+use thruster::{MiddlewareNext, MiddlewareResult};
 
 #[middleware_fn]
 async fn profiling(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {

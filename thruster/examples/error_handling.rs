@@ -3,7 +3,7 @@ use snafu::{ResultExt, Snafu};
 use thruster::errors::ThrusterError;
 use thruster::{async_middleware, middleware_fn};
 use thruster::{map_try, App, BasicContext as Ctx, Request, Server, ThrusterServer};
-use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
+use thruster::{MiddlewareNext, MiddlewareResult};
 
 #[derive(Debug, Snafu)]
 enum Error {

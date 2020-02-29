@@ -5,7 +5,7 @@ use thruster::context::basic_hyper_context::{
 use thruster::hyper_server::HyperServer;
 use thruster::{async_middleware, middleware_fn};
 use thruster::{App, ThrusterServer};
-use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
+use thruster::{MiddlewareNext, MiddlewareResult};
 
 #[middleware_fn]
 async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {

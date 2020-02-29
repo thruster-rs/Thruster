@@ -11,7 +11,7 @@ use std::iter::FromIterator;
 use crate::map_try;
 use crate::core::context::Context;
 use crate::core::errors::{ErrorSet, ThrusterError as Error};
-use crate::core::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
+use crate::core::{MiddlewareNext, MiddlewareResult};
 
 lazy_static! {
     static ref CACHE: CHashMap<String, Vec<u8>> = { CHashMap::new() };
@@ -40,7 +40,7 @@ lazy_static! {
 /// CHashMap. This feature can be turned off by setting the env
 /// var RUST_CACHE=off
 ///
-#[middleware_fn]
+#[middleware_fn(_internal)]
 pub async fn file<T: 'static + Context + Send>(
     mut context: T,
     _next: MiddlewareNext<T>,
@@ -48,7 +48,6 @@ pub async fn file<T: 'static + Context + Send>(
     let root_dir: &'static str = &ROOT_DIR;
     let host_dir: &'static str = &HOST_DIR;
     let path = context.route().replace(root_dir, host_dir);
-    println!("Path: {}", path);
     let content = map_try!(get_file(&path), Err(_) => Error::not_found_error(context));
 
     context.set_body_bytes(content);
