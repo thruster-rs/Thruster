@@ -7,46 +7,7 @@ use tokio;
 
 use criterion::Criterion;
 use thruster::middleware::query_params::query_params;
-use thruster::{async_middleware, middleware_fn, decode, App, BasicContext, MiddlewareNext, MiddlewareResult, MiddlewareReturnValue, Request};
-
-fn bench_no_check(c: &mut Criterion) {
-    c.bench_function("No check", |bench| {
-        bench.iter(|| {
-            let v = vec!["a"];
-
-            let _ = v.get(0).unwrap();
-        });
-    });
-}
-fn bench_expect(c: &mut Criterion) {
-    c.bench_function("Expect", |bench| {
-        bench.iter(|| {
-            let v = vec!["a"];
-
-            let _ = v.get(0).expect("Yikes");
-        });
-    });
-}
-fn bench_assert(c: &mut Criterion) {
-    c.bench_function("Assert", |bench| {
-        bench.iter(|| {
-            let v = vec!["a"];
-
-            let a = v.get(0);
-            assert!(a.is_some());
-            let _ = a.unwrap();
-        });
-    });
-}
-fn bench_remove(c: &mut Criterion) {
-    c.bench_function("Remove", |bench| {
-        bench.iter(|| {
-            let mut v = vec!["a"];
-
-            let _a = v.remove(0);
-        });
-    });
-}
+use thruster::{async_middleware, middleware_fn, decode, App, BasicContext, MiddlewareNext, MiddlewareResult, Request};
 
 #[middleware_fn]
 async fn test_fn_1(
@@ -156,10 +117,6 @@ fn bench_route_match_with_query_param(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    // bench_no_check,
-    // bench_assert,
-    // bench_expect,
-    // bench_remove,
     optimized_bench_route_match,
     bench_route_match,
     bench_route_match_with_param,
