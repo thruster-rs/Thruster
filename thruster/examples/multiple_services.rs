@@ -1,14 +1,17 @@
-use thruster::server::Server;
-use thruster::thruster_proc::{async_middleware, middleware_fn};
-use thruster::ThrusterServer;
-use thruster::{App, BasicContext as Ctx, Request};
-use thruster::{MiddlewareNext, MiddlewareReturnValue};
+use thruster::{async_middleware, middleware_fn};
+use thruster::{App, BasicContext as Ctx, Request, Server, ThrusterServer};
+use thruster::{MiddlewareNext, MiddlewareResult};
 
 #[middleware_fn]
-async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     let val = "Hello, World!";
     context.body(val);
-    context
+    Ok(context)
+}
+
+#[middleware_fn]
+async fn noop(context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+    Ok(context)
 }
 
 #[tokio::main]
@@ -24,9 +27,10 @@ async fn main() {
 
     let mut healthcheck = App::<Request, Ctx>::new_basic();
 
-    app.get("/healthz", async_middleware(Ctx, [|ctx, _| ctx]));
+    healthcheck.get("/healthz", async_middleware!(Ctx, [noop]));
 
-    tokio::spawn(server.build("0.0.0.0", 8080));
+    let healthcheck_server = Server::new(healthcheck);
+    tokio::spawn(healthcheck_server.build("0.0.0.0", 8080));
 
     futures::future::pending().await
 }

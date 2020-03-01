@@ -1,17 +1,17 @@
 use hyper::Body;
-use thruster::hyper_server::HyperServer;
-use thruster::thruster_context::basic_hyper_context::{
+use thruster::context::basic_hyper_context::{
     generate_context, BasicHyperContext as Ctx, HyperRequest,
 };
-use thruster::thruster_proc::{async_middleware, middleware_fn};
+use thruster::hyper_server::HyperServer;
+use thruster::{async_middleware, middleware_fn};
 use thruster::{App, ThrusterServer};
-use thruster::{MiddlewareNext, MiddlewareReturnValue};
+use thruster::{MiddlewareNext, MiddlewareResult};
 
 #[middleware_fn]
-async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     let val = "Hello, World!";
     context.body = Body::from(val);
-    context
+    Ok(context)
 }
 
 fn main() {

@@ -2,6 +2,15 @@
 
 Below you'll find a set of notes for migrating between versions. It should be noted that although the intent is to follow semantic versioning, until thruster is released in earnest (1.x), the second digit will be the one that dictates breaking changes.
 
+## 0.9.0
+
+Breaking changes:
+- `thruster::thruster_proc::async_middleware -> thruster::async_middleware`
+- `thruster::server::Server -> thruster::Server`
+- `thruster::thruster_context -> thruster::context`
+- You'll have to change middleware that returns a `Context` into middleware that returns a `MiddlewareResult`, so `async fn foo(context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx` becomes ``async fn foo(context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx>`. In addition, the return value is now a result, so `context` becomes `Ok(context)`.
+- No more need for `thruster::MiddlewareReturnValue` in imports!
+
 ## 0.8.0
 
 What a time it has been! This release includes a lot of various bug and stability fixes along with a few big things:

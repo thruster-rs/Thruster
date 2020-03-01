@@ -40,14 +40,11 @@ use std::future::Future;
 use std::pin::Pin;
 use std::time::Instant;
 
-use thruster::server::Server;
-use thruster::thruster_proc::{async_middleware, middleware_fn};
-use thruster::ThrusterServer;
 use thruster::{App, BasicContext as Ctx, Request};
-use thruster::{Chain, Middleware, MiddlewareChain, MiddlewareNext};
+use thruster::{async_middleware, middleware_fn, MiddlewareNext, MiddlewareResult, Server, ThrusterServer};
 
 #[middleware_fn]
-async fn profile(context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
+async fn profile(context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     let start_time = Instant::now();
 
     context = next(context).await;
@@ -60,21 +57,21 @@ async fn profile(context: Ctx, next: MiddlewareNext<Ctx>) -> Ctx {
         context.request.path()
     );
 
-    context
+    Ok(context)
 }
 
 #[middleware_fn]
-async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     let val = "Hello, World!";
     context.body(val);
-    context
+    Ok(context)
 }
 
 #[middleware_fn]
-async fn four_oh_four(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn four_oh_four(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     context.status(404);
     context.body("Whoops! That route doesn't exist!");
-    context
+    Ok(context)
 }
 
 #[tokio::main]
@@ -93,17 +90,15 @@ fn main() {
 
 ### Error handling
 
-To turn on experimental error handling, pass the flag `thruster_error_handling`. This will enable the useage of the `map_try!` macro from the main package. This has the same function as `try!`, but with the ability to properly map the error in a way that the compiler knows that execution ends (so there's no movement issues with `context`.)
+It's recommended to use the `map_try!` macro from the main package. This has the same function as `try!`, but with the ability to properly map the error in a way that the compiler knows that execution ends (so there's no movement issues with `context`.)
 
 This ends up looking like:
 
 ```rust
 use thruster::errors::ThrusterError as Error;
-use thruster::server::Server;
-use thruster::thruster_proc::{async_middleware, middleware_fn};
-use thruster::ThrusterServer;
+use thruster::proc::{async_middleware, middleware_fn};
 use thruster::{map_try, App, BasicContext as Ctx, Request};
-use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue};
+use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue, Server, ThrusterServer};
 
 #[middleware_fn]
 async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {

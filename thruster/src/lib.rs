@@ -1,42 +1,39 @@
-pub use thruster_app::app::App;
-pub use thruster_app::testing_async as testing;
-pub use thruster_core::context::Context;
-pub use thruster_core::http::Http;
-#[cfg(feature = "thruster_error_handling")]
-pub use thruster_core::middleware::MiddlewareResult;
-pub use thruster_core::request::{decode, Request, RequestWithParams};
-pub use thruster_core::response::{encode, Response};
-#[cfg(feature = "thruster_error_handling")]
-pub use thruster_core::{errors, map_try};
-pub use thruster_core::{
+#[macro_use]
+extern crate templatify;
+
+mod app;
+mod core;
+mod server;
+
+pub mod context;
+pub mod middleware;
+
+pub use crate::core::context::Context;
+pub use crate::core::errors;
+pub use crate::core::http::Http;
+pub use crate::core::middleware::MiddlewareResult;
+pub use crate::core::request::{decode, Request, RequestWithParams};
+pub use crate::core::response::{encode, Response};
+pub use crate::core::{
     Chain, Middleware, MiddlewareChain, MiddlewareFn, MiddlewareNext, MiddlewareReturnValue,
 };
+pub use app::App;
+pub use app::testing_async as testing;
 
-pub use thruster_middleware;
-
-#[cfg(feature = "hyper_server")]
-pub use thruster_server::hyper_server;
-
-#[cfg(all(feature = "hyper_server", feature = "thruster_tls"))]
-pub use thruster_server::ssl_hyper_server;
-
-#[cfg(not(feature = "hyper_server"))]
-pub use thruster_server::server;
-
-#[cfg(feature = "thruster_tls")]
-pub use thruster_server::ssl_server;
-
-pub use thruster_context;
-pub use thruster_context::basic_context::BasicContext;
-pub use thruster_server::thruster_server::ThrusterServer;
-
-// This backwards compats since the async_middleware user to live in
-// thruster_proc.
-pub mod thruster_proc {
-    pub use thruster_core::async_middleware;
-    pub use thruster_proc::*;
-}
-pub use thruster_core::async_middleware;
+pub use server::*;
 
 #[cfg(feature = "hyper_server")]
-pub use thruster_context::basic_hyper_context::{BasicHyperContext, HyperRequest};
+pub use server::hyper_server;
+
+#[cfg(all(feature = "hyper_server", feature = "tls"))]
+pub use server::ssl_hyper_server;
+
+#[cfg(feature = "tls")]
+pub use server::ssl_server;
+
+pub use context::basic_context::BasicContext;
+pub use server::ThrusterServer;
+pub use thruster_proc::*;
+
+#[cfg(feature = "hyper_server")]
+pub use context::basic_hyper_context::{BasicHyperContext, HyperRequest};

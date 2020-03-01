@@ -1,23 +1,23 @@
-use thruster::ssl_hyper_server::SSLHyperServer;
-use thruster::thruster_context::basic_hyper_context::{
+use thruster::context::basic_hyper_context::{
     generate_context, BasicHyperContext as Ctx, HyperRequest,
 };
-use thruster::thruster_proc::{async_middleware, middleware_fn};
+use thruster::ssl_hyper_server::SSLHyperServer;
 use thruster::App;
 use thruster::ThrusterServer;
-use thruster::{MiddlewareNext, MiddlewareReturnValue};
+use thruster::{async_middleware, middleware_fn};
+use thruster::{MiddlewareNext, MiddlewareResult};
 
 #[middleware_fn]
-async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     let val = "Hello, World!";
     context.body(val);
-    context
+    Ok(context)
 }
 
 #[middleware_fn]
-async fn test_fn_404(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn test_fn_404(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     context.body("404");
-    context
+    Ok(context)
 }
 
 fn main() {

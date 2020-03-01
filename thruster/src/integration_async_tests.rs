@@ -1,26 +1,27 @@
 use std::boxed::Box;
 
+use thruster::middleware::{cookies, query_params};
 use thruster::testing;
-use thruster::thruster_middleware::{cookies, query_params};
-use thruster::thruster_proc::{async_middleware, middleware_fn};
 use thruster::BasicContext;
-use thruster::{App, BasicContext as Ctx, MiddlewareNext, MiddlewareReturnValue, Request};
+use thruster::{
+    async_middleware, middleware_fn, App, BasicContext as Ctx, MiddlewareNext, MiddlewareResult, Request,
+};
 use tokio::runtime::Runtime;
 
 #[middleware_fn]
-async fn test_fn_1(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn test_fn_1(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     let body = &context.params.get("id").unwrap().clone();
 
     context.body(body);
 
-    context
+    Ok(context)
 }
 
 #[middleware_fn]
-async fn test_fn_404(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Ctx {
+async fn test_fn_404(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
     context.body("404");
 
-    context
+    Ok(context)
 }
 
 #[test]
@@ -45,9 +46,9 @@ fn it_should_execute_all_middlware_with_a_given_request() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     app.use_middleware(
@@ -71,18 +72,18 @@ fn it_should_correctly_differentiate_wildcards_and_valid_routes() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_fn_404(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("2");
-        context
+        Ok(context)
     };
 
     app.get("/", async_middleware!(BasicContext, [test_fn_1]));
@@ -103,11 +104,11 @@ fn it_should_handle_query_parameters() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let body = &context.query_params.get("hello").unwrap().clone();
 
         context.body(body);
-        context
+        Ok(context)
     };
 
     app.use_middleware(
@@ -131,7 +132,7 @@ fn it_should_handle_cookies() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let body = match context.cookies.get(0) {
             Some(cookie) => {
                 assert!(cookie.options.same_site.is_some());
@@ -142,7 +143,7 @@ fn it_should_handle_cookies() {
         };
 
         context.body(&body);
-        context
+        Ok(context)
     };
 
     app.use_middleware("/", async_middleware!(BasicContext, [cookies::cookies]));
@@ -170,11 +171,11 @@ fn it_should_execute_all_middlware_with_a_given_request_with_params() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let body = &context.params.get("id").unwrap().clone();
 
         context.body(body);
-        context
+        Ok(context)
     };
 
     app.get("/test/:id", async_middleware!(BasicContext, [test_fn_1]));
@@ -194,11 +195,11 @@ fn it_should_execute_all_middlware_with_a_given_request_with_params_in_a_subapp(
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let body = &context.params.get("id").unwrap().clone();
 
         context.body(body);
-        context
+        Ok(context)
     };
 
     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
@@ -221,11 +222,11 @@ fn it_should_correctly_parse_params_in_subapps() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let body = &context.params.get("id").unwrap().clone();
 
         context.body(body);
-        context
+        Ok(context)
     };
 
     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
@@ -248,20 +249,20 @@ fn it_should_match_as_far_as_possible_in_a_subapp() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let body = &context.params.get("id").unwrap().clone();
 
         context.body(body);
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_fn_2(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("-1");
-        context
+        Ok(context)
     }
 
     app1.get("/", async_middleware!(BasicContext, [test_fn_2]));
@@ -285,20 +286,20 @@ fn it_should_trim_trailing_slashes() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let body = &context.params.get("id").unwrap().clone();
 
         context.body(body);
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_fn_2(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("-1");
-        context
+        Ok(context)
     }
 
     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
@@ -322,11 +323,11 @@ fn it_should_trim_trailing_slashes_after_params() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let body = &context.params.get("id").unwrap().clone();
 
         context.body(body);
-        context
+        Ok(context)
     };
 
     app.get("/test/:id", async_middleware!(BasicContext, [test_fn_1]));
@@ -346,22 +347,22 @@ fn it_should_execute_all_middlware_with_a_given_request_based_on_method() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let existing_body = context.get_body().clone();
 
         context.body(&format!("{}{}", existing_body, "1"));
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_fn_2(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let existing_body = context.get_body().clone();
 
         context.body(&format!("{}{}", existing_body, "2"));
-        context
+        Ok(context)
     };
 
     app.get("/test", async_middleware!(BasicContext, [test_fn_1]));
@@ -382,27 +383,27 @@ fn it_should_execute_all_middlware_with_a_given_request_up_and_down() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let existing_body = context.get_body().clone();
 
         context.body(&format!("{}{}", existing_body, "1"));
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_fn_2(
         mut context: BasicContext,
         next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let existing_body = context.get_body().clone();
 
         context.body(&format!("{}{}", existing_body, "2"));
 
-        let mut context_with_body = next(context).await;
+        let mut context_with_body = next(context).await?;
         let existing_body = context_with_body.get_body().clone();
         context_with_body.body(&format!("{}{}", existing_body, "2"));
 
-        context_with_body
+        Ok(context_with_body)
     };
 
     app.get(
@@ -425,9 +426,9 @@ fn it_should_return_whatever_was_set_as_the_body_of_the_context() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("Hello world");
-        context
+        Ok(context)
     };
 
     app.get("/test", async_middleware!(BasicContext, [test_fn_1]));
@@ -447,22 +448,22 @@ fn it_should_first_run_use_then_methods() {
     async fn method_agnostic(
         mut context: BasicContext,
         next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("agnostic");
-        let updated_context = next(context).await;
+        let updated_context = next(context).await?;
 
-        updated_context
+        Ok(updated_context)
     }
 
     #[middleware_fn]
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         let body = context.get_body().clone();
 
         context.body(&format!("{}-1", body));
-        context
+        Ok(context)
     };
 
     app.use_middleware("/", async_middleware!(BasicContext, [method_agnostic]));
@@ -483,9 +484,9 @@ fn it_should_be_able_to_correctly_route_sub_apps() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     app1.get("/test", async_middleware!(BasicContext, [test_fn_1]));
@@ -508,9 +509,9 @@ fn it_should_be_able_to_correctly_route_sub_apps_with_wildcards() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     app1.get("/*", async_middleware!(BasicContext, [test_fn_1]));
@@ -533,9 +534,9 @@ fn it_should_be_able_to_correctly_prefix_route_sub_apps() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     app1.get("/test", async_middleware!(BasicContext, [test_fn_1]));
@@ -558,9 +559,9 @@ fn it_should_be_able_to_correctly_prefix_the_root_of_sub_apps() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     app1.get("/", async_middleware!(BasicContext, [test_fn_1]));
@@ -583,18 +584,18 @@ fn it_should_be_able_to_correctly_handle_not_found_routes() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_404(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("not found");
-        context
+        Ok(context)
     };
 
     app.get("/", async_middleware!(BasicContext, [test_fn_1]));
@@ -615,18 +616,18 @@ fn it_should_be_able_to_correctly_handle_not_found_at_the_root() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_404(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("not found");
-        context
+        Ok(context)
     };
 
     app.get("/a", async_middleware!(BasicContext, [test_fn_1]));
@@ -647,18 +648,18 @@ fn it_should_be_able_to_correctly_handle_deep_not_found_routes() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_404(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("not found");
-        context
+        Ok(context)
     };
 
     app.get("/a/b", async_middleware!(BasicContext, [test_fn_1]));
@@ -679,18 +680,18 @@ fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramateriz
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_404(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("not found");
-        context
+        Ok(context)
     };
 
     app.get("/a/:b/c", async_middleware!(BasicContext, [test_fn_1]));
@@ -712,18 +713,18 @@ fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramateriz
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_404(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("not found");
-        context
+        Ok(context)
     };
 
     app.get("/a/:b/c", async_middleware!(BasicContext, [test_fn_1]));
@@ -746,18 +747,18 @@ fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_root_route(
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_404(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("not found");
-        context
+        Ok(context)
     };
 
     app1.get("/", async_middleware!(BasicContext, [test_fn_1]));
@@ -780,9 +781,9 @@ fn it_should_handle_routes_without_leading_slash() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     app.get("*", async_middleware!(BasicContext, [test_fn_1]));
@@ -803,9 +804,9 @@ fn it_should_handle_routes_within_a_subapp_without_leading_slash() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     app1.get("*", async_middleware!(BasicContext, [test_fn_1]));
@@ -828,18 +829,18 @@ fn it_should_handle_multiple_subapps_with_wildcards() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_fn_2(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("2");
-        context
+        Ok(context)
     };
 
     app1.get("/*", async_middleware!(BasicContext, [test_fn_1]));
@@ -854,7 +855,6 @@ fn it_should_handle_multiple_subapps_with_wildcards() {
     });
 }
 
-
 #[test]
 fn it_should_prefer_specificity_to_ambiguity() {
     let mut app1 = App::<Request, BasicContext>::new_basic();
@@ -863,18 +863,18 @@ fn it_should_prefer_specificity_to_ambiguity() {
     async fn test_fn_1(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("1");
-        context
+        Ok(context)
     };
 
     #[middleware_fn]
     async fn test_fn_2(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
-    ) -> BasicContext {
+    ) -> MiddlewareResult<BasicContext> {
         context.body("2");
-        context
+        Ok(context)
     };
 
     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
