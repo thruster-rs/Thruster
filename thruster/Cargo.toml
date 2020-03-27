@@ -66,11 +66,7 @@ file = [
 [dependencies]
 async-trait = "0.1"
 hyper = { version = "0.13.1", optional = true }
-<<<<<<< HEAD
-thruster-proc = { version = "=0.9.0-alpha.3", path = "../thruster-proc" }
-=======
 thruster-proc = "=0.9.0-alpha.4"
->>>>>>> chore: Bump versions to 0.9.0-alpha.4
 bytes = "0.5.4"
 chashmap = { version = "2.2", optional = true }
 futures-legacy = { version = "0.1.23", package = "futures" }
