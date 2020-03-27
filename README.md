@@ -1,14 +1,18 @@
 # Thruster [![Build Status](https://travis-ci.com/trezm/Thruster.svg?branch=master)](https://travis-ci.org/trezm/Thruster) ![Crates.io](https://img.shields.io/crates/v/thruster.svg) ![Crates.io](https://img.shields.io/crates/d/thruster.svg) [![Discord](https://img.shields.io/discord/658730946211610643)](https://discord.gg/m9JrPRd)
 
-## An opinionated framework for web development in rust.
+## An fast and intuitive rust web framework
+
+✅ Runs in stable
+✅ Runs fast
+✅ Doesn't use unsafe
 
 [Documentation](https://docs.rs/thruster)
 
 ## Motivation
 
 Thruster is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:
-- Opinionated
-- Fast
+- Performant
+- Simple
 - Intuitive
 
 Thruster also

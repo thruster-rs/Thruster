@@ -2,16 +2,16 @@ use bytes::Bytes;
 use bytes::BytesMut;
 use chashmap::CHashMap;
 use lazy_static::*;
-use thruster_proc::middleware_fn;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 use std::iter::FromIterator;
+use thruster_proc::middleware_fn;
 
-use crate::map_try;
 use crate::core::context::Context;
 use crate::core::errors::{ErrorSet, ThrusterError as Error};
 use crate::core::{MiddlewareNext, MiddlewareResult};
+use crate::map_try;
 
 lazy_static! {
     static ref CACHE: CHashMap<String, Vec<u8>> = { CHashMap::new() };

@@ -1,3 +1,4 @@
+use log::info;
 use std::time::Instant;
 use thruster::{async_middleware, middleware_fn};
 use thruster::{App, BasicContext as Ctx, Request, Server, ThrusterServer};
@@ -10,7 +11,7 @@ async fn profiling(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareRes
     context = next(context).await?;
 
     let elapsed_time = start_time.elapsed();
-    println!(
+    info!(
         "[{}μs] {} -- {}",
         elapsed_time.as_micros(),
         context.request.method(),
@@ -34,7 +35,8 @@ async fn test_fn_404(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Middleware
 }
 
 fn main() {
-    println!("Starting server...");
+    env_logger::init();
+    info!("Starting server...");
 
     let mut app = App::<Request, Ctx>::new_basic();
 

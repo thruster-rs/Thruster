@@ -9,8 +9,8 @@ use thruster_proc::middleware_fn;
 
 use crate::core::context::Context;
 use crate::core::request::RequestWithParams;
-use crate::middleware::query_params::HasQueryParams;
 use crate::core::{MiddlewareNext, MiddlewareResult};
+use crate::middleware::query_params::HasQueryParams;
 
 pub struct HyperRequest {
     pub request: Request<Body>,
@@ -87,9 +87,9 @@ pub async fn to_owned_request(
     context: BasicHyperContext,
     next: MiddlewareNext<BasicHyperContext>,
 ) -> MiddlewareResult<BasicHyperContext> {
-  let context = next(context.to_owned_request()).await?;
+    let context = next(context.to_owned_request()).await?;
 
-  Ok(context)
+    Ok(context)
 }
 
 #[derive(Default)]
@@ -99,7 +99,7 @@ pub struct BasicHyperContext {
     pub status: u16,
     pub headers: HashMap<String, String>,
     pub params: HashMap<String, String>,
-    hyper_request: Option<HyperRequest>,
+    pub hyper_request: Option<HyperRequest>,
     request_body: Option<Body>,
     request_parts: Option<Parts>,
 }

@@ -1,3 +1,4 @@
+use log::info;
 use thruster::ssl_server::SSLServer;
 use thruster::ThrusterServer;
 use thruster::{async_middleware, middleware_fn};
@@ -18,7 +19,8 @@ async fn test_fn_404(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Middleware
 }
 
 fn main() {
-    println!("Starting server...");
+    env_logger::init();
+    info!("Starting server...");
 
     let mut app = App::<Request, Ctx>::new_basic();
 
