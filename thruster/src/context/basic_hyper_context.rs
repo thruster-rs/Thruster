@@ -290,9 +290,15 @@ impl Context for BasicHyperContext {
     }
 
     fn route(&self) -> &str {
-        match self.parts().uri.path_and_query() {
+        let uri = self.hyper_request
+            .as_ref()
+            .unwrap()
+            .request
+            .uri();
+
+        match uri.path_and_query() {
             Some(val) => val.as_str(),
-            None => self.parts().uri.path(),
+            None => uri.path(),
         }
     }
 

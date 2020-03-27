@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "0.9.0-alpha.4"
+version = "0.9.0-alpha.7"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
@@ -58,6 +58,7 @@ hyper_server = [
 ]
 tls = [
   "native-tls",
+  "tokio-tls",
 ]
 file = [
   "chashmap",
@@ -66,7 +67,7 @@ file = [
 [dependencies]
 async-trait = "0.1"
 hyper = { version = "0.13.1", optional = true }
-thruster-proc = "=0.9.0-alpha.4"
+thruster-proc = "=0.9.0-alpha.7"
 bytes = "0.5.4"
 chashmap = { version = "2.2", optional = true }
 futures-legacy = { version = "0.1.23", package = "futures" }
