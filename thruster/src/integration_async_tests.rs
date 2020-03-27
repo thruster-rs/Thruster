@@ -4,7 +4,8 @@ use thruster::middleware::{cookies, query_params};
 use thruster::testing;
 use thruster::BasicContext;
 use thruster::{
-    async_middleware, middleware_fn, App, BasicContext as Ctx, MiddlewareNext, MiddlewareResult, Request,
+    async_middleware, middleware_fn, App, BasicContext as Ctx, MiddlewareNext, MiddlewareResult,
+    Request,
 };
 use tokio::runtime::Runtime;
 

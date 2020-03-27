@@ -1,3 +1,4 @@
+use log::info;
 use thruster::{async_middleware, middleware_fn};
 use thruster::{App, BasicContext as Ctx, Request, Server, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
@@ -16,7 +17,8 @@ async fn noop(context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx>
 
 #[tokio::main]
 async fn main() {
-    println!("Starting server...");
+    env_logger::init();
+    info!("Starting server...");
 
     let mut app = App::<Request, Ctx>::new_basic();
 

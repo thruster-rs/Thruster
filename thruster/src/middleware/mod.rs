@@ -1,4 +1,5 @@
 pub mod cookies;
+pub mod cors;
 #[cfg(feature = "file")]
 pub mod file;
 pub mod json;

@@ -1,3 +1,4 @@
+use log::info;
 use thruster::context::basic_hyper_context::{
     generate_context, BasicHyperContext as Ctx, HyperRequest,
 };
@@ -21,7 +22,8 @@ async fn test_fn_404(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Middleware
 }
 
 fn main() {
-    println!("Starting server...");
+    env_logger::init();
+    info!("Starting server...");
 
     let mut app = App::<HyperRequest, Ctx>::create(generate_context);
 

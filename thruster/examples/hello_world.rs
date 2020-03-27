@@ -1,3 +1,4 @@
+use log::info;
 use thruster::{async_middleware, middleware_fn};
 use thruster::{App, BasicContext as Ctx, Request, Server, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
@@ -10,7 +11,8 @@ async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareRe
 }
 
 fn main() {
-    println!("Starting server...");
+    env_logger::init();
+    info!("Starting server...");
 
     let mut app = App::<Request, Ctx>::new_basic();
 

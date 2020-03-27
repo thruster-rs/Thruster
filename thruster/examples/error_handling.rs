@@ -1,5 +1,6 @@
 use snafu::{ResultExt, Snafu};
 
+use log::info;
 use thruster::errors::ThrusterError;
 use thruster::{async_middleware, middleware_fn};
 use thruster::{map_try, App, BasicContext as Ctx, Request, Server, ThrusterServer};
@@ -93,7 +94,8 @@ async fn four_oh_four(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Middlewar
 }
 
 fn main() {
-    println!("Starting server...");
+    env_logger::init();
+    info!("Starting server...");
 
     let mut app = App::<Request, Ctx>::new_basic();
 

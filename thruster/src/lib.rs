@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate templatify;
 
+#[macro_use]
+extern crate log;
+
 mod app;
 mod core;
 mod server;
@@ -17,8 +20,8 @@ pub use crate::core::response::{encode, Response};
 pub use crate::core::{
     Chain, Middleware, MiddlewareChain, MiddlewareFn, MiddlewareNext, MiddlewareReturnValue,
 };
-pub use app::App;
 pub use app::testing_async as testing;
+pub use app::App;
 
 pub use server::*;
 

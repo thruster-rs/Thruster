@@ -10,16 +10,16 @@
 /// from. In otherwords, RUST_ROOT_DIR will attempt to replace the
 /// first piece of a path with the RUST_HOST_DIR.
 ///
-
 use hyper::Body;
+use log::info;
 use thruster::context::basic_hyper_context::{
     generate_context, to_owned_request, BasicHyperContext as Ctx, HyperRequest,
 };
 use thruster::hyper_server::HyperServer;
+use thruster::middleware::file::{file, get_file};
 use thruster::{async_middleware, middleware_fn};
 use thruster::{App, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
-use thruster::middleware::file::{file, get_file};
 
 #[middleware_fn]
 async fn index(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
@@ -29,7 +29,8 @@ async fn index(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult
 }
 
 fn main() {
-    println!("Starting server...");
+    env_logger::init();
+    info!("Starting server...");
 
     let mut app = App::<HyperRequest, Ctx>::create(generate_context);
     app.get("/", async_middleware!(Ctx, [index]));

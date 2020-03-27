@@ -1,4 +1,5 @@
 use hyper::Body;
+use log::info;
 use thruster::context::basic_hyper_context::{
     generate_context, BasicHyperContext as Ctx, HyperRequest,
 };
@@ -15,7 +16,8 @@ async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareRe
 }
 
 fn main() {
-    println!("Starting server...");
+    env_logger::init();
+    info!("Starting server...");
 
     let mut app = App::<HyperRequest, Ctx>::create(generate_context);
     app.get("/plaintext", async_middleware!(Ctx, [plaintext]));

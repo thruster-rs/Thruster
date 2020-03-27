@@ -1,3 +1,4 @@
+use crate::core::context::Context;
 use crate::core::errors::ThrusterError;
 use std::boxed::Box;
 use std::future::Future;
@@ -14,7 +15,7 @@ pub struct Middleware<C: 'static> {
     pub middleware: &'static [MiddlewareFn<C>],
 }
 
-fn chained_run<C: 'static>(
+fn chained_run<C: 'static + Context + Send>(
     i: usize,
     j: usize,
     nodes: Vec<&'static Middleware<C>>,
@@ -25,16 +26,22 @@ fn chained_run<C: 'static>(
             None => chained_run(i + 1, 0, nodes.clone())(ctx),
         },
         // TODO(trezm): Make this somehow default to a 404
-        None => panic!("Chain ran into end of cycle"),
+        None => {
+            warn!("Running through the middlewares, 'next' was called without another next in the chain. That's not great! Make sure you have a 404 set.
+
+\tThe route in question is: '{}'
+", ctx.route());
+            Box::pin(async { Ok(ctx) })
+        }
     })
 }
 
-pub struct Chain<C: 'static> {
+pub struct Chain<C: 'static + Context + Send> {
     pub nodes: Vec<&'static Middleware<C>>,
     built: MiddlewareNext<C>,
 }
 
-impl<C: 'static> Chain<C> {
+impl<C: 'static + Context + Send> Chain<C> {
     pub fn new(nodes: Vec<&'static Middleware<C>>) -> Chain<C> {
         Chain {
             nodes,
@@ -55,7 +62,7 @@ impl<C: 'static> Chain<C> {
     }
 }
 
-impl<C: 'static> Clone for Chain<C> {
+impl<C: 'static + Context + Send> Clone for Chain<C> {
     fn clone(&self) -> Self {
         let mut chain = Chain::new(self.nodes.clone());
         chain.build();
@@ -68,12 +75,12 @@ impl<C: 'static> Clone for Chain<C> {
 /// be accessed and modified later on. This allows Thruster to properly compose pieces of middleware
 /// into a single long chain rather than relying on disperate parts.
 ///
-pub struct MiddlewareChain<T: 'static> {
+pub struct MiddlewareChain<T: 'static + Context + Send> {
     pub chain: Chain<T>,
     pub assigned: bool,
 }
 
-impl<T: 'static> MiddlewareChain<T> {
+impl<T: 'static + Context + Send> MiddlewareChain<T> {
     ///
     /// Creates a new, blank (i.e. will panic if run,) MiddlewareChain
     ///
@@ -120,13 +127,13 @@ impl<T: 'static> MiddlewareChain<T> {
     }
 }
 
-impl<T: 'static> Default for MiddlewareChain<T> {
+impl<T: 'static + Context + Send> Default for MiddlewareChain<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T: 'static> Clone for MiddlewareChain<T> {
+impl<T: 'static + Context + Send> Clone for MiddlewareChain<T> {
     fn clone(&self) -> Self {
         MiddlewareChain {
             chain: self.chain.clone(),
