@@ -28,6 +28,9 @@ pub use server::*;
 #[cfg(feature = "hyper_server")]
 pub use server::hyper_server;
 
+#[cfg(feature = "unix_hyper_server")]
+pub use server::unix_hyper_server;
+
 #[cfg(all(feature = "hyper_server", feature = "tls"))]
 pub use server::ssl_hyper_server;
 
