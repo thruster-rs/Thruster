@@ -17,7 +17,7 @@ async fn jwt_handler(
     next: MiddlewareNext<JwtContext>,
 ) -> MiddlewareResult<JwtContext> {
     let headers = context.headers();
-    let jwt = headers.get("Authorization");
+    let jwt = headers.get("authorization");
 
     if jwt.is_none() {
         context.body("{{\"message\": \"Authorization header required\",\"success\":false}}");
@@ -31,7 +31,7 @@ async fn jwt_handler(
         &jwt,
         &"secret123".to_string(),
         frank_jwt::Algorithm::HS256,
-        &frank_jwt::ValidationOptions::default(),
+        &frank_jwt::ValidationOptions::dangerous(),
     )
     .unwrap();
 
@@ -73,6 +73,7 @@ async fn user_login(
         // https://github.com/GildedHonour/frank_jwt
 
         let payload = json!({
+            "exp": 999999999,
             "userId": "test_user",
             "allowed_resources": ["test_values","print_hello","sleep","cry","repeat"]
         });
@@ -111,6 +112,8 @@ async fn four_oh_four(
 fn generate_context(request: Request) -> JwtContext {
     let mut ctx = JwtContext::new();
     ctx.params = request.params().clone();
+    ctx.headers = request.headers().clone();
+    ctx.body(request.body());
     ctx.request = request;
 
     ctx
@@ -122,9 +125,7 @@ fn main() {
 
     let mut app = App::<Request, JwtContext>::create(generate_context);
 
-    app.use_middleware("/data", async_middleware!(JwtContext, [jwt_handler]));
-
-    app.get("/data", async_middleware!(JwtContext, [user_data]));
+    app.get("/data", async_middleware!(JwtContext, [jwt_handler, user_data]));
     app.get("/login", async_middleware!(JwtContext, [user_login]));
     app.set404(async_middleware!(JwtContext, [four_oh_four]));
 
