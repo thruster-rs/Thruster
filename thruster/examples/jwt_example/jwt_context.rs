@@ -20,6 +20,7 @@ pub struct JwtContext {
     pub user_id: String,
 }
 
+#[allow(dead_code)]
 impl JwtContext {
     pub fn new() -> JwtContext {
         let mut ctx = JwtContext {

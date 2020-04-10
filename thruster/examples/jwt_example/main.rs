@@ -16,7 +16,8 @@ async fn jwt_handler(
     mut context: JwtContext,
     next: MiddlewareNext<JwtContext>,
 ) -> MiddlewareResult<JwtContext> {
-    let jwt = context.headers().get("Authorization");
+    let headers = context.headers();
+    let jwt = headers.get("Authorization");
 
     if jwt.is_none() {
         context.body("{{\"message\": \"Authorization header required\",\"success\":false}}");
@@ -71,11 +72,11 @@ async fn user_login(
         // JWT generation taken from:
         // https://github.com/GildedHonour/frank_jwt
 
-        let mut payload = json!({
+        let payload = json!({
             "userId": "test_user",
             "allowed_resources": ["test_values","print_hello","sleep","cry","repeat"]
         });
-        let mut header = json!({});
+        let header = json!({});
         let secret = "secret123";
         let jwt = frank_jwt::encode(
             header,
@@ -107,11 +108,19 @@ async fn four_oh_four(
     Ok(context)
 }
 
+fn generate_context(request: Request) -> JwtContext {
+    let mut ctx = JwtContext::new();
+    ctx.params = request.params().clone();
+    ctx.request = request;
+
+    ctx
+}
+
 fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<Request, JwtContext>::new_basic();
+    let mut app = App::<Request, JwtContext>::create(generate_context);
 
     app.use_middleware("/data", async_middleware!(JwtContext, [jwt_handler]));
 
