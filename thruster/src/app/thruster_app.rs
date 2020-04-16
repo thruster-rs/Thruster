@@ -228,23 +228,6 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     #[cfg(feature = "hyper_server")]
     pub fn resolve(
         &self,
-        request: R,
-        matched_route: MatchedRoute<T>,
-    ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {
-        self._resolve(request, matched_route)
-    }
-
-    #[cfg(not(feature = "hyper_server"))]
-    pub fn resolve(
-        &self,
-        request: R,
-        matched_route: MatchedRoute<T>,
-    ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {
-        self._resolve(request, matched_route)
-    }
-
-    fn _resolve(
-        &self,
         mut request: R,
         matched_route: MatchedRoute<T>,
     ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {

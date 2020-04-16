@@ -14,3 +14,4 @@ pub use middleware::MiddlewareResult;
 pub use middleware::{
     Chain, Middleware, MiddlewareChain, MiddlewareFn, MiddlewareNext, MiddlewareReturnValue,
 };
+pub use middleware::MiddlewareTrait;

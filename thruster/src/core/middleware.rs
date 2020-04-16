@@ -11,8 +11,18 @@ pub type MiddlewareNext<C> =
 pub type MiddlewareFn<C> =
     fn(C, MiddlewareNext<C>) -> Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>>;
 
+pub trait MiddlewareTrait<C> {
+    fn invoke(&self, context: C, next: MiddlewareNext<C>) -> Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>>;
+}
+
+impl<C> MiddlewareTrait<C> for MiddlewareFn<C> {
+    fn invoke(&self, context: C, next: MiddlewareNext<C>) -> Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>> {
+        (self)(context, next)
+    }
+}
+
 pub struct Middleware<C: 'static> {
-    pub middleware: &'static [MiddlewareFn<C>],
+    pub middleware: &'static [Box<dyn MiddlewareTrait<C> + Send + Sync>],
 }
 
 fn chained_run<C: 'static + Context + Send>(
@@ -22,7 +32,7 @@ fn chained_run<C: 'static + Context + Send>(
 ) -> MiddlewareNext<C> {
     Box::new(move |ctx| match nodes.get(i) {
         Some(n) => match n.middleware.get(j) {
-            Some(m) => m(ctx, chained_run(i, j + 1, nodes.clone())),
+            Some(m) => m.invoke(ctx, chained_run(i, j + 1, nodes.clone())),
             None => chained_run(i + 1, 0, nodes.clone())(ctx),
         },
         // TODO(trezm): Make this somehow default to a 404

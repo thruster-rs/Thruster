@@ -15,14 +15,14 @@ macro_rules! map_try {
 #[macro_export]
 macro_rules! async_middleware {
   ($ctx:ty, [$($x:expr),+]) => {{
-      use thruster::{Chain, Middleware, MiddlewareChain, MiddlewareNext, MiddlewareReturnValue};
+      use thruster::{Chain, Middleware, MiddlewareChain, MiddlewareFn, MiddlewareNext, MiddlewareTrait, MiddlewareReturnValue};
 
-      const __MIDDLEWARE_ARRAY: &'static [
-          fn($ctx, MiddlewareNext<$ctx>) -> MiddlewareReturnValue<$ctx>
-      ] = &[$( $x ),*];
+      static __MIDDLEWARE_ARRAY: [
+          Box<dyn MiddlewareTrait<$ctx> + Send + Sync>
+      ] = [$( Box::new($x as MiddlewareFn<$ctx>) ),*];
 
       static __MIDDLEWARE: Middleware<$ctx> = Middleware {
-          middleware: __MIDDLEWARE_ARRAY
+          middleware: &__MIDDLEWARE_ARRAY
       };
 
       let chain = Chain::new(vec![&__MIDDLEWARE]);

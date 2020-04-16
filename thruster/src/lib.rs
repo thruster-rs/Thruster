@@ -20,6 +20,8 @@ pub use crate::core::response::{encode, Response};
 pub use crate::core::{
     Chain, Middleware, MiddlewareChain, MiddlewareFn, MiddlewareNext, MiddlewareReturnValue,
 };
+pub use crate::core::MiddlewareTrait;
+
 pub use app::testing_async as testing;
 pub use app::App;
 
