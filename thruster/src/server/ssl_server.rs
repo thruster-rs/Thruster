@@ -17,13 +17,13 @@ use crate::core::response::Response;
 
 use crate::server::ThrusterServer;
 
-pub struct SSLServer<T: 'static + Context<Response = Response> + Send> {
-    app: App<Request, T>,
+pub struct SSLServer<T: 'static + Context<Response = Response> + Send, S: Send> {
+    app: App<Request, T, S>,
     cert: Option<Vec<u8>>,
     cert_pass: &'static str,
 }
 
-impl<T: 'static + Context<Response = Response> + Send> SSLServer<T> {
+impl<T: 'static + Context<Response = Response> + Send, S: Send> SSLServer<T, S> {
     ///
     /// Sets the cert on the server
     ///
@@ -37,12 +37,13 @@ impl<T: 'static + Context<Response = Response> + Send> SSLServer<T> {
 }
 
 #[async_trait]
-impl<T: Context<Response = Response> + Send> ThrusterServer for SSLServer<T> {
+impl<T: Context<Response = Response> + Send, S: 'static + Send + Sync> ThrusterServer for SSLServer<T, S> {
     type Context = T;
     type Response = Response;
     type Request = Request;
+    type State = S;
 
-    fn new(app: App<Self::Request, T>) -> Self {
+    fn new(app: App<Self::Request, T, Self::State>) -> Self {
         SSLServer {
             app,
             cert: None,
@@ -87,8 +88,8 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for SSLServer<T> {
         }
 
         // TODO(trezm): Add an argument here for the tls_acceptor to be passed in.
-        async fn process<T: Context<Response = Response> + Send>(
-            app: Arc<App<Request, T>>,
+        async fn process<T: Context<Response = Response> + Send, S: Send>(
+            app: Arc<App<Request, T, S>>,
             tls_acceptor: Arc<tokio_tls::TlsAcceptor>,
             socket: TcpStream,
         ) -> Result<(), Box<dyn Error>> {

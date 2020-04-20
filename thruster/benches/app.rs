@@ -23,7 +23,7 @@ async fn test_fn_1(
 
 fn bench_route_match(c: &mut Criterion) {
     c.bench_function("Route match", |bench| {
-        let mut app = App::<Request, BasicContext>::new_basic();
+        let mut app = App::<Request, BasicContext, ()>::new_basic();
 
         app.get("/test/hello", async_middleware!(BasicContext, [test_fn_1]));
 
@@ -42,7 +42,7 @@ fn bench_route_match(c: &mut Criterion) {
 
 fn optimized_bench_route_match(c: &mut Criterion) {
     c.bench_function("Optimized route match", |bench| {
-        let mut app = App::<Request, BasicContext>::new_basic();
+        let mut app = App::<Request, BasicContext, ()>::new_basic();
 
         app.get("/test/hello", async_middleware!(BasicContext, [test_fn_1]));
         app._route_parser.optimize();
@@ -72,7 +72,7 @@ async fn test_params_1(
 
 fn bench_route_match_with_param(c: &mut Criterion) {
     c.bench_function("Route match with route params", |bench| {
-        let mut app = App::<Request, BasicContext>::new_basic();
+        let mut app = App::<Request, BasicContext, ()>::new_basic();
 
         app.get(
             "/test/:hello",
@@ -103,7 +103,7 @@ async fn test_query_params_1(
 }
 fn bench_route_match_with_query_param(c: &mut Criterion) {
     c.bench_function("Route match with query params", |bench| {
-        let mut app = App::<Request, BasicContext>::new_basic();
+        let mut app = App::<Request, BasicContext, ()>::new_basic();
 
         app.use_middleware("/", async_middleware!(BasicContext, [query_params]));
         app.get(

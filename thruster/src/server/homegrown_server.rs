@@ -22,8 +22,8 @@ use crate::core::response::Response;
 
 use crate::server::ThrusterServer;
 
-pub struct Server<T: 'static + Context<Response = Response> + Send> {
-    app: App<Request, T>,
+pub struct Server<T: 'static + Context<Response = Response> + Send, S: Send> {
+    app: App<Request, T, S>,
 }
 
 // impl<T: 'static + Context<Response = Response> + Send> Server<T> {
@@ -102,12 +102,13 @@ pub struct Server<T: 'static + Context<Response = Response> + Send> {
 // }
 
 #[async_trait]
-impl<T: Context<Response = Response> + Send> ThrusterServer for Server<T> {
+impl<T: Context<Response = Response> + Send, S: 'static + Send + Sync> ThrusterServer for Server<T, S> {
     type Context = T;
     type Response = Response;
     type Request = Request;
+    type State = S;
 
-    fn new(app: App<Self::Request, T>) -> Self {
+    fn new(app: App<Self::Request, T, S>) -> Self {
         Server { app }
     }
 
@@ -129,8 +130,8 @@ impl<T: Context<Response = Response> + Send> ThrusterServer for Server<T> {
             });
         }
 
-        async fn process<T: Context<Response = Response> + Send>(
-            app: Arc<App<Request, T>>,
+        async fn process<T: Context<Response = Response> + Send, S: Send>(
+            app: Arc<App<Request, T, S>>,
             socket: TcpStream,
         ) -> Result<(), Box<dyn Error>> {
             let mut framed = Framed::new(socket, Http);

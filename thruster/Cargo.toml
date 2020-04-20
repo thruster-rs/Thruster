@@ -47,6 +47,14 @@ required-features = ["hyper_server", "file"]
 name = "unix_socket"
 required-features = ["unix_hyper_server"]
 
+[[example]]
+name = "using_state"
+required-features = ["hyper_server"]
+
+[[example]]
+name = "mutable_state"
+required-features = ["hyper_server"]
+
 [[bench]]
 name = "app"
 harness = false

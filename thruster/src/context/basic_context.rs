@@ -9,7 +9,7 @@ use crate::core::response::Response;
 use crate::middleware::cookies::{Cookie, CookieOptions, HasCookies, SameSite};
 use crate::middleware::query_params::HasQueryParams;
 
-pub fn generate_context(request: Request) -> BasicContext {
+pub fn generate_context<S>(request: Request, _state: &S, _path: &str) -> BasicContext {
     let mut ctx = BasicContext::new();
     ctx.params = request.params().clone();
     ctx.request = request;

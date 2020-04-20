@@ -109,7 +109,7 @@ async fn four_oh_four(
     Ok(context)
 }
 
-fn generate_context(request: Request) -> JwtContext {
+fn generate_context<S>(request: Request, _state: &S, _path: &str) -> JwtContext {
     let mut ctx = JwtContext::new();
     ctx.params = request.params().clone();
     ctx.headers = request.headers().clone();
@@ -123,7 +123,7 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<Request, JwtContext>::create(generate_context);
+    let mut app = App::<Request, JwtContext, ()>::create(generate_context, ());
 
     app.get("/data", async_middleware!(JwtContext, [jwt_handler, user_data]));
     app.get("/login", async_middleware!(JwtContext, [user_login]));

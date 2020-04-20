@@ -11,19 +11,18 @@ use crate::context::basic_hyper_context::HyperRequest;
 use crate::core::context::Context;
 use crate::server::ThrusterServer;
 
-pub struct UnixHyperServer<T: 'static + Context + Send> {
-    app: App<HyperRequest, T>,
+pub struct UnixHyperServer<T: 'static + Context + Send, S: Send> {
+    app: App<HyperRequest, T, S>,
 }
 
-impl<T: 'static + Context + Send> UnixHyperServer<T> {}
-
 #[async_trait]
-impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for UnixHyperServer<T> {
+impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> ThrusterServer for UnixHyperServer<T, S> {
     type Context = T;
     type Response = Response<Body>;
     type Request = HyperRequest;
+    type State = S;
 
-    fn new(app: App<Self::Request, T>) -> Self {
+    fn new(app: App<Self::Request, T, Self::State>) -> Self {
         UnixHyperServer { app }
     }
 

@@ -6,23 +6,22 @@ use hyper::{Body, Request, Response, Server};
 use std::sync::Arc;
 
 use crate::app::App;
-use crate::context::basic_hyper_context::HyperRequest;
+use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
 use crate::server::ThrusterServer;
 
-pub struct HyperServer<T: 'static + Context + Send> {
-    app: App<HyperRequest, T>,
+pub struct HyperServer<T: 'static + Context + Send, S: Send> {
+    app: App<HyperRequest, T, S>,
 }
 
-impl<T: 'static + Context + Send> HyperServer<T> {}
-
 #[async_trait]
-impl<T: Context<Response = Response<Body>> + Send> ThrusterServer for HyperServer<T> {
+impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> ThrusterServer for HyperServer<T, S> {
     type Context = T;
     type Response = Response<Body>;
     type Request = HyperRequest;
+    type State = S;
 
-    fn new(app: App<Self::Request, T>) -> Self {
+    fn new(app: App<Self::Request, T, Self::State>) -> Self {
         HyperServer { app }
     }
 
