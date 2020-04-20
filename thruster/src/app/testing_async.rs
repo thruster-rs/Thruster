@@ -8,8 +8,8 @@ use crate::core::request::decode;
 use crate::core::request::Request;
 use crate::core::response::{Response, StatusMessage};
 
-pub async fn request<T: Context<Response = Response> + Send>(
-    app: &App<Request, T>,
+pub async fn request<T: Context<Response = Response> + Send, S: Send>(
+    app: &App<Request, T, S>,
     method: &str,
     route: &str,
     headers: &[(&str, &str)],
@@ -35,8 +35,8 @@ pub async fn request<T: Context<Response = Response> + Send>(
     TestResponse::new(response)
 }
 
-pub async fn get<T: Context<Response = Response> + Send>(
-    app: &App<Request, T>,
+pub async fn get<T: Context<Response = Response> + Send, S: Send>(
+    app: &App<Request, T, S>,
     route: &str,
 ) -> TestResponse {
     let body = format!("GET {} HTTP/1.1\nHost: localhost:8080\n\n", route);
@@ -51,8 +51,8 @@ pub async fn get<T: Context<Response = Response> + Send>(
     TestResponse::new(response)
 }
 
-pub async fn delete<T: Context<Response = Response> + Send>(
-    app: &App<Request, T>,
+pub async fn delete<T: Context<Response = Response> + Send, S: Send>(
+    app: &App<Request, T, S>,
     route: &str,
 ) -> TestResponse {
     let body = format!("DELETE {} HTTP/1.1\nHost: localhost:8080\n\n", route);
@@ -67,8 +67,8 @@ pub async fn delete<T: Context<Response = Response> + Send>(
     TestResponse::new(response)
 }
 
-pub async fn post<T: Context<Response = Response> + Send>(
-    app: &App<Request, T>,
+pub async fn post<T: Context<Response = Response> + Send, S: Send>(
+    app: &App<Request, T, S>,
     route: &str,
     content: &str,
 ) -> TestResponse {
@@ -89,8 +89,8 @@ pub async fn post<T: Context<Response = Response> + Send>(
     TestResponse::new(response)
 }
 
-pub async fn put<T: Context<Response = Response> + Send>(
-    app: &App<Request, T>,
+pub async fn put<T: Context<Response = Response> + Send, S: Send>(
+    app: &App<Request, T, S>,
     route: &str,
     content: &str,
 ) -> TestResponse {
@@ -111,8 +111,8 @@ pub async fn put<T: Context<Response = Response> + Send>(
     TestResponse::new(response)
 }
 
-pub async fn update<T: Context<Response = Response> + Send>(
-    app: &App<Request, T>,
+pub async fn update<T: Context<Response = Response> + Send, S: Send>(
+    app: &App<Request, T, S>,
     route: &str,
     content: &str,
 ) -> TestResponse {

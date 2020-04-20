@@ -5,16 +5,17 @@ use crate::core::route_tree::RouteTree;
 
 use crate::core::middleware::MiddlewareChain;
 
-pub struct MatchedRoute<'a, T: 'static + Context + Send> {
+pub struct MatchedRoute<'a, 'b, T: 'static + Context + Send> {
     pub middleware: &'a MiddlewareChain<T>,
     pub value: String,
+    pub path: &'b str,
     pub params: HashMap<String, String>,
     pub query_params: HashMap<String, String>,
 }
 
 pub struct RouteParser<T: 'static + Context + Send> {
     pub route_tree: RouteTree<T>,
-    pub shortcuts: HashMap<String, MiddlewareChain<T>>,
+    pub shortcuts: HashMap<String, (MiddlewareChain<T>, String)>,
 }
 
 impl<T: Context + Send> RouteParser<T> {
@@ -38,39 +39,41 @@ impl<T: Context + Send> RouteParser<T> {
 
         for (path, middleware, is_terminal_node) in routes {
             if is_terminal_node {
-                self.shortcuts.insert((&path[1..]).to_owned(), middleware);
+                self.shortcuts.insert((&path[1..]).to_owned(), (middleware, (&path[1..]).to_string()));
             }
         }
     }
 
     #[inline]
-    pub fn match_route(&self, route: &str) -> MatchedRoute<T> {
+    pub fn match_route<'a>(&'a self, route: String) -> MatchedRoute<'a, '_, T> {
         let query_params = HashMap::new();
 
         let split_route = route.find('?');
-        let mut route = match split_route {
+        let mut no_query_route = match split_route {
             Some(index) => &route[0..index],
-            None => route,
+            None => &route,
         };
 
         // Trim trailing slashes
-        while &route[route.len() - 1..route.len()] == "/" {
-            route = &route[0..route.len() - 1];
+        while &no_query_route[no_query_route.len() - 1..no_query_route.len()] == "/" {
+            no_query_route = &no_query_route[0..no_query_route.len() - 1];
         }
 
-        if let Some(shortcut) = self.shortcuts.get(route) {
+        if let Some((shortcut, path)) = self.shortcuts.get(no_query_route) {
             MatchedRoute {
                 middleware: shortcut,
-                value: route.to_owned(),
+                value: route,
+                path,
                 params: HashMap::new(),
                 query_params,
             }
         } else {
-            let matched = self.route_tree.match_route(route);
+            let matched = self.route_tree.match_route(&no_query_route);
 
             MatchedRoute {
                 middleware: matched.1,
-                value: route.to_owned(),
+                value: route,
+                path: matched.2,
                 params: matched.0,
                 query_params,
             }

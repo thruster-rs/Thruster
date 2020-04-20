@@ -14,7 +14,7 @@ use crate::core::{MiddlewareNext, MiddlewareResult};
 use crate::map_try;
 
 lazy_static! {
-    static ref CACHE: CHashMap<String, Vec<u8>> = { CHashMap::new() };
+    static ref CACHE: CHashMap<String, Vec<u8>> = CHashMap::new();
     ///
     /// ROOT_DIR, stored in the RUST_ROOT_DIR env var dictates where
     /// the `file` middleware serves from.

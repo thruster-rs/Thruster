@@ -20,14 +20,14 @@ async fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<Request, Ctx>::new_basic();
+    let mut app = App::<Request, Ctx, ()>::new_basic();
 
     app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
 
     let server = Server::new(app);
     tokio::spawn(server.build("0.0.0.0", 4321));
 
-    let mut healthcheck = App::<Request, Ctx>::new_basic();
+    let mut healthcheck = App::<Request, Ctx, ()>::new_basic();
 
     healthcheck.get("/healthz", async_middleware!(Ctx, [noop]));
 

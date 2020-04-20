@@ -32,7 +32,7 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<HyperRequest, Ctx>::create(generate_context);
+    let mut app = App::<HyperRequest, Ctx, ()>::create(generate_context, ());
     app.get("/", async_middleware!(Ctx, [index]));
     app.get("/*", async_middleware!(Ctx, [to_owned_request, file]));
     let server = HyperServer::new(app);

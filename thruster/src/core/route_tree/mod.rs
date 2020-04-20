@@ -56,7 +56,7 @@ impl<T: 'static + Context + Send> RouteTree<T> {
     }
 
     pub fn add_use_node(&mut self, route: &str, middleware: MiddlewareChain<T>) {
-        self.generic_root_node.add_route(route, middleware);
+        self.generic_root_node.add_route(route, middleware, route.to_string());
         self.update_root_node();
     }
 
@@ -70,12 +70,12 @@ impl<T: 'static + Context + Send> RouteTree<T> {
 
         let full_route = format!("{}{}", prefix, route);
 
-        self.specific_root_node.add_route(&full_route, middleware);
+        self.specific_root_node.add_route(&full_route, middleware, full_route.clone());
         self.update_root_node();
     }
 
     pub fn add_route(&mut self, route: &str, middleware: MiddlewareChain<T>) {
-        self.specific_root_node.add_route(route, middleware);
+        self.specific_root_node.add_route(route, middleware, route.to_string());
         self.update_root_node();
     }
 
@@ -115,22 +115,22 @@ impl<T: 'static + Context + Send> RouteTree<T> {
         self.update_root_node();
     }
 
-    pub fn match_route(&self, route: &str) -> (HashMap<String, String>, &MiddlewareChain<T>) {
+    pub fn match_route(&self, route: &str) -> (HashMap<String, String>, &MiddlewareChain<T>, &str) {
         let results = self.root_node.match_route(route.split('/'));
 
-        (results.0, results.2)
+        (results.0, results.2, results.3)
     }
 
     pub fn match_route_with_params(
         &self,
         route: &str,
         params: HashMap<String, String>,
-    ) -> (HashMap<String, String>, &MiddlewareChain<T>) {
+    ) -> (HashMap<String, String>, &MiddlewareChain<T>, &str) {
         let results = self
             .root_node
             .match_route_with_params(route.split('/'), params);
 
-        (results.0, results.2)
+        (results.0, results.2, results.3)
     }
 }
 

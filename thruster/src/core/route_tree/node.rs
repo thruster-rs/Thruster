@@ -6,7 +6,7 @@ use crate::core::context::Context;
 use crate::core::middleware::MiddlewareChain;
 
 // A route with params that may or may not be a terminal node.
-type RouteNodeWithParams<'a, T> = (HashMap<String, String>, bool, &'a MiddlewareChain<T>);
+type RouteNodeWithParams<'a, 'b, T> = (HashMap<String, String>, bool, &'a MiddlewareChain<T>, &'b str);
 type RouteNodeEnumeration<T> = SmallVec<[(String, MiddlewareChain<T>, bool); 8]>;
 
 pub struct Node<T: 'static + Context + Send> {
@@ -17,6 +17,7 @@ pub struct Node<T: 'static + Context + Send> {
     pub value: String,
     pub is_wildcard: bool,
     pub is_terminal_node: bool,
+    pub terminal_path: String,
 }
 
 impl<T: Context + Send> Clone for Node<T> {
@@ -41,6 +42,7 @@ impl<T: Context + Send> Clone for Node<T> {
             param_key: self.param_key.clone(),
             is_wildcard: self.is_wildcard,
             is_terminal_node: self.is_terminal_node,
+            terminal_path: self.terminal_path.clone(),
         }
     }
 }
@@ -55,6 +57,7 @@ impl<T: 'static + Context + Send> Node<T> {
             param_key: None,
             is_wildcard: false,
             is_terminal_node: false,
+            terminal_path: "".to_string(),
         }
     }
 
@@ -67,10 +70,11 @@ impl<T: 'static + Context + Send> Node<T> {
             param_key: param_name,
             is_wildcard: true,
             is_terminal_node: false,
+            terminal_path: "".to_string(),
         }
     }
 
-    pub fn add_route(&mut self, route: &str, middleware: MiddlewareChain<T>) {
+    pub fn add_route(&mut self, route: &str, middleware: MiddlewareChain<T>, terminal_path: String) {
         // Strip a leading slash
         let mut split_iterator = match route.chars().next() {
             Some('/') => &route[1..],
@@ -82,6 +86,7 @@ impl<T: 'static + Context + Send> Node<T> {
             if piece.is_empty() {
                 self.is_terminal_node = true;
                 self.runnable = middleware;
+                self.terminal_path = terminal_path;
             } else {
                 match piece.chars().next().unwrap() {
                     ':' => {
@@ -92,6 +97,7 @@ impl<T: 'static + Context + Send> Node<T> {
                             wildcard.add_route(
                                 &split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"),
                                 middleware,
+                                terminal_path,
                             );
 
                             self.wildcard_node = Some(Box::new(wildcard));
@@ -101,10 +107,11 @@ impl<T: 'static + Context + Send> Node<T> {
                         if !self.is_wildcard {
                             let mut wildcard = Node::new_wildcard(None);
                             wildcard.is_terminal_node = true;
-
+                            wildcard.terminal_path = terminal_path.clone();
                             wildcard.add_route(
                                 &split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"),
                                 middleware,
+                                terminal_path,
                             );
 
                             self.wildcard_node = Some(Box::new(wildcard));
@@ -119,6 +126,7 @@ impl<T: 'static + Context + Send> Node<T> {
                         child.add_route(
                             &split_iterator.collect::<SmallVec<[&str; 8]>>().join("/"),
                             middleware,
+                            terminal_path,
                         );
 
                         self.children.insert(piece.to_owned(), child);
@@ -203,12 +211,13 @@ impl<T: 'static + Context + Send> Node<T> {
                                 results.0,
                                 wildcard_node.is_terminal_node,
                                 &wildcard_node.runnable,
+                                &wildcard_node.terminal_path,
                             ),
                             None => {
                                 if !self.is_wildcard {
                                     results
                                 } else {
-                                    (results.0, self.is_terminal_node, &self.runnable)
+                                    (results.0, self.is_terminal_node, &self.runnable, &self.terminal_path)
                                 }
                             }
                         }
@@ -223,12 +232,13 @@ impl<T: 'static + Context + Send> Node<T> {
                             // a non-terminal node (this is the case where the defined route is like
                             // /a/:b, but the incoming route to match is /a/)
                             if piece.is_empty() && wildcard_node.param_key.is_some() {
-                                (params, false, &wildcard_node.runnable)
+                                (params, false, &wildcard_node.runnable, &wildcard_node.terminal_path)
                             } else if piece.is_empty() && wildcard_node.param_key.is_none() {
                                 (
                                     params,
                                     wildcard_node.is_terminal_node,
                                     &wildcard_node.runnable,
+                                    &wildcard_node.terminal_path,
                                 )
                             } else {
                                 if let Some(param_key) = &wildcard_node.param_key {
@@ -242,16 +252,16 @@ impl<T: 'static + Context + Send> Node<T> {
                                 if results.1 {
                                     results
                                 } else {
-                                    (results.0, wildcard_node.is_terminal_node, &self.runnable)
+                                    (results.0, wildcard_node.is_terminal_node, &self.runnable, &wildcard_node.terminal_path)
                                 }
                             }
                         }
-                        None => (params, self.is_terminal_node, &self.runnable),
+                        None => (params, self.is_terminal_node, &self.runnable, &self.terminal_path),
                     }
                 }
             }
         } else if self.is_terminal_node {
-            (params, self.is_terminal_node, &self.runnable)
+            (params, self.is_terminal_node, &self.runnable, &self.terminal_path)
         } else if let Some(wildcard_node) = &self.wildcard_node {
             if wildcard_node.param_key == None {
                 let results = wildcard_node.match_route_with_params(route, params);
@@ -261,13 +271,13 @@ impl<T: 'static + Context + Send> Node<T> {
                 if results.1 {
                     results
                 } else {
-                    (results.0, self.is_terminal_node, &self.runnable)
+                    (results.0, self.is_terminal_node, &self.runnable, &self.terminal_path)
                 }
             } else {
-                (params, self.is_terminal_node, &self.runnable)
+                (params, self.is_terminal_node, &self.runnable, &self.terminal_path)
             }
         } else {
-            (params, self.is_terminal_node, &self.runnable)
+            (params, self.is_terminal_node, &self.runnable, &self.terminal_path)
         }
     }
 

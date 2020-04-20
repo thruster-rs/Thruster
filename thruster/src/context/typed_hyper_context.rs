@@ -12,10 +12,6 @@ use crate::core::{MiddlewareNext, MiddlewareResult};
 use crate::middleware::query_params::HasQueryParams;
 use crate::context::hyper_request::HyperRequest;
 
-pub fn generate_context<S>(request: HyperRequest, _state: &S, _path: &str) -> BasicHyperContext {
-    BasicHyperContext::new(request)
-}
-
 pub enum SameSite {
     Strict,
     Lax,
@@ -53,31 +49,32 @@ impl CookieOptions {
 /// the raw hyper request into the context itself for easier access.
 ///
 #[middleware_fn(_internal)]
-pub async fn to_owned_request(
-    context: BasicHyperContext,
-    next: MiddlewareNext<BasicHyperContext>,
-) -> MiddlewareResult<BasicHyperContext> {
+pub async fn to_owned_request<T: 'static + Send>(
+    context: TypedHyperContext<T>,
+    next: MiddlewareNext<TypedHyperContext<T>>,
+) -> MiddlewareResult<TypedHyperContext<T>> {
     let context = next(context.to_owned_request()).await?;
 
     Ok(context)
 }
 
 #[derive(Default)]
-pub struct BasicHyperContext {
+pub struct TypedHyperContext<S> {
     pub body: Body,
     pub query_params: HashMap<String, String>,
     pub status: u16,
     pub headers: HashMap<String, String>,
     pub params: HashMap<String, String>,
     pub hyper_request: Option<HyperRequest>,
+    pub extra: S,
     request_body: Option<Body>,
     request_parts: Option<Parts>,
 }
 
-impl BasicHyperContext {
-    pub fn new(req: HyperRequest) -> BasicHyperContext {
+impl<S> TypedHyperContext<S> {
+    pub fn new(req: HyperRequest, extra: S) -> TypedHyperContext<S> {
         let params = req.params.clone();
-        let mut ctx = BasicHyperContext {
+        let mut ctx = TypedHyperContext {
             body: Body::empty(),
             query_params: HashMap::new(),
             headers: HashMap::new(),
@@ -86,6 +83,7 @@ impl BasicHyperContext {
             hyper_request: Some(req),
             request_body: None,
             request_parts: None,
+            extra,
         };
 
         ctx.set("Server", "Thruster");
@@ -103,7 +101,7 @@ impl BasicHyperContext {
     ///
     /// Get the body as a string
     ///
-    pub async fn get_body(self) -> Result<(String, BasicHyperContext), Error> {
+    pub async fn get_body(self) -> Result<(String, TypedHyperContext<S>), Error> {
         let ctx = match self.request_body {
             Some(_) => self,
             None => self.to_owned_request(),
@@ -119,7 +117,7 @@ impl BasicHyperContext {
 
         Ok((
             results,
-            BasicHyperContext {
+            TypedHyperContext {
                 body: ctx.body,
                 query_params: ctx.query_params,
                 headers: ctx.headers,
@@ -128,6 +126,7 @@ impl BasicHyperContext {
                 hyper_request: ctx.hyper_request,
                 request_body: Some(Body::empty()),
                 request_parts: ctx.request_parts,
+                extra: ctx.extra,
             },
         ))
     }
@@ -138,13 +137,13 @@ impl BasicHyperContext {
             .expect("Must call `to_owned_request` prior to getting parts")
     }
 
-    pub fn to_owned_request(self) -> BasicHyperContext {
+    pub fn to_owned_request(self) -> TypedHyperContext<S> {
         let hyper_request = self.hyper_request.expect(
             "`hyper_request` is None! That means `to_owned_request` has already been called",
         );
         let (parts, body) = hyper_request.request.into_parts();
 
-        BasicHyperContext {
+        TypedHyperContext {
             body: self.body,
             query_params: self.query_params,
             headers: self.headers,
@@ -153,6 +152,7 @@ impl BasicHyperContext {
             hyper_request: None,
             request_body: Some(body),
             request_parts: Some(parts),
+            extra: self.extra,
         }
     }
 
@@ -233,7 +233,7 @@ impl BasicHyperContext {
     }
 }
 
-impl Context for BasicHyperContext {
+impl<S> Context for TypedHyperContext<S> {
     type Response = Response<Body>;
 
     fn get_response(self) -> Self::Response {
@@ -281,7 +281,7 @@ impl Context for BasicHyperContext {
     }
 }
 
-impl HasQueryParams for BasicHyperContext {
+impl<S> HasQueryParams for TypedHyperContext<S> {
     fn set_query_params(&mut self, query_params: HashMap<String, String>) {
         self.query_params = query_params;
     }

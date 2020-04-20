@@ -27,7 +27,7 @@ async fn test_fn_404(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Middleware
 
 #[test]
 fn it_should_correctly_404_if_no_param_is_given() {
-    let mut app = App::<Request, Ctx>::new_basic();
+    let mut app = App::<Request, Ctx, ()>::new_basic();
 
     app.get("/test/:id", async_middleware!(Ctx, [test_fn_1]));
     app.set404(async_middleware!(Ctx, [test_fn_404]));
@@ -41,7 +41,7 @@ fn it_should_correctly_404_if_no_param_is_given() {
 
 #[test]
 fn it_should_execute_all_middlware_with_a_given_request() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -67,7 +67,7 @@ fn it_should_execute_all_middlware_with_a_given_request() {
 
 #[test]
 fn it_should_correctly_differentiate_wildcards_and_valid_routes() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -99,7 +99,7 @@ fn it_should_correctly_differentiate_wildcards_and_valid_routes() {
 
 #[test]
 fn it_should_handle_query_parameters() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -127,7 +127,7 @@ fn it_should_handle_query_parameters() {
 
 #[test]
 fn it_should_handle_cookies() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -166,7 +166,7 @@ fn it_should_handle_cookies() {
 
 #[test]
 fn it_should_execute_all_middlware_with_a_given_request_with_params() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -190,7 +190,7 @@ fn it_should_execute_all_middlware_with_a_given_request_with_params() {
 
 #[test]
 fn it_should_execute_all_middlware_with_a_given_request_with_params_in_a_subapp() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -205,7 +205,7 @@ fn it_should_execute_all_middlware_with_a_given_request_with_params_in_a_subapp(
 
     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
 
-    let mut app2 = App::<Request, BasicContext>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
     app2.use_sub_app("/test", app1);
 
     let _ = Runtime::new().unwrap().block_on(async {
@@ -217,7 +217,7 @@ fn it_should_execute_all_middlware_with_a_given_request_with_params_in_a_subapp(
 
 #[test]
 fn it_should_correctly_parse_params_in_subapps() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -232,7 +232,7 @@ fn it_should_correctly_parse_params_in_subapps() {
 
     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
 
-    let mut app2 = App::<Request, BasicContext>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
     app2.use_sub_app("/test", app1);
 
     let _ = Runtime::new().unwrap().block_on(async {
@@ -244,7 +244,7 @@ fn it_should_correctly_parse_params_in_subapps() {
 
 #[test]
 fn it_should_match_as_far_as_possible_in_a_subapp() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -269,7 +269,7 @@ fn it_should_match_as_far_as_possible_in_a_subapp() {
     app1.get("/", async_middleware!(BasicContext, [test_fn_2]));
     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
 
-    let mut app2 = App::<Request, BasicContext>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
     app2.use_sub_app("/test", app1);
 
     let _ = Runtime::new().unwrap().block_on(async {
@@ -281,7 +281,7 @@ fn it_should_match_as_far_as_possible_in_a_subapp() {
 
 #[test]
 fn it_should_trim_trailing_slashes() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -305,7 +305,7 @@ fn it_should_trim_trailing_slashes() {
 
     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
 
-    let mut app2 = App::<Request, BasicContext>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
     app2.use_sub_app("/test", app1);
     app2.set404(async_middleware!(BasicContext, [test_fn_2]));
 
@@ -318,7 +318,7 @@ fn it_should_trim_trailing_slashes() {
 
 #[test]
 fn it_should_trim_trailing_slashes_after_params() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -342,7 +342,7 @@ fn it_should_trim_trailing_slashes_after_params() {
 
 #[test]
 fn it_should_execute_all_middlware_with_a_given_request_based_on_method() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -378,7 +378,7 @@ fn it_should_execute_all_middlware_with_a_given_request_based_on_method() {
 
 #[test]
 fn it_should_execute_all_middlware_with_a_given_request_up_and_down() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -421,7 +421,7 @@ fn it_should_execute_all_middlware_with_a_given_request_up_and_down() {
 
 #[test]
 fn it_should_return_whatever_was_set_as_the_body_of_the_context() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -443,7 +443,7 @@ fn it_should_return_whatever_was_set_as_the_body_of_the_context() {
 
 #[test]
 fn it_should_first_run_use_then_methods() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn method_agnostic(
@@ -479,7 +479,7 @@ fn it_should_first_run_use_then_methods() {
 
 #[test]
 fn it_should_be_able_to_correctly_route_sub_apps() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -492,7 +492,7 @@ fn it_should_be_able_to_correctly_route_sub_apps() {
 
     app1.get("/test", async_middleware!(BasicContext, [test_fn_1]));
 
-    let mut app2 = App::<Request, BasicContext>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
     app2.use_sub_app("/", app1);
 
     let _ = Runtime::new().unwrap().block_on(async {
@@ -504,7 +504,7 @@ fn it_should_be_able_to_correctly_route_sub_apps() {
 
 #[test]
 fn it_should_be_able_to_correctly_route_sub_apps_with_wildcards() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -517,7 +517,7 @@ fn it_should_be_able_to_correctly_route_sub_apps_with_wildcards() {
 
     app1.get("/*", async_middleware!(BasicContext, [test_fn_1]));
 
-    let mut app2 = App::<Request, BasicContext>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
     app2.use_sub_app("/", app1);
 
     let _ = Runtime::new().unwrap().block_on(async {
@@ -529,7 +529,7 @@ fn it_should_be_able_to_correctly_route_sub_apps_with_wildcards() {
 
 #[test]
 fn it_should_be_able_to_correctly_prefix_route_sub_apps() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -542,7 +542,7 @@ fn it_should_be_able_to_correctly_prefix_route_sub_apps() {
 
     app1.get("/test", async_middleware!(BasicContext, [test_fn_1]));
 
-    let mut app2 = App::<Request, BasicContext>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
     app2.use_sub_app("/sub", app1);
 
     let _ = Runtime::new().unwrap().block_on(async {
@@ -554,7 +554,7 @@ fn it_should_be_able_to_correctly_prefix_route_sub_apps() {
 
 #[test]
 fn it_should_be_able_to_correctly_prefix_the_root_of_sub_apps() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -567,7 +567,7 @@ fn it_should_be_able_to_correctly_prefix_the_root_of_sub_apps() {
 
     app1.get("/", async_middleware!(BasicContext, [test_fn_1]));
 
-    let mut app2 = App::<Request, BasicContext>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
     app2.use_sub_app("/sub", app1);
 
     let _ = Runtime::new().unwrap().block_on(async {
@@ -579,7 +579,7 @@ fn it_should_be_able_to_correctly_prefix_the_root_of_sub_apps() {
 
 #[test]
 fn it_should_be_able_to_correctly_handle_not_found_routes() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -611,7 +611,7 @@ fn it_should_be_able_to_correctly_handle_not_found_routes() {
 
 #[test]
 fn it_should_be_able_to_correctly_handle_not_found_at_the_root() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -643,7 +643,7 @@ fn it_should_be_able_to_correctly_handle_not_found_at_the_root() {
 
 #[test]
 fn it_should_be_able_to_correctly_handle_deep_not_found_routes() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -675,7 +675,7 @@ fn it_should_be_able_to_correctly_handle_deep_not_found_routes() {
 
 #[test]
 fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramaterized_routes() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -708,7 +708,7 @@ fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramateriz
 #[test]
 fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramaterized_routes_with_extra_pieces(
 ) {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -740,9 +740,9 @@ fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_paramateriz
 
 #[test]
 fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_root_route() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
-    let mut app2 = App::<Request, BasicContext>::new_basic();
-    let mut app3 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
+    let mut app3 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -776,7 +776,7 @@ fn it_should_be_able_to_correctly_handle_deep_not_found_routes_after_root_route(
 
 #[test]
 fn it_should_handle_routes_without_leading_slash() {
-    let mut app = App::<Request, BasicContext>::new_basic();
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -798,8 +798,8 @@ fn it_should_handle_routes_without_leading_slash() {
 
 #[test]
 fn it_should_handle_routes_within_a_subapp_without_leading_slash() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
-    let mut app2 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -822,9 +822,9 @@ fn it_should_handle_routes_within_a_subapp_without_leading_slash() {
 
 #[test]
 fn it_should_handle_multiple_subapps_with_wildcards() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
-    let mut app2 = App::<Request, BasicContext>::new_basic();
-    let mut app3 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
+    let mut app3 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -858,7 +858,7 @@ fn it_should_handle_multiple_subapps_with_wildcards() {
 
 #[test]
 fn it_should_prefer_specificity_to_ambiguity() {
-    let mut app1 = App::<Request, BasicContext>::new_basic();
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
 
     #[middleware_fn]
     async fn test_fn_1(
@@ -881,7 +881,7 @@ fn it_should_prefer_specificity_to_ambiguity() {
     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
     app1.get("/order", async_middleware!(BasicContext, [test_fn_2]));
 
-    let mut app2 = App::<Request, BasicContext>::new_basic();
+    let mut app2 = App::<Request, BasicContext, ()>::new_basic();
     app2.use_sub_app("/b", app1);
 
     let _ = Runtime::new().unwrap().block_on(async {

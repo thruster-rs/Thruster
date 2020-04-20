@@ -42,4 +42,6 @@ pub use server::ThrusterServer;
 pub use thruster_proc::*;
 
 #[cfg(feature = "hyper_server")]
-pub use context::basic_hyper_context::{BasicHyperContext, HyperRequest};
+pub use context::basic_hyper_context::BasicHyperContext;
+#[cfg(feature = "hyper_server")]
+pub use context::hyper_request::HyperRequest;

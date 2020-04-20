@@ -78,30 +78,33 @@ fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
 /// useful if trying to integrate with a different type of load balancing system within the threads of the
 /// application.
 ///
-pub struct App<R: RequestWithParams, T: 'static + Context + Send> {
+pub struct App<R: RequestWithParams, T: 'static + Context + Send, S: Send> {
     pub _route_parser: RouteParser<T>,
     ///
     /// Generate context is common to all `App`s. It's the function that's called upon receiving a request
     /// that translates an acutal `Request` struct to your custom Context type. It should be noted that
     /// the context_generator should be as fast as possible as this is called with every request, including
     /// 404s.
-    pub context_generator: fn(R) -> T,
+    pub context_generator: fn(R, &S, &str) -> T,
+    pub state: S,
+
 }
 
-impl<R: RequestWithParams, T: Context + Send> App<R, T> {
+impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
     /// examples, likely not a good solution for real code bases. The advantage is that the
     /// context_generator is already supplied for the developer.
-    pub fn new_basic() -> App<Request, BasicContext> {
-        App::create(generate_context)
+    pub fn new_basic() -> App<Request, BasicContext, ()> {
+        App::create(generate_context, ())
     }
 
     /// Create a new app with the given context generator. The app does not begin listening until start
     /// is called.
-    pub fn create(generate_context: fn(R) -> T) -> App<R, T> {
+    pub fn create(generate_context: fn(R, &S, &str) -> T, state: S) -> App<R, T, S> {
         App {
             _route_parser: RouteParser::new(),
             context_generator: generate_context,
+            state,
         }
     }
 
@@ -111,7 +114,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
         &mut self,
         path: &'static str,
         middleware: MiddlewareChain<T>,
-    ) -> &mut App<R, T> {
+    ) -> &mut App<R, T, S> {
         self._route_parser
             .add_method_agnostic_middleware(path, middleware);
 
@@ -121,7 +124,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     /// Add an app as a predetermined set of routes and middleware. Will prefix whatever string is passed
     /// in to all of the routes. This is a main feature of Thruster, as it allows projects to be extermely
     /// modular and composeable in nature.
-    pub fn use_sub_app(&mut self, prefix: &'static str, app: App<R, T>) -> &mut App<R, T> {
+    pub fn use_sub_app(&mut self, prefix: &'static str, app: App<R, T, S>) -> &mut App<R, T, S> {
         self._route_parser
             .route_tree
             .add_route_tree(prefix, app._route_parser.route_tree);
@@ -135,7 +138,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     }
 
     /// Add a route that responds to `GET`s to a given path
-    pub fn get(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
+    pub fn get(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
         self._route_parser
             .add_route(&_add_method_to_route(&Method::GET, path), middlewares);
 
@@ -147,7 +150,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
         &mut self,
         path: &'static str,
         middlewares: MiddlewareChain<T>,
-    ) -> &mut App<R, T> {
+    ) -> &mut App<R, T, S> {
         self._route_parser
             .add_route(&_add_method_to_route(&Method::OPTIONS, path), middlewares);
 
@@ -155,7 +158,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     }
 
     /// Add a route that responds to `POST`s to a given path
-    pub fn post(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
+    pub fn post(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
         self._route_parser
             .add_route(&_add_method_to_route(&Method::POST, path), middlewares);
 
@@ -163,7 +166,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     }
 
     /// Add a route that responds to `PUT`s to a given path
-    pub fn put(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
+    pub fn put(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
         self._route_parser
             .add_route(&_add_method_to_route(&Method::PUT, path), middlewares);
 
@@ -175,7 +178,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
         &mut self,
         path: &'static str,
         middlewares: MiddlewareChain<T>,
-    ) -> &mut App<R, T> {
+    ) -> &mut App<R, T, S> {
         self._route_parser
             .add_route(&_add_method_to_route(&Method::DELETE, path), middlewares);
 
@@ -187,7 +190,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
         &mut self,
         path: &'static str,
         middlewares: MiddlewareChain<T>,
-    ) -> &mut App<R, T> {
+    ) -> &mut App<R, T, S> {
         self._route_parser
             .add_route(&_add_method_to_route(&Method::UPDATE, path), middlewares);
 
@@ -195,7 +198,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     }
 
     /// Sets the middleware if no route is successfully matched.
-    pub fn set404(&mut self, middlewares: MiddlewareChain<T>) -> &mut App<R, T> {
+    pub fn set404(&mut self, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
         self._route_parser.add_route(
             &_add_method_to_route(&Method::GET, "/*"),
             middlewares.clone(),
@@ -219,7 +222,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     }
 
     pub fn resolve_from_method_and_path(&self, method: &str, path: &str) -> MatchedRoute<T> {
-        let path_with_method = &_add_method_to_route_from_str(method, path);
+        let path_with_method = _add_method_to_route_from_str(method, path);
 
         self._route_parser.match_route(path_with_method)
     }
@@ -250,7 +253,7 @@ impl<R: RequestWithParams, T: Context + Send> App<R, T> {
     ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {
         request.set_params(matched_route.params);
 
-        let context = (self.context_generator)(request);
+        let context = (self.context_generator)(request, &self.state, matched_route.path);
 
         let copy = matched_route.middleware.clone();
         async move {

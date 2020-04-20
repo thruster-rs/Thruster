@@ -38,7 +38,7 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<Request, Ctx>::new_basic();
+    let mut app = App::<Request, Ctx, ()>::new_basic();
 
     app.use_middleware("/", async_middleware!(Ctx, [profiling]));
     app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
