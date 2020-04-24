@@ -111,13 +111,13 @@ pub async fn put<T: Context<Response = Response> + Send, S: Send>(
     TestResponse::new(response)
 }
 
-pub async fn update<T: Context<Response = Response> + Send, S: Send>(
+pub async fn patch<T: Context<Response = Response> + Send, S: Send>(
     app: &App<Request, T, S>,
     route: &str,
     content: &str,
 ) -> TestResponse {
     let body = format!(
-        "UPDATE {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}",
+        "PATCH {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}",
         route,
         content.len(),
         content
@@ -127,7 +127,7 @@ pub async fn update<T: Context<Response = Response> + Send, S: Send>(
     bytes.put(body.as_bytes());
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let matched_route = app.resolve_from_method_and_path("UPDATE", route);
+    let matched_route = app.resolve_from_method_and_path("PATCH", route);
     let response = app.resolve(request, matched_route).await.unwrap();
 
     TestResponse::new(response)

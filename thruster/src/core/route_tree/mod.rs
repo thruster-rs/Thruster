@@ -12,7 +12,7 @@ pub enum Method {
     OPTIONS,
     POST,
     PUT,
-    UPDATE,
+    PATCH,
 }
 
 pub struct RouteTree<T: 'static + Context + Send> {
@@ -28,7 +28,7 @@ fn method_to_prefix<'a>(method: &Method) -> &'a str {
         Method::OPTIONS => "__OPTIONS__",
         Method::POST => "__POST__",
         Method::PUT => "__PUT__",
-        Method::UPDATE => "__UPDATE__",
+        Method::PATCH => "__UPDATE__",
     }
 }
 
@@ -111,7 +111,7 @@ impl<T: 'static + Context + Send> RouteTree<T> {
         route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::OPTIONS);
         route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::POST);
         route_tree = self._adopt_sub_app_method_to_self(route, route_tree, &Method::PUT);
-        self._adopt_sub_app_method_to_self(route, route_tree, &Method::UPDATE);
+        self._adopt_sub_app_method_to_self(route, route_tree, &Method::PATCH);
         self.update_root_node();
     }
 
