@@ -10,7 +10,7 @@ use thruster_proc::middleware_fn;
 use crate::core::context::Context;
 use crate::core::{MiddlewareNext, MiddlewareResult};
 use crate::middleware::query_params::HasQueryParams;
-use crate::context::hyper_request::HyperRequest;
+pub use crate::context::hyper_request::HyperRequest;
 
 pub fn generate_context<S>(request: HyperRequest, _state: &S, _path: &str) -> BasicHyperContext {
     BasicHyperContext::new(request)
