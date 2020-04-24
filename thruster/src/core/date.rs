@@ -46,7 +46,7 @@ impl fmt::Display for Now {
             let mut cache = cache.borrow_mut();
             let now = time::get_time();
             if now > cache.next_update {
-                cache.patch(now);
+                cache.update(now);
             }
             f.write_str(cache.buffer())
         })
@@ -58,7 +58,7 @@ impl LastRenderedNow {
         str::from_utf8(&self.bytes[..self.amt]).unwrap()
     }
 
-    fn patch(&mut self, now: time::Timespec) {
+    fn update(&mut self, now: time::Timespec) {
         self.amt = 0;
         write!(LocalBuffer(self), "{}", time::at(now).rfc822()).unwrap();
         self.next_update = now + Duration::seconds(1);
