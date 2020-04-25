@@ -14,7 +14,7 @@ enum Method {
     OPTIONS,
     POST,
     PUT,
-    UPDATE,
+    PATCH,
 }
 
 // Warning, this method is slow and shouldn't be used for route matching, only for route adding
@@ -25,7 +25,7 @@ fn _add_method_to_route(method: &Method, path: &str) -> String {
         Method::OPTIONS => "__OPTIONS__",
         Method::POST => "__POST__",
         Method::PUT => "__PUT__",
-        Method::UPDATE => "__UPDATE__",
+        Method::PATCH => "__PATCH__",
     };
 
     match &path[0..1] {
@@ -112,7 +112,7 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     /// anything else that might not be sensitive to the HTTP method for the endpoint.
     pub fn use_middleware(
         &mut self,
-        path: &'static str,
+        path: &str,
         middleware: MiddlewareChain<T>,
     ) -> &mut App<R, T, S> {
         self._route_parser
@@ -124,7 +124,7 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     /// Add an app as a predetermined set of routes and middleware. Will prefix whatever string is passed
     /// in to all of the routes. This is a main feature of Thruster, as it allows projects to be extermely
     /// modular and composeable in nature.
-    pub fn use_sub_app(&mut self, prefix: &'static str, app: App<R, T, S>) -> &mut App<R, T, S> {
+    pub fn use_sub_app(&mut self, prefix: &str, app: App<R, T, S>) -> &mut App<R, T, S> {
         self._route_parser
             .route_tree
             .add_route_tree(prefix, app._route_parser.route_tree);
@@ -138,7 +138,7 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     }
 
     /// Add a route that responds to `GET`s to a given path
-    pub fn get(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
+    pub fn get(&mut self, path: &str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
         self._route_parser
             .add_route(&_add_method_to_route(&Method::GET, path), middlewares);
 
@@ -148,7 +148,7 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     /// Add a route that responds to `OPTION`s to a given path
     pub fn options(
         &mut self,
-        path: &'static str,
+        path: &str,
         middlewares: MiddlewareChain<T>,
     ) -> &mut App<R, T, S> {
         self._route_parser
@@ -158,7 +158,7 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     }
 
     /// Add a route that responds to `POST`s to a given path
-    pub fn post(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
+    pub fn post(&mut self, path: &str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
         self._route_parser
             .add_route(&_add_method_to_route(&Method::POST, path), middlewares);
 
@@ -166,7 +166,7 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     }
 
     /// Add a route that responds to `PUT`s to a given path
-    pub fn put(&mut self, path: &'static str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
+    pub fn put(&mut self, path: &str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
         self._route_parser
             .add_route(&_add_method_to_route(&Method::PUT, path), middlewares);
 
@@ -176,7 +176,7 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     /// Add a route that responds to `DELETE`s to a given path
     pub fn delete(
         &mut self,
-        path: &'static str,
+        path: &str,
         middlewares: MiddlewareChain<T>,
     ) -> &mut App<R, T, S> {
         self._route_parser
@@ -185,14 +185,14 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
         self
     }
 
-    /// Add a route that responds to `UPDATE`s to a given path
-    pub fn update(
+    /// Add a route that responds to `PATCH`s to a given path
+    pub fn patch(
         &mut self,
-        path: &'static str,
+        path: &str,
         middlewares: MiddlewareChain<T>,
     ) -> &mut App<R, T, S> {
         self._route_parser
-            .add_route(&_add_method_to_route(&Method::UPDATE, path), middlewares);
+            .add_route(&_add_method_to_route(&Method::PATCH, path), middlewares);
 
         self
     }
@@ -212,7 +212,7 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
             middlewares.clone(),
         );
         self._route_parser.add_route(
-            &_add_method_to_route(&Method::UPDATE, "/*"),
+            &_add_method_to_route(&Method::PATCH, "/*"),
             middlewares.clone(),
         );
         self._route_parser

@@ -89,15 +89,15 @@ pub fn put<T: Context<Response = Response> + Send>(app: &App<Request, T>, route:
   TestResponse::new(response)
 }
 
-pub fn update<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
-  let body = format!("UPDATE {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
+pub fn patch<T: Context<Response = Response> + Send>(app: &App<Request, T>, route: &str, content: &str) -> TestResponse {
+  let body = format!("PATCH {} HTTP/1.1\nHost: localhost:8080\nContent-Length: {}\n\n{}", route, content.len(), content);
 
   let mut bytes = BytesMut::with_capacity(body.len());
   bytes.put(&body);
 
 
   let request = decode(&mut bytes).unwrap().unwrap();
-  let matched_route = app.resolve_from_method_and_path("UPDATE", route);
+  let matched_route = app.resolve_from_method_and_path("PATCH", route);
   let response = app.resolve(request, matched_route).wait().unwrap();
 
 

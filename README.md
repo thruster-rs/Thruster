@@ -246,7 +246,7 @@ Within the `build` function, the server implementation should:
 
 ## Using cargo generate
 
-_Note: This hasn't yet been update for the latest version of thruster_
+_Note: This hasn't yet been updated for the latest version of thruster_
 
 If you have `cargo generate` installed, you can simply run the [cargo generator](https://github.com/ami44/thruster-basic-template)
 
