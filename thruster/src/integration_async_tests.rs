@@ -66,6 +66,43 @@ fn it_should_execute_all_middlware_with_a_given_request() {
 }
 
 #[test]
+fn it_should_execute_all_middlware_with_a_given_request_with_prefix() {
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
+
+    #[middleware_fn]
+    async fn test_fn_1(
+        mut context: BasicContext,
+        _next: MiddlewareNext<BasicContext>,
+    ) -> MiddlewareResult<BasicContext> {
+        context.body("nope");
+        Ok(context)
+    };
+
+    #[middleware_fn]
+    async fn test_middleware_1(
+        context: BasicContext,
+        next: MiddlewareNext<BasicContext>,
+    ) -> MiddlewareResult<BasicContext> {
+        let _ = next(context).await;
+        let mut context = Ctx::new();
+        context.body("1");
+        Ok(context)
+    };
+
+    app.use_middleware(
+        "/test",
+        async_middleware!(BasicContext, [test_middleware_1]),
+    );
+    app.get("/test/:key", async_middleware!(BasicContext, [test_fn_1]));
+
+    let _ = Runtime::new().unwrap().block_on(async {
+        let response = testing::get(&app, "/test/a").await;
+
+        assert!(response.body == "1");
+    });
+}
+
+#[test]
 fn it_should_correctly_differentiate_wildcards_and_valid_routes() {
     let mut app = App::<Request, BasicContext, ()>::new_basic();
 

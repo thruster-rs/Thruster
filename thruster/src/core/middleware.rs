@@ -125,6 +125,13 @@ impl<T: 'static + Context + Send> MiddlewareChain<T> {
     pub fn is_assigned(&self) -> bool {
         self.assigned
     }
+
+    ///
+    /// Returns the total length of the middleware chain's nodes
+    ///
+    pub fn len(&self) -> usize {
+        self.chain.nodes.len()
+    }
 }
 
 impl<T: 'static + Context + Send> Default for MiddlewareChain<T> {

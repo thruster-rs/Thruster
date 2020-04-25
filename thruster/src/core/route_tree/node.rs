@@ -288,7 +288,7 @@ impl<T: 'static + Context + Send> Node<T> {
     ///
     ///   app.get("/plaintext", middleware![plaintext]);
     ///  println!("app: {}", app._route_parser.route_tree.root_node.tree_string(""));
-    ///  for (route, middleware) in app._route_parser.route_tree.root_node.get_route_list() {
+    ///  for (route, middleware, is_terminal) in app._route_parser.route_tree.root_node.get_route_list() {
     ///    println!("{}: {}", route, middleware.len());
     ///  }
     /// ```
@@ -334,13 +334,13 @@ impl<T: 'static + Context + Send> Node<T> {
 
         // Add child routes
         for child in self.children.values() {
-            if child.is_terminal_node {
+            // if child.is_terminal_node {
                 routes.push((
                     format!("{}/{}", self_route, child.value),
                     child.runnable.clone(),
                     child.is_terminal_node,
                 ));
-            }
+            // }
 
             for child_route in child.get_route_list() {
                 routes.push((
@@ -402,7 +402,16 @@ impl<T: 'static + Context + Send> Node<T> {
         // Match children, recurse if child match
         for (key, child) in &mut self.children {
             // Traverse the child tree, or else make a dummy node
-            let other_child = other_node.children.get(key).unwrap_or(&fake_node);
+            // For leading verbs, we'll fake and pass the current node
+            let other_child = match key.as_ref() {
+                "__DELETE" |
+                "__GET__" |
+                "__OPTIONS__" |
+                "__POST__" |
+                "__PUT__" |
+                "__UPDATE__" => other_node,
+                val => other_node.children.get(val).unwrap_or(&fake_node),
+            };
 
             child.push_middleware_to_populated_nodes(other_child, &accumulating_chain.clone());
         }

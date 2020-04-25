@@ -23,5 +23,5 @@ fn main() {
     app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
 
     let server = HyperServer::new(app);
-    server.start("0.0.0.0", 4321);
+    server.start("0.0.0.0", 4322);
 }
