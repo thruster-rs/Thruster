@@ -8,11 +8,17 @@ pub type MiddlewareResult<C> = Result<C, ThrusterError<C>>;
 pub type MiddlewareReturnValue<C> = Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>>;
 pub type MiddlewareNext<C> =
     Box<dyn Fn(C) -> Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>> + Send + Sync>;
-pub type MiddlewareFn<C> =
-    fn(C, MiddlewareNext<C>) -> Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>>;
+
+pub trait MiddlewareFn<C> {
+    fn execute(
+        &self,
+        context: C,
+        next: MiddlewareNext<C>,
+    ) -> Pin<Box<dyn Future<Output = MiddlewareResult<C>> + Send>>;
+}
 
 pub struct Middleware<C: 'static> {
-    pub middleware: &'static [MiddlewareFn<C>],
+    pub middleware: &'static [Box<dyn MiddlewareFn<C> + Sync>],
 }
 
 fn chained_run<C: 'static + Context + Send>(
@@ -22,7 +28,7 @@ fn chained_run<C: 'static + Context + Send>(
 ) -> MiddlewareNext<C> {
     Box::new(move |ctx| match nodes.get(i) {
         Some(n) => match n.middleware.get(j) {
-            Some(m) => m(ctx, chained_run(i, j + 1, nodes.clone())),
+            Some(m) => m.execute(ctx, chained_run(i, j + 1, nodes.clone())),
             None => chained_run(i + 1, 0, nodes.clone())(ctx),
         },
         // TODO(trezm): Make this somehow default to a 404
