@@ -72,6 +72,7 @@ pub struct BasicHyperContext {
     pub hyper_request: Option<HyperRequest>,
     request_body: Option<Body>,
     request_parts: Option<Parts>,
+    http_version: hyper::Version,
 }
 
 impl BasicHyperContext {
@@ -86,6 +87,7 @@ impl BasicHyperContext {
             hyper_request: Some(req),
             request_body: None,
             request_parts: None,
+            http_version: hyper::Version::HTTP_11,
         };
 
         ctx.set("Server", "Thruster");
@@ -128,6 +130,7 @@ impl BasicHyperContext {
                 hyper_request: ctx.hyper_request,
                 request_body: Some(Body::empty()),
                 request_parts: ctx.request_parts,
+                http_version: ctx.http_version,
             },
         ))
     }
@@ -153,6 +156,7 @@ impl BasicHyperContext {
             hyper_request: None,
             request_body: Some(body),
             request_parts: Some(parts),
+            http_version: self.http_version,
         }
     }
 
@@ -231,6 +235,18 @@ impl BasicHyperContext {
 
         format!("{}={}; {}", name, value, pieces.join(", "))
     }
+
+    pub fn set_http2(&mut self) {
+        self.http_version = hyper::Version::HTTP_2;
+    }
+
+    pub fn set_http11(&mut self) {
+        self.http_version = hyper::Version::HTTP_11;
+    }
+
+    pub fn set_http10(&mut self) {
+        self.http_version = hyper::Version::HTTP_10;
+    }
 }
 
 impl Context for BasicHyperContext {
@@ -247,6 +263,7 @@ impl Context for BasicHyperContext {
 
         response_builder
             .status(StatusCode::from_u16(self.status).unwrap())
+            .version(self.http_version)
             .body(self.body)
             .unwrap()
     }

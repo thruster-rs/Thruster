@@ -39,7 +39,7 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Thr
                     Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
                         let matched = app.resolve_from_method_and_path(
                             &req.method().to_string(),
-                            &req.uri().to_string(),
+                            &req.uri().path_and_query().unwrap().to_string(),
                         );
 
                         let req = HyperRequest::new(req);
