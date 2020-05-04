@@ -33,7 +33,7 @@ required-features = ["hyper_server"]
 
 [[example]]
 name = "hyper_most_basic_ssl"
-required-features = ["hyper_server"]
+required-features = ["hyper_server", "tls"]
 
 [[example]]
 name = "multiple_services"
