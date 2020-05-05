@@ -8,6 +8,16 @@
 
 [Documentation](https://docs.rs/thruster)
 
+## Features
+
+- [built with async/await in mind](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/profiling.rs#L11)
+- [hyper compatible](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/hyper_most_basic.rs)
+- [ssl ready](https://github.com/thruster-rs/Thruster/tree/master/thruster/examples/hyper_most_basic_ssl)
+- [testable](#testing)
+- [static file serving](https://github.com/thruster-rs/Thruster/tree/master/thruster/examples/static_file)
+- [socketio](https://github.com/thruster-rs/thruster-socketio)
+- [gRPC](https://github.com/thruster-rs/Thruster/tree/master/thruster/examples/grpc)
+
 ## Motivation
 
 Thruster is a web framework that aims for developers to be productive and consistent across projects and teams. Its goals are to be:

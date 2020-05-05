@@ -52,7 +52,7 @@ impl<T: 'static + Context + Send> RouteTree<T> {
         root_node
             .push_middleware_to_populated_nodes(&self.generic_root_node, &MiddlewareChain::new());
 
-        self.root_node = root_node;
+            self.root_node = root_node;
     }
 
     pub fn add_use_node(&mut self, route: &str, middleware: MiddlewareChain<T>) {

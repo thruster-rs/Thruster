@@ -1,0 +1,21 @@
+[package]
+name = "thruster-grpc"
+version = "0.1.0"
+authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+async-trait = "0.1"
+dotenv = "0.13.0"
+env_logger = "0.7.1"
+log = "0.4"
+hyper = "0.13.1"
+http = "0.2"
+http-body = "0.3.1"
+prost = "0.6"
+thruster = { path = "../../", features = ["hyper_server"] }
+tonic = "0.2"
+tower = "0.3"
+
+[build-dependencies]
+tonic-build = { version = "0.2", features = ["prost"] }

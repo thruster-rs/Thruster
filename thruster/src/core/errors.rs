@@ -1,7 +1,6 @@
 use crate::core::context::Context;
 use std::error::Error as StdError;
 
-#[derive(Debug)]
 pub struct ThrusterError<C> {
     pub context: C,
     pub message: String,
@@ -68,5 +67,14 @@ impl<C: Context> ErrorSet<C> for ThrusterError<C> {
             status: 404,
             cause: None,
         }
+    }
+}
+
+impl<C: Context> std::fmt::Debug  for ThrusterError<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ThrusterError")
+         .field("message", &self.message)
+         .field("status", &self.status)
+         .finish()
     }
 }

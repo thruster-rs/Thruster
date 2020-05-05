@@ -66,6 +66,52 @@ fn it_should_execute_all_middlware_with_a_given_request() {
 }
 
 #[test]
+fn it_should_execute_all_middlware_with_a_given_request_once() {
+    let mut app = App::<Request, BasicContext, ()>::new_basic();
+
+    #[middleware_fn]
+    async fn test_fn_1(
+        mut context: BasicContext,
+        _next: MiddlewareNext<BasicContext>,
+    ) -> MiddlewareResult<BasicContext> {
+        context.body(&format!("{}{}", context.get_body(), "1"));
+
+        Ok(context)
+    };
+
+    #[middleware_fn]
+    async fn test_fn_middleware(
+        mut context: BasicContext,
+        next: MiddlewareNext<BasicContext>,
+    ) -> MiddlewareResult<BasicContext> {
+        context.body(&format!("{}{}", context.get_body(), "0"));
+
+        let mut context = next(context).await.unwrap();
+
+        context.body(&format!("{}{}", context.get_body(), "0"));
+
+        Ok(context)
+    };
+
+    app.get("/test", async_middleware!(BasicContext, [test_fn_1]));
+    app.use_middleware(
+        "/",
+        async_middleware!(BasicContext, [test_fn_middleware]),
+    );
+
+    // println!("app: {}", app._route_parser.route_tree.root_node.tree_string(""));
+    // for (route, middleware, is_terminal) in app._route_parser.route_tree.root_node.get_route_list() {
+    //     println!("{}: {}", route, middleware.len());
+    // }
+
+    let _ = Runtime::new().unwrap().block_on(async {
+        let response = testing::get(&app, "/test").await;
+
+        assert!(response.body == "010");
+    });
+}
+
+#[test]
 fn it_should_execute_all_middlware_with_a_given_request_with_prefix() {
     let mut app = App::<Request, BasicContext, ()>::new_basic();
 
@@ -98,6 +144,7 @@ fn it_should_execute_all_middlware_with_a_given_request_with_prefix() {
     let _ = Runtime::new().unwrap().block_on(async {
         let response = testing::get(&app, "/test/a").await;
 
+        println!("response.body: {}", response.body);
         assert!(response.body == "1");
     });
 }

@@ -33,7 +33,7 @@ required-features = ["hyper_server"]
 
 [[example]]
 name = "hyper_most_basic_ssl"
-required-features = ["hyper_server"]
+required-features = ["hyper_server", "tls"]
 
 [[example]]
 name = "multiple_services"
@@ -117,6 +117,5 @@ serde_json = "1.0.8"
 serde_derive = "1.0.24"
 smallvec = "0.6.2"
 snafu = "0.4.1"
-prost = "0.5.0"
 http = "0.2"
 frank_jwt = "3.1.2"

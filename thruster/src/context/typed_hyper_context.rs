@@ -67,6 +67,7 @@ pub struct TypedHyperContext<S> {
     pub params: HashMap<String, String>,
     pub hyper_request: Option<HyperRequest>,
     pub extra: S,
+    http_version: hyper::Version,
     request_body: Option<Body>,
     request_parts: Option<Parts>,
 }
@@ -84,6 +85,7 @@ impl<S> TypedHyperContext<S> {
             request_body: None,
             request_parts: None,
             extra,
+            http_version: hyper::Version::HTTP_11
         };
 
         ctx.set("Server", "Thruster");
@@ -127,6 +129,7 @@ impl<S> TypedHyperContext<S> {
                 request_body: Some(Body::empty()),
                 request_parts: ctx.request_parts,
                 extra: ctx.extra,
+                http_version: ctx.http_version,
             },
         ))
     }
@@ -138,21 +141,24 @@ impl<S> TypedHyperContext<S> {
     }
 
     pub fn to_owned_request(self) -> TypedHyperContext<S> {
-        let hyper_request = self.hyper_request.expect(
-            "`hyper_request` is None! That means `to_owned_request` has already been called",
-        );
-        let (parts, body) = hyper_request.request.into_parts();
+        match self.hyper_request {
+            Some(hyper_request) => {
+                let (parts, body) = hyper_request.request.into_parts();
 
-        TypedHyperContext {
-            body: self.body,
-            query_params: self.query_params,
-            headers: self.headers,
-            status: self.status,
-            params: hyper_request.params,
-            hyper_request: None,
-            request_body: Some(body),
-            request_parts: Some(parts),
-            extra: self.extra,
+                TypedHyperContext {
+                    body: self.body,
+                    query_params: self.query_params,
+                    headers: self.headers,
+                    status: self.status,
+                    params: hyper_request.params,
+                    hyper_request: None,
+                    request_body: Some(body),
+                    request_parts: Some(parts),
+                    extra: self.extra,
+                    http_version: self.http_version,
+                }
+            },
+            None => self
         }
     }
 
@@ -231,6 +237,18 @@ impl<S> TypedHyperContext<S> {
 
         format!("{}={}; {}", name, value, pieces.join(", "))
     }
+
+    pub fn set_http2(&mut self) {
+        self.http_version = hyper::Version::HTTP_2;
+    }
+
+    pub fn set_http11(&mut self) {
+        self.http_version = hyper::Version::HTTP_11;
+    }
+
+    pub fn set_http10(&mut self) {
+        self.http_version = hyper::Version::HTTP_10;
+    }
 }
 
 impl<S> Context for TypedHyperContext<S> {
@@ -247,6 +265,7 @@ impl<S> Context for TypedHyperContext<S> {
 
         response_builder
             .status(StatusCode::from_u16(self.status).unwrap())
+            .version(self.http_version)
             .body(self.body)
             .unwrap()
     }

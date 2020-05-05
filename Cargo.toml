@@ -3,4 +3,5 @@
 members = [
     "thruster",
     "thruster-proc",
+    "thruster/examples/grpc"
 ]

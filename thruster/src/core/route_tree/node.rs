@@ -378,7 +378,7 @@ impl<T: 'static + Context + Send> Node<T> {
     ) {
         let fake_node = Node::new("");
 
-        let accumulating_chain = if other_node.runnable.is_assigned() {
+        let mut accumulating_chain = if other_node.runnable.is_assigned() {
             let mut accumulating_chain = other_node.runnable.clone();
             accumulating_chain.chain(accumulated_middleware.clone());
             accumulating_chain
@@ -404,12 +404,17 @@ impl<T: 'static + Context + Send> Node<T> {
             // Traverse the child tree, or else make a dummy node
             // For leading verbs, we'll fake and pass the current node
             let other_child = match key.as_ref() {
-                "__DELETE" |
+                "__DELETE__" |
                 "__GET__" |
                 "__OPTIONS__" |
                 "__POST__" |
                 "__PUT__" |
-                "__UPDATE__" => other_node,
+                "__UPDATE__" => {
+                    // Reset the middleware chain to pretend we're
+                    // ignoring this node
+                    accumulating_chain = MiddlewareChain::new();
+                    &other_node
+                },
                 val => other_node.children.get(val).unwrap_or(&fake_node),
             };
 

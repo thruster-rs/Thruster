@@ -17,6 +17,7 @@ before_script:
 
 script:
   # move to the main exported workspace
+  - rustup component add rustfmt
   - cd thruster
   # Temporarily disabled, as proc macro changes break
   # fail when encountering warnings
