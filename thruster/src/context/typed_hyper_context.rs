@@ -93,6 +93,26 @@ impl<S> TypedHyperContext<S> {
         ctx
     }
 
+    pub fn new_without_request(extra: S) -> TypedHyperContext<S> {
+        let params = HashMap::new();
+        let mut ctx = TypedHyperContext {
+            body: Body::empty(),
+            query_params: HashMap::new(),
+            headers: HashMap::new(),
+            status: 200,
+            params,
+            hyper_request: None,
+            request_body: None,
+            request_parts: None,
+            extra,
+            http_version: hyper::Version::HTTP_11
+        };
+
+        ctx.set("Server", "Thruster");
+
+        ctx
+    }
+
     ///
     /// Set the body as a string
     ///
