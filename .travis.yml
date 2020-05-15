@@ -23,5 +23,5 @@ script:
   # fail when encountering warnings
   # - cargo clippy -- -D warnings
   # run integration tests
-  - cargo test --all
+  - cargo test --no-default-features
 
