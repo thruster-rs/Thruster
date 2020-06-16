@@ -14,14 +14,7 @@ pub trait Error<C> {
 
 impl<C: Context> Error<C> for ThrusterError<C> {
     fn build_context(self) -> C {
-        let mut context = self.context;
-
-        context.set_body(
-            format!("{{\"message\": \"{}\",\"success\":false}}", self.message)
-                .as_bytes()
-                .to_vec(),
-        );
-        context
+        self.context
     }
 }
 
@@ -70,11 +63,11 @@ impl<C: Context> ErrorSet<C> for ThrusterError<C> {
     }
 }
 
-impl<C: Context> std::fmt::Debug  for ThrusterError<C> {
+impl<C: Context> std::fmt::Debug for ThrusterError<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ThrusterError")
-         .field("message", &self.message)
-         .field("status", &self.status)
-         .finish()
+            .field("message", &self.message)
+            .field("status", &self.status)
+            .finish()
     }
 }
