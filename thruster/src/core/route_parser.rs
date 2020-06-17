@@ -39,7 +39,10 @@ impl<T: Context + Send> RouteParser<T> {
 
         for (path, middleware, is_terminal_node) in routes {
             if is_terminal_node {
-                self.shortcuts.insert((&path[1..]).to_owned(), (middleware, (&path[1..]).to_string()));
+                self.shortcuts.insert(
+                    (&path[1..]).to_owned(),
+                    (middleware, (&path[1..]).to_string()),
+                );
             }
         }
     }
