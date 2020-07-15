@@ -1,14 +1,18 @@
 use futures::stream::StreamExt;
 use std::net::ToSocketAddrs;
+use std::io::{ self, BufReader };
 
 use async_trait::async_trait;
 use hyper::server::conn::Http;
 use hyper::server::Builder;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response};
-use native_tls::Identity;
 use std::sync::Arc;
 use tokio::net::TcpListener;
+use log::error;
+use tokio_rustls::rustls::{ NoClientAuth, ServerConfig };
+use tokio_rustls::rustls::internal::pemfile::{ certs, pkcs8_private_keys };
+use tokio_rustls::TlsAcceptor;
 
 use crate::app::App;
 use crate::context::basic_hyper_context::HyperRequest;
@@ -19,7 +23,7 @@ use crate::server::ThrusterServer;
 pub struct SSLHyperServer<T: 'static + Context + Send, S: Send> {
     app: App<HyperRequest, T, S>,
     cert: Option<Vec<u8>>,
-    cert_pass: &'static str,
+    key: Option<Vec<u8>>,
 }
 
 impl<T: 'static + Context + Send, S: Send> SSLHyperServer<T, S> {
@@ -30,8 +34,9 @@ impl<T: 'static + Context + Send, S: Send> SSLHyperServer<T, S> {
         self.cert = Some(cert);
     }
 
-    pub fn cert_pass(&mut self, cert_pass: &'static str) {
-        self.cert_pass = cert_pass;
+    /// Sets the key for the server.
+    pub fn key(&mut self, key: Vec<u8>) {
+        self.key = Some(key);
     }
 }
 
@@ -46,7 +51,7 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Thr
         SSLHyperServer {
             app,
             cert: None,
-            cert_pass: "",
+            key: None,
         }
     }
 
@@ -55,14 +60,27 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Thr
 
         let arc_app = Arc::new(self.app);
 
-        let cert = self.cert.unwrap();
-        let cert_pass = self.cert_pass;
-        let cert = Identity::from_pkcs12(&cert, cert_pass).expect("Could not decrypt p12 file");
-        let tls_acceptor = tokio_tls::TlsAcceptor::from(
-            native_tls::TlsAcceptor::builder(cert)
-                .build()
-                .expect("Could not create TLS acceptor."),
-        );
+        let cert_u8: &[u8] = &self.cert.unwrap();
+        let key_u8: &[u8] = &self.key.unwrap();
+        let certs = certs(&mut BufReader::new(cert_u8))
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid cert"))
+            .unwrap();
+        let mut keys = pkcs8_private_keys(&mut BufReader::new(key_u8))
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid key"))
+            .unwrap();
+        let mut config = ServerConfig::new(NoClientAuth::new());
+        config.set_single_cert(certs, keys.remove(0))
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err)).unwrap();
+        let tls_acceptor = TlsAcceptor::from(Arc::new(config));
+        // let cert = self.cert.unwrap();
+        // let cert_pass = self.cert_pass;
+        // let cert = Identity::from_pkcs12(&cert, cert_pass).expect("Could not decrypt p12 file");
+        // let tls_acceptor = tokio_native_tls::TlsAcceptor::from(
+        //     native_tls::TlsAcceptor::builder(cert)
+        //         .build()
+        //         .expect("Could not create TLS acceptor."),
+        // );
+
         let arc_acceptor = Arc::new(tls_acceptor);
 
         let service = make_service_fn(|_| {
@@ -85,6 +103,10 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Thr
 
         async {
             let server = Builder::new(
+                // Why did we use a filter_map here? Basically because I was too
+                // lazy to implement and wrapper and Accept trait for that class
+                // in order to wrap the TlsAcceptor correctly. This probably has
+                // a performance hit and should be fixed someday.
                 hyper::server::accept::from_stream(incoming.filter_map(|socket| async {
                     match socket {
                         Ok(stream) => {
@@ -93,13 +115,13 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Thr
                             match timed_out {
                                 Ok(val) => Some(Ok::<_, std::io::Error>(val)),
                                 Err(e) => {
-                                    println!("TLS error: {}", e);
+                                    error!("TLS error: {}", e);
                                     None
                                 }
                             }
                         }
                         Err(e) => {
-                            println!("TCP socket error: {}", e);
+                            error!("TCP socket error: {}", e);
                             None
                         }
                     }

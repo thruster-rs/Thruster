@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "0.9.0-alpha.13"
+version = "0.9.0-alpha.14"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
@@ -74,7 +74,8 @@ unix_hyper_server = [
 ]
 tls = [
   "native-tls",
-  "tokio-tls",
+  "tokio-rustls",
+  "tokio-native-tls",
 ]
 file = [
   "chashmap",
@@ -84,7 +85,7 @@ file = [
 async-trait = "0.1"
 hyperlocal = { version = "0.7.0", optional = true }
 hyper = { version = "0.13.1", optional = true }
-thruster-proc = "=0.9.0-alpha.12"
+thruster-proc = "=0.9.0-alpha.14"
 bytes = "0.5.4"
 chashmap = { version = "2.2", optional = true }
 futures-legacy = { version = "0.1.23", package = "futures" }
@@ -100,7 +101,8 @@ serde = "1.0.24"
 serde_json = "1.0.8"
 serde_derive = "1.0.24"
 tokio = { version = "0.2", features = ["full"] }
-tokio-tls = { version = "0.3", optional = true }
+tokio-native-tls = { version = "0.1.0", optional = true }
+tokio-rustls = { version = "0.14.0", optional = true }
 tokio-util = { version = "0.2", features = ["full"] }
 native-tls = { version = "0.2", optional = true }
 time = "0.1"
