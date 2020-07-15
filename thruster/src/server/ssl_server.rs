@@ -70,7 +70,7 @@ impl<T: Context<Response = Response> + Send, S: 'static + Send + Sync> ThrusterS
         let cert = self.cert.unwrap().clone();
         let cert_pass = self.cert_pass;
         let cert = Identity::from_pkcs12(&cert, cert_pass).expect("Could not decrypt p12 file");
-        let tls_acceptor = tokio_tls::TlsAcceptor::from(
+        let tls_acceptor = tokio_native_tls::TlsAcceptor::from(
             native_tls::TlsAcceptor::builder(cert)
                 .build()
                 .expect("Could not create TLS acceptor."),
@@ -90,7 +90,7 @@ impl<T: Context<Response = Response> + Send, S: 'static + Send + Sync> ThrusterS
         // TODO(trezm): Add an argument here for the tls_acceptor to be passed in.
         async fn process<T: Context<Response = Response> + Send, S: Send>(
             app: Arc<App<Request, T, S>>,
-            tls_acceptor: Arc<tokio_tls::TlsAcceptor>,
+            tls_acceptor: Arc<tokio_native_tls::TlsAcceptor>,
             socket: TcpStream,
         ) -> Result<(), Box<dyn Error>> {
             let tls = tls_acceptor.accept(socket).await?;
