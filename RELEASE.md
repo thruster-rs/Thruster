@@ -2,6 +2,51 @@
 
 Below you'll find a set of notes for migrating between versions. It should be noted that although the intent is to follow semantic versioning, until thruster is released in earnest (1.x), the second digit will be the one that dictates breaking changes.
 
+## 1.0.0
+
+My, my, how time flies! I'd like to introduce everyone to thruster 1.0. I have been using thruster in my projects exclusively for the past year, and finally believe that it is stable enough for a 1.0 release. Contained within the official 1.0 release (since the last release,) you'll find the changes listed below. Some of my favorite highlights:
+
+### Adding gRPC support via tonic
+
+That's right! Thanks to [tonic](https://github.com/hyperium/tonic), we now have support for gRPC. In addition, there's a [crate-in-the-making](https://github.com/thruster-rs/thruster-grpc) to get lower access into the gRPC stack via [PROST](https://github.com/danburkert/prost)! gRPC is great for interacting between microservices, or even efficiently communicating with mobile apps.
+
+### Addings Socket.io support
+
+[Socket.io](https://github.com/thruster-rs/thruster-socketio) is here for all of your real-time websocket communication needs. Although still in its infancy, the current crate has enough capabilities to work via websockets, and even across multiple servers via redis pub-sub.
+
+### Add the concept of a global shared config state
+
+An often asked for feature was the addition of a shared config state throughout a thruster app. I'm happy to announce that this is now available, and even has a provided context for hyper to make your life a little easier. This is great for passing database client pools through the middleware and reducing on the cognitive load of lazy statics. Check out the [using_state](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/using_state.rs) example for more info.
+
+### Still on the horizon
+
+- I'd like to get back to performance, as we've fallen a bit in the benchmarks. Since we've made a shift to focus on hyper integration, making sure the hyper server is running as efficiently as possible will be a huge part of this.
+- Expanding the amount of supplied middleware will be important for consistency for developers choosing thruster. Having a batteries included solution is a great way to get up and running quickly.
+- It would be great to have more articles and blogs about using thruster and some common use cases.
+
+*Bug Fixes*
+bug: Fix ssl hyper server to work with http2 (#163)
+bug: Method agnostic middleware fails in non root cases (#154)
+
+*Features*
+feat: Upgrade hyper_ssl_server to use rustls
+feat: Make return type of hyper testing generic
+feat: Add testing harness for hyper (#161)
+feat: Allow typed contexts to be created without request (#160)
+feat: Add gRPC example (#159)
+feat: Add state and matched route (#152)
+feat: Added basic JWT context with example. (#149)
+feat: Add unix hyper server (#150)
+
+*Chores*
+chore: Bump version
+chore: Update thruster version (#155)
+chore: Change UPDATE to PATCH
+chore: Add documentation for the Context trait (#148)
+chore: Update hyper context to avoid using parts (#146)
+chore: Bump versions to 0.9.0-alpha.4
+chore: Add more helpful EOC message (#144)
+
 ## 0.9.0
 
 Breaking changes:
