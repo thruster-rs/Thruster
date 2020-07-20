@@ -147,6 +147,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         let status = r.parse(buf).map_err(|e| {
             let msg = format!("failed to parse http request: {:?}", e);
             eprintln!("msg: {}", msg);
+            eprintln!("dump: {:#?}", buf);
             io::Error::new(io::ErrorKind::Other, msg)
         })?;
         let amt = match status {

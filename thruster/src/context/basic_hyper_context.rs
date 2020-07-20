@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use futures::stream::StreamExt;
+use http::header::{HeaderMap, HeaderName, HeaderValue, SERVER};
 use http::request::Parts;
 use hyper::{Body, Error, Response, StatusCode};
 use std::collections::HashMap;
@@ -7,10 +8,10 @@ use std::convert::TryInto;
 use std::str;
 use thruster_proc::middleware_fn;
 
+pub use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
 use crate::core::{MiddlewareNext, MiddlewareResult};
 use crate::middleware::query_params::HasQueryParams;
-pub use crate::context::hyper_request::HyperRequest;
 
 pub fn generate_context<S>(request: HyperRequest, _state: &S, _path: &str) -> BasicHyperContext {
     BasicHyperContext::new(request)
@@ -67,32 +68,32 @@ pub struct BasicHyperContext {
     pub body: Body,
     pub query_params: HashMap<String, String>,
     pub status: u16,
-    pub headers: HashMap<String, String>,
     pub params: HashMap<String, String>,
     pub hyper_request: Option<HyperRequest>,
     request_body: Option<Body>,
     request_parts: Option<Parts>,
     http_version: hyper::Version,
+    headers: HeaderMap,
 }
 
+const SERVER_HEADER_NAME: HeaderName = SERVER;
 impl BasicHyperContext {
     pub fn new(req: HyperRequest) -> BasicHyperContext {
         let params = req.params.clone();
-        let mut ctx = BasicHyperContext {
+        let mut headers = HeaderMap::new();
+        headers.insert(SERVER_HEADER_NAME, HeaderValue::from_static("thruster"));
+
+        BasicHyperContext {
             body: Body::empty(),
             query_params: HashMap::new(),
-            headers: HashMap::new(),
             status: 200,
             params,
             hyper_request: Some(req),
             request_body: None,
             request_parts: None,
             http_version: hyper::Version::HTTP_11,
-        };
-
-        ctx.set("Server", "Thruster");
-
-        ctx
+            headers,
+        }
     }
 
     ///
@@ -124,13 +125,13 @@ impl BasicHyperContext {
             BasicHyperContext {
                 body: ctx.body,
                 query_params: ctx.query_params,
-                headers: ctx.headers,
                 status: ctx.status,
                 params: ctx.params,
                 hyper_request: ctx.hyper_request,
                 request_body: Some(Body::empty()),
                 request_parts: ctx.request_parts,
                 http_version: ctx.http_version,
+                headers: ctx.headers,
             },
         ))
     }
@@ -150,13 +151,13 @@ impl BasicHyperContext {
         BasicHyperContext {
             body: self.body,
             query_params: self.query_params,
-            headers: self.headers,
             status: self.status,
             params: hyper_request.params,
             hyper_request: None,
             request_body: Some(body),
             request_parts: Some(parts),
             http_version: self.http_version,
+            headers: self.headers,
         }
     }
 
@@ -198,7 +199,11 @@ impl BasicHyperContext {
     ///
     pub fn cookie(&mut self, name: &str, value: &str, options: &CookieOptions) {
         let cookie_value = match self.headers.get("Set-Cookie") {
-            Some(val) => format!("{}, {}", val, self.cookify_options(name, value, &options)),
+            Some(val) => format!(
+                "{}, {}",
+                val.to_str().unwrap_or_else(|_| ""),
+                self.cookify_options(name, value, &options)
+            ),
             None => self.cookify_options(name, value, &options),
         };
 
@@ -253,19 +258,13 @@ impl Context for BasicHyperContext {
     type Response = Response<Body>;
 
     fn get_response(self) -> Self::Response {
-        let mut response_builder = Response::builder();
+        let mut response = Response::new(self.body);
 
-        for (key, val) in self.headers {
-            let key: &str = &key;
-            let val: &str = &val;
-            response_builder = response_builder.header(key, val);
-        }
+        *response.status_mut() = StatusCode::from_u16(self.status).unwrap();
+        *response.headers_mut() = self.headers;
+        *response.version_mut() = self.http_version;
 
-        response_builder
-            .status(StatusCode::from_u16(self.status).unwrap())
-            .version(self.http_version)
-            .body(self.body)
-            .unwrap()
+        response
     }
 
     fn set_body(&mut self, body: Vec<u8>) {
@@ -277,11 +276,7 @@ impl Context for BasicHyperContext {
     }
 
     fn route(&self) -> &str {
-        let uri = self.hyper_request
-            .as_ref()
-            .unwrap()
-            .request
-            .uri();
+        let uri = self.hyper_request.as_ref().unwrap().request.uri();
 
         match uri.path_and_query() {
             Some(val) => val.as_str(),
@@ -290,7 +285,10 @@ impl Context for BasicHyperContext {
     }
 
     fn set(&mut self, key: &str, value: &str) {
-        self.headers.insert(key.to_owned(), value.to_owned());
+        self.headers.insert(
+            HeaderName::from_bytes(key.as_bytes()).unwrap(),
+            HeaderValue::from_str(value).unwrap(),
+        );
     }
 
     fn remove(&mut self, key: &str) {

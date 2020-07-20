@@ -23,5 +23,7 @@ fn main() {
     app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
 
     let server = HyperServer::new(app);
-    server.start("0.0.0.0", 4322);
+    tokio::runtime::Runtime::new()
+        .unwrap()
+        .block_on(server.build_per_thread("0.0.0.0", 4321))
 }
