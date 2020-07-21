@@ -1,6 +1,6 @@
 [package]
 name = "thruster-proc"
-version = "0.9.0-alpha.14"
+version = "1.0.0"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "The proc macros behind the thruster web framework"
 readme = "README.md"

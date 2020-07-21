@@ -15,7 +15,9 @@ pub struct HyperServer<T: 'static + Context + Send, S: Send> {
 }
 
 #[async_trait]
-impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> ThrusterServer for HyperServer<T, S> {
+impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> ThrusterServer
+    for HyperServer<T, S>
+{
     type Context = T;
     type Response = Response<Body>;
     type Request = HyperRequest;
