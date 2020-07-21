@@ -1,10 +1,15 @@
 use std::net::ToSocketAddrs;
 
 use async_trait::async_trait;
+use hyper::server::conn::Http;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
+#[cfg(not(windows))]
+use net2::unix::UnixTcpBuilderExt;
+use net2::TcpBuilder;
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tokio::stream::StreamExt;
 
 use crate::app::App;
 use crate::context::hyper_request::HyperRequest;
@@ -42,15 +47,13 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Hyp
     async fn process(
         arc_app: Arc<App<HyperRequest, T, S>>,
         tcp_listener: std::net::TcpListener,
-        cpu_id: Arc<usize>,
     ) -> Result<(), hyper::Error> {
         let service = make_service_fn(|_| {
             let app = arc_app.clone();
-            let cpu_id = cpu_id.clone();
 
             async {
                 Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
-                    println!("cpu_id: {}", cpu_id.clone());
+                    println!("cpu_id: {:?}", std::thread::current().id());
                     let matched = app.resolve_from_method_and_path(
                         &req.method().to_string(),
                         &req.uri().path_and_query().unwrap().to_string(),
@@ -64,7 +67,9 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Hyp
 
         let server = Server::from_tcp(tcp_listener).unwrap().serve(service);
 
+        println!("starting server on {:?}", std::thread::current().id());
         server.await?;
+        println!("server started...");
 
         Ok::<_, hyper::Error>(())
     }
@@ -76,25 +81,69 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Hyp
         let arc_app = Arc::new(self.app);
 
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-        let arc_addr = Arc::new(addr);
-        for i in 0..num_cpus::get() - 1 {
+        for _ in 0..num_cpus::get() - 1 {
             let arc_app = arc_app.clone();
-            let arc_addr = arc_addr.clone();
+
             std::thread::spawn(move || {
-                let mut rt = tokio::runtime::Runtime::new().unwrap();
-                let tcp_listener = reuse_listener(&arc_addr.clone(), &rt.handle()).unwrap();
-                tokio::task::LocalSet::new().block_on(&mut rt, async move {
-                    Self::process(arc_app, tcp_listener, Arc::new(i))
-                        .await
-                        .expect("hyper server failed");
+                println!("spawned on thread {:?}", std::thread::current().id());
+
+                let mut rt = tokio::runtime::Builder::new()
+                    .basic_scheduler()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+
+                rt.handle().enter(|| {
+                    let mut rt = tokio::runtime::Builder::new()
+                        .basic_scheduler()
+                        .enable_all()
+                        .build()
+                        .unwrap();
+                    let mut listener = {
+                        let builder = net2::TcpBuilder::new_v4().unwrap();
+                        #[cfg(not(windows))]
+                        builder.reuse_address(true).unwrap();
+                        #[cfg(not(windows))]
+                        builder.reuse_port(true).unwrap();
+                        builder.bind(addr).unwrap();
+                        tokio::net::TcpListener::from_std(builder.listen(2048).unwrap()).unwrap()
+                    };
+
+                    rt.block_on(async move {
+                        let mut incoming = listener.incoming();
+                        let mut rt = tokio::runtime::Builder::new()
+                            .basic_scheduler()
+                            .enable_all()
+                            .build()
+                            .unwrap();
+
+                        while let Some(Ok(stream)) = incoming.next().await {
+                            let cloned = arc_app.clone();
+                            let mut http = Http::new();
+                            http.http1_only(true);
+                            http.pipeline_flush(true);
+
+                            let s = service_fn(move |req: Request<Body>| {
+                                println!("cpu_id: {:?}", std::thread::current().id());
+                                let matched = cloned.resolve_from_method_and_path(
+                                    &req.method().to_string(),
+                                    &req.uri().path_and_query().unwrap().to_string(),
+                                );
+
+                                let req = HyperRequest::new(req);
+                                cloned.resolve(req, matched)
+                            });
+
+                            rt.block_on(http.serve_connection(stream, s));
+                        }
+                    });
                 });
             });
         }
 
-        let handle = tokio::runtime::Handle::current();
-        let tcp_listener = reuse_listener(&arc_addr.clone(), &handle).unwrap();
-
-        Self::process(arc_app, tcp_listener, Arc::new(num_cpus::get() - 1))
+        println!("main thread: {:?}", std::thread::current().id());
+        let addr = ("0.0.0.0", 4322).to_socket_addrs().unwrap().next().unwrap();
+        Self::process(arc_app, std::net::TcpListener::bind(&addr).unwrap())
             .await
             .expect("hyper server failed");
     }
