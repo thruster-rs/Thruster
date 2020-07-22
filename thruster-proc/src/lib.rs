@@ -19,7 +19,10 @@ pub fn middleware_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
             syn::FnArg::Captured(cap) => &cap.ty,
             _ => panic!("Expected the first argument to be a context type"),
         };
-        let new_return_type = Ident::new(&format!("__MiddlewareReturnValue_{}", name.clone()), Span2::call_site());
+        let new_return_type = Ident::new(
+            &format!("__MiddlewareReturnValue_{}", name.clone()),
+            Span2::call_site(),
+        );
         let crate_path = match attr.to_string().as_str() {
             "_internal" => quote! {
                 crate::core::{ MiddlewareReturnValue as #new_return_type }

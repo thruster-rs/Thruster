@@ -32,6 +32,10 @@ name = "hyper_most_basic"
 required-features = ["hyper_server"]
 
 [[example]]
+name = "fast_hyper"
+required-features = ["hyper_server"]
+
+[[example]]
 name = "hyper_most_basic_ssl"
 required-features = ["hyper_server", "tls"]
 

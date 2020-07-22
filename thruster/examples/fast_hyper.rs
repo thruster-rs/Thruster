@@ -1,7 +1,7 @@
 use hyper::Body;
 use log::info;
-use thruster::context::basic_hyper_context::{
-    generate_context, BasicHyperContext as Ctx, HyperRequest,
+use thruster::context::fast_hyper_context::{
+    generate_context, FastHyperContext as Ctx, HyperRequest,
 };
 use thruster::hyper_server::HyperServer;
 use thruster::{async_middleware, middleware_fn};
