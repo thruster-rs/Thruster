@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use bytes::BytesMut;
-use chashmap::CHashMap;
+use dashmap::DashMap;
 use lazy_static::*;
 use std::env;
 use std::fs::File;
@@ -14,7 +14,7 @@ use crate::core::{MiddlewareNext, MiddlewareResult};
 use crate::map_try;
 
 lazy_static! {
-    static ref CACHE: CHashMap<String, Vec<u8>> = CHashMap::new();
+    static ref CACHE: DashMap<String, Vec<u8>> = DashMap::new();
     ///
     /// ROOT_DIR, stored in the RUST_ROOT_DIR env var dictates where
     /// the `file` middleware serves from.
@@ -37,7 +37,7 @@ lazy_static! {
 ///
 /// `file`, and the underlying `get_file`, also attempt to cache
 /// any files that it reads. The underlying data is stored in a
-/// CHashMap. This feature can be turned off by setting the env
+/// DashMap. This feature can be turned off by setting the env
 /// var RUST_CACHE=off
 ///
 #[middleware_fn(_internal)]
