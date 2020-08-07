@@ -9,8 +9,8 @@ pub struct MatchedRoute<'a, 'b, T: 'static + Context + Send> {
     pub middleware: &'a MiddlewareChain<T>,
     pub value: String,
     pub path: &'b str,
-    pub params: HashMap<String, String>,
-    pub query_params: HashMap<String, String>,
+    pub params: Option<HashMap<String, String>>,
+    pub query_params: Option<HashMap<String, String>>,
 }
 
 pub struct RouteParser<T: 'static + Context + Send> {
@@ -49,8 +49,6 @@ impl<T: Context + Send> RouteParser<T> {
 
     #[inline]
     pub fn match_route<'a>(&'a self, route: String) -> MatchedRoute<'a, '_, T> {
-        let query_params = HashMap::new();
-
         let split_route = route.find('?');
         let mut no_query_route = match split_route {
             Some(index) => &route[0..index],
@@ -67,8 +65,8 @@ impl<T: Context + Send> RouteParser<T> {
                 middleware: shortcut,
                 value: route,
                 path,
-                params: HashMap::new(),
-                query_params,
+                params: None,
+                query_params: None,
             }
         } else {
             let matched = self.route_tree.match_route(&no_query_route);
@@ -78,7 +76,7 @@ impl<T: Context + Send> RouteParser<T> {
                 value: route,
                 path: matched.2,
                 params: matched.0,
-                query_params,
+                query_params: None,
             }
         }
     }

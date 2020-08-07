@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use http::header::{HeaderMap, HeaderName, HeaderValue, SERVER};
+use http::header::{HeaderName, HeaderValue, SERVER};
 use hyper::{Body, Response, StatusCode};
 use std::str;
 
@@ -10,27 +10,35 @@ pub fn generate_context<S>(request: HyperRequest, _state: &S, _path: &str) -> Fa
     FastHyperContext::new(request)
 }
 
+pub fn fast_generate_context<S>(
+    request: HyperRequest,
+    _state: &S,
+    _path: &str,
+) -> FastHyperContext {
+    FastHyperContext {
+        body: None,
+        status: 200,
+        hyper_request: Some(request),
+        http_version: hyper::Version::HTTP_11,
+    }
+}
+
 #[derive(Default)]
 pub struct FastHyperContext {
-    pub body: Body,
+    pub body: Option<Body>,
     pub status: u16,
     pub hyper_request: Option<HyperRequest>,
     pub http_version: hyper::Version,
-    headers: HeaderMap,
 }
 
 const SERVER_HEADER_NAME: HeaderName = SERVER;
 impl FastHyperContext {
     pub fn new(req: HyperRequest) -> FastHyperContext {
-        let mut headers = HeaderMap::new();
-        headers.insert(SERVER_HEADER_NAME, HeaderValue::from_static("thruster"));
-
         FastHyperContext {
-            body: Body::empty(),
+            body: None,
             status: 200,
             hyper_request: Some(req),
             http_version: hyper::Version::HTTP_11,
-            headers,
         }
     }
 }
@@ -39,21 +47,24 @@ impl Context for FastHyperContext {
     type Response = Response<Body>;
 
     fn get_response(self) -> Self::Response {
-        let mut response = Response::new(self.body);
+        let mut response = Response::new(self.body.unwrap());
 
         *response.status_mut() = StatusCode::from_u16(self.status).unwrap();
-        *response.headers_mut() = self.headers;
         *response.version_mut() = self.http_version;
+        *response.headers_mut() = self.hyper_request.unwrap().request.into_parts().0.headers;
+        response
+            .headers_mut()
+            .insert(SERVER_HEADER_NAME, HeaderValue::from_static("thruster"));
 
         response
     }
 
     fn set_body(&mut self, body: Vec<u8>) {
-        self.body = Body::from(body);
+        self.body = Some(Body::from(body));
     }
 
     fn set_body_bytes(&mut self, bytes: Bytes) {
-        self.body = Body::from(bytes);
+        self.body = Some(Body::from(bytes));
     }
 
     fn route(&self) -> &str {
@@ -66,13 +77,23 @@ impl Context for FastHyperContext {
     }
 
     fn set(&mut self, key: &str, value: &str) {
-        self.headers.insert(
-            HeaderName::from_bytes(key.as_bytes()).unwrap(),
-            HeaderValue::from_str(value).unwrap(),
-        );
+        self.hyper_request
+            .as_mut()
+            .unwrap()
+            .request
+            .headers_mut()
+            .insert(
+                HeaderName::from_bytes(key.as_bytes()).unwrap(),
+                HeaderValue::from_str(value).unwrap(),
+            );
     }
 
     fn remove(&mut self, key: &str) {
-        self.headers.remove(key);
+        self.hyper_request
+            .as_mut()
+            .unwrap()
+            .request
+            .headers_mut()
+            .remove(key);
     }
 }

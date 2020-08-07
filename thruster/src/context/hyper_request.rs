@@ -8,7 +8,7 @@ pub struct HyperRequest {
     pub request: Request<Body>,
     pub parts: Option<Parts>,
     pub body: Option<Body>,
-    pub params: HashMap<String, String>,
+    pub params: Option<HashMap<String, String>>,
 }
 
 impl HyperRequest {
@@ -17,13 +17,13 @@ impl HyperRequest {
             request,
             parts: None,
             body: None,
-            params: HashMap::new(),
+            params: None,
         }
     }
 }
 
 impl RequestWithParams for HyperRequest {
-    fn set_params(&mut self, params: HashMap<String, String>) {
+    fn set_params(&mut self, params: Option<HashMap<String, String>>) {
         self.params = params;
     }
 }

@@ -6,7 +6,12 @@ use crate::core::context::Context;
 use crate::core::middleware::MiddlewareChain;
 
 // A route with params that may or may not be a terminal node.
-type RouteNodeWithParams<'a, 'b, T> = (HashMap<String, String>, bool, &'a MiddlewareChain<T>, &'b str);
+type RouteNodeWithParams<'a, 'b, T> = (
+    Option<HashMap<String, String>>,
+    bool,
+    &'a MiddlewareChain<T>,
+    &'b str,
+);
 type RouteNodeEnumeration<T> = SmallVec<[(String, MiddlewareChain<T>, bool); 8]>;
 
 pub struct Node<T: 'static + Context + Send> {
@@ -74,7 +79,12 @@ impl<T: 'static + Context + Send> Node<T> {
         }
     }
 
-    pub fn add_route(&mut self, route: &str, middleware: MiddlewareChain<T>, terminal_path: String) {
+    pub fn add_route(
+        &mut self,
+        route: &str,
+        middleware: MiddlewareChain<T>,
+        terminal_path: String,
+    ) {
         // Strip a leading slash
         let mut split_iterator = match route.chars().next() {
             Some('/') => &route[1..],
@@ -190,13 +200,13 @@ impl<T: 'static + Context + Send> Node<T> {
     }
 
     pub fn match_route(&self, route: Split<char>) -> RouteNodeWithParams<T> {
-        self.match_route_with_params(route, HashMap::new())
+        self.match_route_with_params(route, None)
     }
 
     pub fn match_route_with_params(
         &self,
         mut route: Split<char>,
-        mut params: HashMap<String, String>,
+        mut params: Option<HashMap<String, String>>,
     ) -> RouteNodeWithParams<T> {
         if let Some(piece) = route.next() {
             match self.children.get(piece) {
@@ -217,7 +227,12 @@ impl<T: 'static + Context + Send> Node<T> {
                                 if !self.is_wildcard {
                                     results
                                 } else {
-                                    (results.0, self.is_terminal_node, &self.runnable, &self.terminal_path)
+                                    (
+                                        results.0,
+                                        self.is_terminal_node,
+                                        &self.runnable,
+                                        &self.terminal_path,
+                                    )
                                 }
                             }
                         }
@@ -232,7 +247,12 @@ impl<T: 'static + Context + Send> Node<T> {
                             // a non-terminal node (this is the case where the defined route is like
                             // /a/:b, but the incoming route to match is /a/)
                             if piece.is_empty() && wildcard_node.param_key.is_some() {
-                                (params, false, &wildcard_node.runnable, &wildcard_node.terminal_path)
+                                (
+                                    params,
+                                    false,
+                                    &wildcard_node.runnable,
+                                    &wildcard_node.terminal_path,
+                                )
                             } else if piece.is_empty() && wildcard_node.param_key.is_none() {
                                 (
                                     params,
@@ -242,7 +262,10 @@ impl<T: 'static + Context + Send> Node<T> {
                                 )
                             } else {
                                 if let Some(param_key) = &wildcard_node.param_key {
-                                    params.insert(param_key.to_owned(), piece.to_owned());
+                                    let mut p = params.unwrap();
+
+                                    p.insert(param_key.to_owned(), piece.to_owned());
+                                    params = Some(p);
                                 }
 
                                 let results = wildcard_node.match_route_with_params(route, params);
@@ -252,16 +275,31 @@ impl<T: 'static + Context + Send> Node<T> {
                                 if results.1 {
                                     results
                                 } else {
-                                    (results.0, wildcard_node.is_terminal_node, &self.runnable, &wildcard_node.terminal_path)
+                                    (
+                                        results.0,
+                                        wildcard_node.is_terminal_node,
+                                        &self.runnable,
+                                        &wildcard_node.terminal_path,
+                                    )
                                 }
                             }
                         }
-                        None => (params, self.is_terminal_node, &self.runnable, &self.terminal_path),
+                        None => (
+                            params,
+                            self.is_terminal_node,
+                            &self.runnable,
+                            &self.terminal_path,
+                        ),
                     }
                 }
             }
         } else if self.is_terminal_node {
-            (params, self.is_terminal_node, &self.runnable, &self.terminal_path)
+            (
+                params,
+                self.is_terminal_node,
+                &self.runnable,
+                &self.terminal_path,
+            )
         } else if let Some(wildcard_node) = &self.wildcard_node {
             if wildcard_node.param_key == None {
                 let results = wildcard_node.match_route_with_params(route, params);
@@ -271,13 +309,28 @@ impl<T: 'static + Context + Send> Node<T> {
                 if results.1 {
                     results
                 } else {
-                    (results.0, self.is_terminal_node, &self.runnable, &self.terminal_path)
+                    (
+                        results.0,
+                        self.is_terminal_node,
+                        &self.runnable,
+                        &self.terminal_path,
+                    )
                 }
             } else {
-                (params, self.is_terminal_node, &self.runnable, &self.terminal_path)
+                (
+                    params,
+                    self.is_terminal_node,
+                    &self.runnable,
+                    &self.terminal_path,
+                )
             }
         } else {
-            (params, self.is_terminal_node, &self.runnable, &self.terminal_path)
+            (
+                params,
+                self.is_terminal_node,
+                &self.runnable,
+                &self.terminal_path,
+            )
         }
     }
 
@@ -335,11 +388,11 @@ impl<T: 'static + Context + Send> Node<T> {
         // Add child routes
         for child in self.children.values() {
             // if child.is_terminal_node {
-                routes.push((
-                    format!("{}/{}", self_route, child.value),
-                    child.runnable.clone(),
-                    child.is_terminal_node,
-                ));
+            routes.push((
+                format!("{}/{}", self_route, child.value),
+                child.runnable.clone(),
+                child.is_terminal_node,
+            ));
             // }
 
             for child_route in child.get_route_list() {
@@ -404,17 +457,13 @@ impl<T: 'static + Context + Send> Node<T> {
             // Traverse the child tree, or else make a dummy node
             // For leading verbs, we'll fake and pass the current node
             let other_child = match key.as_ref() {
-                "__DELETE__" |
-                "__GET__" |
-                "__OPTIONS__" |
-                "__POST__" |
-                "__PUT__" |
-                "__UPDATE__" => {
+                "__DELETE__" | "__GET__" | "__OPTIONS__" | "__POST__" | "__PUT__"
+                | "__UPDATE__" => {
                     // Reset the middleware chain to pretend we're
                     // ignoring this node
                     accumulating_chain = MiddlewareChain::new();
                     &other_node
-                },
+                }
                 val => other_node.children.get(val).unwrap_or(&fake_node),
             };
 

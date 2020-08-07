@@ -68,7 +68,7 @@ pub struct BasicHyperContext {
     pub body: Body,
     pub query_params: HashMap<String, String>,
     pub status: u16,
-    pub params: HashMap<String, String>,
+    pub params: Option<HashMap<String, String>>,
     pub hyper_request: Option<HyperRequest>,
     request_body: Option<Body>,
     request_parts: Option<Parts>,
