@@ -15,14 +15,14 @@ pub struct MatchedRoute<'a, 'b, T: 'static + Context + Send> {
 
 pub struct RouteParser<T: 'static + Context + Send> {
     pub route_tree: RouteTree<T>,
-    pub shortcuts: HashMap<String, (MiddlewareChain<T>, String)>,
+    pub shortcuts: Vec<(String, (MiddlewareChain<T>, String))>,
 }
 
 impl<T: Context + Send> RouteParser<T> {
     pub fn new() -> RouteParser<T> {
         RouteParser {
             route_tree: RouteTree::new(),
-            shortcuts: HashMap::new(),
+            shortcuts: vec![],
         }
     }
 
@@ -39,10 +39,10 @@ impl<T: Context + Send> RouteParser<T> {
 
         for (path, middleware, is_terminal_node) in routes {
             if is_terminal_node {
-                self.shortcuts.insert(
+                self.shortcuts.push((
                     (&path[1..]).to_owned(),
                     (middleware, (&path[1..]).to_string()),
-                );
+                ));
             }
         }
     }
@@ -60,24 +60,26 @@ impl<T: Context + Send> RouteParser<T> {
             no_query_route = &no_query_route[0..no_query_route.len() - 1];
         }
 
-        if let Some((shortcut, path)) = self.shortcuts.get(no_query_route) {
-            MatchedRoute {
-                middleware: shortcut,
-                value: route,
-                path,
-                params: None,
-                query_params: None,
+        for (shortcut_route, (shortcut, path)) in &self.shortcuts {
+            if shortcut_route == no_query_route {
+                return MatchedRoute {
+                    middleware: shortcut,
+                    value: route,
+                    path,
+                    params: None,
+                    query_params: None,
+                };
             }
-        } else {
-            let matched = self.route_tree.match_route(&no_query_route);
+        }
 
-            MatchedRoute {
-                middleware: matched.1,
-                value: route,
-                path: matched.2,
-                params: matched.0,
-                query_params: None,
-            }
+        let matched = self.route_tree.match_route(&no_query_route);
+
+        MatchedRoute {
+            middleware: matched.1,
+            value: route,
+            path: matched.2,
+            params: matched.0,
+            query_params: None,
         }
     }
 }
