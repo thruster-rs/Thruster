@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::{fmt, io, str};
 
 pub trait RequestWithParams {
-    fn set_params(&mut self, _: HashMap<String, String>);
+    fn set_params(&mut self, _: Option<HashMap<String, String>>);
 }
 
 ///
@@ -20,7 +20,7 @@ pub struct Request {
     version: u8,
     pub headers: SmallVec<[(Slice, Slice); 8]>,
     data: BytesMut,
-    pub params: HashMap<String, String>,
+    pub params: Option<HashMap<String, String>>,
 }
 
 type Slice = (usize, usize);
@@ -37,7 +37,7 @@ impl Request {
             version: 0,
             headers: SmallVec::new(),
             data: BytesMut::new(),
-            params: HashMap::new(),
+            params: None,
         }
     }
 
@@ -119,13 +119,13 @@ impl Request {
     /// Fetch the params from the route, e.g. The route "/some/:key" when applied to an incoming
     /// request for "/some/value" will populate `params` with `{ key: "value" }`
     ///
-    pub fn params(&self) -> &HashMap<String, String> {
+    pub fn params(&self) -> &Option<HashMap<String, String>> {
         &self.params
     }
 }
 
 impl RequestWithParams for Request {
-    fn set_params(&mut self, params: HashMap<String, String>) {
+    fn set_params(&mut self, params: Option<HashMap<String, String>>) {
         self.params = params;
     }
 }
@@ -147,6 +147,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
         let status = r.parse(buf).map_err(|e| {
             let msg = format!("failed to parse http request: {:?}", e);
             eprintln!("msg: {}", msg);
+            eprintln!("dump: {:#?}", buf);
             io::Error::new(io::ErrorKind::Other, msg)
         })?;
         let amt = match status {
@@ -189,7 +190,7 @@ pub fn decode(buf: &mut BytesMut) -> io::Result<Option<Request>> {
             headers,
             data: buf.split_to(amt + body_len),
             body: (amt, amt + body_len),
-            params: HashMap::new(),
+            params: None,
         }
         .into())
     }

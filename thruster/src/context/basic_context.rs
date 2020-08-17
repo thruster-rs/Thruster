@@ -21,8 +21,8 @@ pub fn generate_context<S>(request: Request, _state: &S, _path: &str) -> BasicCo
 pub struct BasicContext {
     response: Response,
     pub cookies: Vec<Cookie>,
-    pub params: HashMap<String, String>,
-    pub query_params: HashMap<String, String>,
+    pub params: Option<HashMap<String, String>>,
+    pub query_params: Option<HashMap<String, String>>,
     pub request: Request,
     pub status: u32,
     pub headers: HashMap<String, String>,
@@ -33,8 +33,8 @@ impl BasicContext {
         let mut ctx = BasicContext {
             response: Response::new(),
             cookies: Vec::new(),
-            params: HashMap::new(),
-            query_params: HashMap::new(),
+            params: None,
+            query_params: None,
             request: Request::new(),
             headers: HashMap::new(),
             status: 200,
@@ -170,7 +170,7 @@ impl Context for BasicContext {
 
 impl HasQueryParams for BasicContext {
     fn set_query_params(&mut self, query_params: HashMap<String, String>) {
-        self.query_params = query_params;
+        self.query_params = Some(query_params);
     }
 }
 

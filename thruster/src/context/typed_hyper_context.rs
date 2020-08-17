@@ -7,10 +7,10 @@ use std::convert::TryInto;
 use std::str;
 use thruster_proc::middleware_fn;
 
+use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
 use crate::core::{MiddlewareNext, MiddlewareResult};
 use crate::middleware::query_params::HasQueryParams;
-use crate::context::hyper_request::HyperRequest;
 
 pub enum SameSite {
     Strict,
@@ -64,7 +64,7 @@ pub struct TypedHyperContext<S> {
     pub query_params: HashMap<String, String>,
     pub status: u16,
     pub headers: HashMap<String, String>,
-    pub params: HashMap<String, String>,
+    pub params: Option<HashMap<String, String>>,
     pub hyper_request: Option<HyperRequest>,
     pub extra: S,
     http_version: hyper::Version,
@@ -85,7 +85,7 @@ impl<S> TypedHyperContext<S> {
             request_body: None,
             request_parts: None,
             extra,
-            http_version: hyper::Version::HTTP_11
+            http_version: hyper::Version::HTTP_11,
         };
 
         ctx.set("Server", "Thruster");
@@ -94,7 +94,7 @@ impl<S> TypedHyperContext<S> {
     }
 
     pub fn new_without_request(extra: S) -> TypedHyperContext<S> {
-        let params = HashMap::new();
+        let params = None;
         let mut ctx = TypedHyperContext {
             body: Body::empty(),
             query_params: HashMap::new(),
@@ -105,7 +105,7 @@ impl<S> TypedHyperContext<S> {
             request_body: None,
             request_parts: None,
             extra,
-            http_version: hyper::Version::HTTP_11
+            http_version: hyper::Version::HTTP_11,
         };
 
         ctx.set("Server", "Thruster");
@@ -177,8 +177,8 @@ impl<S> TypedHyperContext<S> {
                     extra: self.extra,
                     http_version: self.http_version,
                 }
-            },
-            None => self
+            }
+            None => self,
         }
     }
 
@@ -299,11 +299,7 @@ impl<S> Context for TypedHyperContext<S> {
     }
 
     fn route(&self) -> &str {
-        let uri = self.hyper_request
-            .as_ref()
-            .unwrap()
-            .request
-            .uri();
+        let uri = self.hyper_request.as_ref().unwrap().request.uri();
 
         match uri.path_and_query() {
             Some(val) => val.as_str(),

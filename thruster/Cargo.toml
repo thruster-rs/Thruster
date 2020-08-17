@@ -32,6 +32,10 @@ name = "hyper_most_basic"
 required-features = ["hyper_server"]
 
 [[example]]
+name = "fast_hyper"
+required-features = ["hyper_server"]
+
+[[example]]
 name = "hyper_most_basic_ssl"
 required-features = ["hyper_server", "tls"]
 
@@ -92,7 +96,7 @@ futures-legacy = { version = "0.1.23", package = "futures" }
 futures = "0.3"
 http = "0.2"
 httplib = { package = "http", version = "0.1.7" }
-httparse = "1.1.2"
+httparse = "1.3.4"
 lazy_static = "1.4.0"
 log = "0.4"
 net2 = "0.2"
