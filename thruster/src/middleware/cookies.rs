@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use thruster_proc::middleware_fn;
 
 use crate::core::context::Context;
-use crate::core::middleware::MiddlewareReturnValue;
+use crate::core::{MiddlewareNext, MiddlewareResult};
 
 #[derive(Debug)]
 pub struct Cookie {
@@ -45,28 +45,26 @@ impl CookieOptions {
 
 pub trait HasCookies {
     fn set_cookies(&mut self, cookies: Vec<Cookie>);
-    fn headers(&self) -> HashMap<String, String>;
+    fn get_cookies(&self) -> Vec<String>;
+    fn get_header(&self, key: &str) -> Vec<String>;
 }
 
-pub fn cookies<T: 'static + Context + HasCookies + Send>(
+#[middleware_fn(_internal)]
+pub async fn cookies<T: 'static + Context + HasCookies + Send>(
     mut context: T,
-    next: impl Fn(T) -> MiddlewareReturnValue<T> + Send,
-) -> MiddlewareReturnValue<T> {
+    next: MiddlewareNext<T>,
+) -> MiddlewareResult<T> {
     let mut cookies = Vec::new();
 
     {
-        let headers: HashMap<String, String> = context.headers();
-
-        if let Some(val) = headers.get("set-cookie") {
-            for cookie_string in val.split(',') {
-                cookies.push(parse_string(cookie_string));
-            }
+        for cookie_string in context.get_header("cookie") {
+            cookies.push(parse_string(&cookie_string));
         }
     }
 
     context.set_cookies(cookies);
 
-    next(context)
+    next(context).await
 }
 
 fn parse_string(string: &str) -> Cookie {

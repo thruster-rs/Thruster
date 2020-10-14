@@ -262,7 +262,7 @@ impl<T: 'static + Context + Send> Node<T> {
                                 )
                             } else {
                                 if let Some(param_key) = &wildcard_node.param_key {
-                                    let mut p = params.unwrap();
+                                    let mut p = params.unwrap_or_else(|| HashMap::new());
 
                                     p.insert(param_key.to_owned(), piece.to_owned());
                                     params = Some(p);

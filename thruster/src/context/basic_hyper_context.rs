@@ -238,7 +238,7 @@ impl BasicHyperContext {
             SameSite::Lax => pieces.push("SameSite=Lax".to_owned()),
         };
 
-        format!("{}={}; {}", name, value, pieces.join(", "))
+        format!("{}={}; {}", name, value, pieces.join("; "))
     }
 
     pub fn set_http2(&mut self) {
@@ -285,7 +285,7 @@ impl Context for BasicHyperContext {
     }
 
     fn set(&mut self, key: &str, value: &str) {
-        self.headers.insert(
+        self.headers.append(
             HeaderName::from_bytes(key.as_bytes()).unwrap(),
             HeaderValue::from_str(value).unwrap(),
         );

@@ -1,16 +1,18 @@
 use std::collections::HashMap;
+use thruster_proc::middleware_fn;
 
 use crate::core::context::Context;
-use crate::core::middleware::MiddlewareReturnValue;
+use crate::core::{MiddlewareNext, MiddlewareResult};
 
 pub trait HasQueryParams {
     fn set_query_params(&mut self, query_params: HashMap<String, String>);
 }
 
-pub fn query_params<T: 'static + Context + HasQueryParams + Send>(
+#[middleware_fn(_internal)]
+pub async fn query_params<T: 'static + Context + HasQueryParams + Send>(
     mut context: T,
-    next: impl Fn(T) -> MiddlewareReturnValue<T> + Send,
-) -> MiddlewareReturnValue<T> {
+    next: MiddlewareNext<T>,
+) -> MiddlewareResult<T> {
     let mut query_param_hash = HashMap::new();
 
     {
@@ -35,5 +37,5 @@ pub fn query_params<T: 'static + Context + HasQueryParams + Send>(
 
     context.set_query_params(query_param_hash);
 
-    next(context)
+    next(context).await
 }
