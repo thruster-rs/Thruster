@@ -134,7 +134,7 @@ impl BasicContext {
             };
         }
 
-        format!("{}={}; {}", name, value, pieces.join(", "))
+        format!("{}={}; {}", name, value, pieces.join("; "))
     }
 }
 
@@ -179,7 +179,18 @@ impl HasCookies for BasicContext {
         self.cookies = cookies;
     }
 
-    fn headers(&self) -> HashMap<String, String> {
-        self.request.headers()
+    fn get_cookies(&self) -> Vec<String> {
+        self.request
+            .headers()
+            .get("cookie")
+            .map(|v| v.clone())
+            .unwrap_or_else(|| vec![])
+    }
+
+    fn get_header(&self, key: &str) -> Vec<String> {
+        match self.request.headers().get(key) {
+            Some(v) => v.clone(),
+            None => vec![],
+        }
     }
 }

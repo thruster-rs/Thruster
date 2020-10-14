@@ -1,5 +1,6 @@
 use bytes::Bytes;
 use futures::stream::StreamExt;
+use http::header::{HeaderMap, HeaderName, HeaderValue};
 use http::request::Parts;
 use hyper::{Body, Error, Response, StatusCode};
 use std::collections::HashMap;
@@ -10,38 +11,8 @@ use thruster_proc::middleware_fn;
 use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
 use crate::core::{MiddlewareNext, MiddlewareResult};
+use crate::middleware::cookies::{Cookie, CookieOptions, HasCookies, SameSite};
 use crate::middleware::query_params::HasQueryParams;
-
-pub enum SameSite {
-    Strict,
-    Lax,
-}
-
-pub struct CookieOptions {
-    pub domain: String,
-    pub path: String,
-    pub expires: u64,
-    pub http_only: bool,
-    pub max_age: u64,
-    pub secure: bool,
-    pub signed: bool,
-    pub same_site: SameSite,
-}
-
-impl CookieOptions {
-    pub fn default() -> CookieOptions {
-        CookieOptions {
-            domain: "".to_owned(),
-            path: "/".to_owned(),
-            expires: 0,
-            http_only: false,
-            max_age: 0,
-            secure: false,
-            signed: false,
-            same_site: SameSite::Strict,
-        }
-    }
-}
 
 ///
 /// to_owned_request is needed in order to consume the body of a hyper
@@ -63,10 +34,11 @@ pub struct TypedHyperContext<S> {
     pub body: Body,
     pub query_params: HashMap<String, String>,
     pub status: u16,
-    pub headers: HashMap<String, String>,
+    pub headers: HeaderMap,
     pub params: Option<HashMap<String, String>>,
     pub hyper_request: Option<HyperRequest>,
     pub extra: S,
+    pub cookies: HashMap<String, Cookie>,
     http_version: hyper::Version,
     request_body: Option<Body>,
     request_parts: Option<Parts>,
@@ -78,7 +50,7 @@ impl<S> TypedHyperContext<S> {
         let mut ctx = TypedHyperContext {
             body: Body::empty(),
             query_params: HashMap::new(),
-            headers: HashMap::new(),
+            headers: HeaderMap::new(),
             status: 200,
             params,
             hyper_request: Some(req),
@@ -86,6 +58,7 @@ impl<S> TypedHyperContext<S> {
             request_parts: None,
             extra,
             http_version: hyper::Version::HTTP_11,
+            cookies: HashMap::new(),
         };
 
         ctx.set("Server", "Thruster");
@@ -98,7 +71,7 @@ impl<S> TypedHyperContext<S> {
         let mut ctx = TypedHyperContext {
             body: Body::empty(),
             query_params: HashMap::new(),
-            headers: HashMap::new(),
+            headers: HeaderMap::new(),
             status: 200,
             params,
             hyper_request: None,
@@ -106,6 +79,7 @@ impl<S> TypedHyperContext<S> {
             request_parts: None,
             extra,
             http_version: hyper::Version::HTTP_11,
+            cookies: HashMap::new(),
         };
 
         ctx.set("Server", "Thruster");
@@ -150,6 +124,7 @@ impl<S> TypedHyperContext<S> {
                 request_parts: ctx.request_parts,
                 extra: ctx.extra,
                 http_version: ctx.http_version,
+                cookies: ctx.cookies,
             },
         ))
     }
@@ -176,6 +151,7 @@ impl<S> TypedHyperContext<S> {
                     request_parts: Some(parts),
                     extra: self.extra,
                     http_version: self.http_version,
+                    cookies: self.cookies,
                 }
             }
             None => self,
@@ -220,7 +196,11 @@ impl<S> TypedHyperContext<S> {
     ///
     pub fn cookie(&mut self, name: &str, value: &str, options: &CookieOptions) {
         let cookie_value = match self.headers.get("Set-Cookie") {
-            Some(val) => format!("{}, {}", val, self.cookify_options(name, value, &options)),
+            Some(val) => format!(
+                "{}, {}",
+                val.to_str().unwrap_or_else(|_| ""),
+                self.cookify_options(name, value, &options)
+            ),
             None => self.cookify_options(name, value, &options),
         };
 
@@ -251,11 +231,12 @@ impl<S> TypedHyperContext<S> {
         }
 
         match options.same_site {
-            SameSite::Strict => pieces.push("SameSite=Strict".to_owned()),
-            SameSite::Lax => pieces.push("SameSite=Lax".to_owned()),
+            Some(SameSite::Strict) => pieces.push("SameSite=Strict".to_owned()),
+            Some(SameSite::Lax) => pieces.push("SameSite=Lax".to_owned()),
+            None => (),
         };
 
-        format!("{}={}; {}", name, value, pieces.join(", "))
+        format!("{}={}; {}", name, value, pieces.join("; "))
     }
 
     pub fn set_http2(&mut self) {
@@ -275,19 +256,13 @@ impl<S> Context for TypedHyperContext<S> {
     type Response = Response<Body>;
 
     fn get_response(self) -> Self::Response {
-        let mut response_builder = Response::builder();
+        let mut response = Response::new(self.body);
 
-        for (key, val) in self.headers {
-            let key: &str = &key;
-            let val: &str = &val;
-            response_builder = response_builder.header(key, val);
-        }
+        *response.status_mut() = StatusCode::from_u16(self.status).unwrap();
+        *response.headers_mut() = self.headers;
+        *response.version_mut() = self.http_version;
 
-        response_builder
-            .status(StatusCode::from_u16(self.status).unwrap())
-            .version(self.http_version)
-            .body(self.body)
-            .unwrap()
+        response
     }
 
     fn set_body(&mut self, body: Vec<u8>) {
@@ -308,7 +283,10 @@ impl<S> Context for TypedHyperContext<S> {
     }
 
     fn set(&mut self, key: &str, value: &str) {
-        self.headers.insert(key.to_owned(), value.to_owned());
+        self.headers.append(
+            HeaderName::from_bytes(key.as_bytes()).unwrap(),
+            HeaderValue::from_str(value).unwrap(),
+        );
     }
 
     fn remove(&mut self, key: &str) {
@@ -319,5 +297,37 @@ impl<S> Context for TypedHyperContext<S> {
 impl<S> HasQueryParams for TypedHyperContext<S> {
     fn set_query_params(&mut self, query_params: HashMap<String, String>) {
         self.query_params = query_params;
+    }
+}
+
+impl<S> HasCookies for TypedHyperContext<S> {
+    fn set_cookies(&mut self, cookies: Vec<Cookie>) {
+        self.cookies.clear();
+        for cookie in cookies {
+            self.cookies.insert(cookie.key.clone(), cookie);
+        }
+    }
+
+    fn get_cookies(&self) -> Vec<String> {
+        let res: Vec<String> = self
+            .headers
+            .get_all("cookie")
+            .iter()
+            .map(|v| v.to_str().unwrap_or_else(|_| "").to_string())
+            .collect();
+
+        res
+    }
+
+    fn get_header(&self, key: &str) -> Vec<String> {
+        self.hyper_request
+            .as_ref()
+            .unwrap()
+            .request
+            .headers()
+            .get_all(key)
+            .iter()
+            .map(|v| v.to_str().unwrap_or_else(|_| "").to_string())
+            .collect()
     }
 }

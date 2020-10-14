@@ -80,19 +80,27 @@ impl Request {
     /// Get an HashMap of the provided headers. The HashMap is lazily computed, so
     /// avoid this method unless you need to access headers.
     ///
-    pub fn headers(&self) -> HashMap<String, String> {
-        let mut header_map = HashMap::new();
+    pub fn headers(&self) -> HashMap<String, Vec<String>> {
+        let mut header_map: HashMap<String, Vec<String>> = HashMap::new();
 
         for slice_pair in self.headers.iter() {
-            header_map.insert(
-                str::from_utf8(self.slice(&slice_pair.0))
-                    .unwrap()
-                    .to_owned()
-                    .to_lowercase(),
-                str::from_utf8(self.slice(&slice_pair.1))
-                    .unwrap()
-                    .to_owned(),
-            );
+            let k = str::from_utf8(self.slice(&slice_pair.0))
+                .unwrap()
+                .to_owned()
+                .to_lowercase();
+            let v = str::from_utf8(self.slice(&slice_pair.1))
+                .unwrap()
+                .to_owned();
+
+            match header_map.get_mut(&k) {
+                Some(val) => {
+                    val.push(v);
+                }
+                None => {
+                    header_map.insert(k, vec![v]);
+                    ()
+                }
+            };
         }
 
         header_map

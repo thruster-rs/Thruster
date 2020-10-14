@@ -4,7 +4,7 @@ use std::str;
 use thruster::{
     middleware::{
         cookies::{Cookie, CookieOptions, HasCookies, SameSite},
-        query_params::HasQueryParams
+        query_params::HasQueryParams,
     },
     Context, Request, Response,
 };
@@ -128,7 +128,7 @@ impl JwtContext {
             };
         }
 
-        format!("{}={}; {}", name, value, pieces.join(", "))
+        format!("{}={}; {}", name, value, pieces.join("; "))
     }
 }
 
@@ -173,7 +173,7 @@ impl HasCookies for JwtContext {
         self.cookies = cookies;
     }
 
-    fn headers(&self) -> HashMap<String, String> {
+    fn headers(&self) -> HashMap<String, Vec<String>> {
         self.request.headers()
     }
 }
