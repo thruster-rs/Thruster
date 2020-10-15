@@ -58,7 +58,7 @@ pub async fn cookies<T: 'static + Context + HasCookies + Send>(
 
     {
         for cookie_string in context.get_header("cookie") {
-            cookies.push(parse_string(&cookie_string));
+            cookies.append(&mut parse_string(&cookie_string));
         }
     }
 
@@ -67,56 +67,21 @@ pub async fn cookies<T: 'static + Context + HasCookies + Send>(
     next(context).await
 }
 
-fn parse_string(string: &str) -> Cookie {
-    let mut options = CookieOptions::default();
+fn parse_string(string: &str) -> Vec<Cookie> {
+    string
+        .split(';')
+        .map(|pair| {
+            let mut key_pair = pair.split('=');
 
-    let mut pieces = string.split(';');
+            let key = key_pair.next().unwrap_or("").to_owned().trim().to_string();
+            let value = key_pair.next().unwrap_or("").to_owned().trim().to_string();
+            let options = CookieOptions::default();
 
-    let mut key_pair = pieces.next().unwrap().split('=');
-
-    let key = key_pair.next().unwrap_or("").to_owned();
-    let value = key_pair.next().unwrap_or("").to_owned();
-
-    for option in pieces {
-        let mut option_key_pair = option.split('=');
-
-        if let Some(option_key) = option_key_pair.next() {
-            match option_key.to_lowercase().trim() {
-                "expires" => {
-                    options.expires = option_key_pair
-                        .next()
-                        .unwrap_or("0")
-                        .parse::<u64>()
-                        .unwrap_or(0)
-                }
-                "max-age" => {
-                    options.max_age = option_key_pair
-                        .next()
-                        .unwrap_or("0")
-                        .parse::<u64>()
-                        .unwrap_or(0)
-                }
-                "domain" => options.domain = option_key_pair.next().unwrap_or("").to_owned(),
-                "path" => options.path = option_key_pair.next().unwrap_or("").to_owned(),
-                "secure" => options.secure = true,
-                "httponly" => options.http_only = true,
-                "samesite" => {
-                    if let Some(same_site_value) = option_key_pair.next() {
-                        match same_site_value.to_lowercase().as_ref() {
-                            "strict" => options.same_site = Some(SameSite::Strict),
-                            "lax" => options.same_site = Some(SameSite::Lax),
-                            _ => (),
-                        };
-                    }
-                }
-                _ => (),
-            };
-        }
-    }
-
-    Cookie {
-        key,
-        value,
-        options,
-    }
+            Cookie {
+                key,
+                value,
+                options,
+            }
+        })
+        .collect()
 }

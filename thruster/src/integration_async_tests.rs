@@ -11,7 +11,7 @@ use tokio::runtime::Runtime;
 
 #[middleware_fn]
 async fn test_fn_1(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let body = &context.params.get("id").unwrap().clone();
+    let body = &context.params.as_ref().unwrap().get("id").unwrap().clone();
 
     context.body(body);
 
@@ -94,10 +94,7 @@ fn it_should_execute_all_middlware_with_a_given_request_once() {
     };
 
     app.get("/test", async_middleware!(BasicContext, [test_fn_1]));
-    app.use_middleware(
-        "/",
-        async_middleware!(BasicContext, [test_fn_middleware]),
-    );
+    app.use_middleware("/", async_middleware!(BasicContext, [test_fn_middleware]));
 
     // println!("app: {}", app._route_parser.route_tree.root_node.tree_string(""));
     // for (route, middleware, is_terminal) in app._route_parser.route_tree.root_node.get_route_list() {
@@ -190,7 +187,13 @@ fn it_should_handle_query_parameters() {
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
     ) -> MiddlewareResult<BasicContext> {
-        let body = &context.query_params.get("hello").unwrap().clone();
+        let body = &context
+            .query_params
+            .as_ref()
+            .unwrap()
+            .get("hello")
+            .unwrap()
+            .clone();
 
         context.body(body);
         Ok(context)
@@ -239,7 +242,7 @@ fn it_should_handle_cookies() {
             &app,
             "GET",
             "/test",
-            &vec![("Set-Cookie", "Hello=World; SameSite=Strict")],
+            &vec![("Cookie", "Hello=World; SameSite=Strict")],
             "",
         )
         .await;
@@ -257,7 +260,7 @@ fn it_should_execute_all_middlware_with_a_given_request_with_params() {
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
     ) -> MiddlewareResult<BasicContext> {
-        let body = &context.params.get("id").unwrap().clone();
+        let body = &context.params.as_ref().unwrap().get("id").unwrap().clone();
 
         context.body(body);
         Ok(context)
@@ -281,7 +284,7 @@ fn it_should_execute_all_middlware_with_a_given_request_with_params_in_a_subapp(
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
     ) -> MiddlewareResult<BasicContext> {
-        let body = &context.params.get("id").unwrap().clone();
+        let body = &context.params.as_ref().unwrap().get("id").unwrap().clone();
 
         context.body(body);
         Ok(context)
@@ -308,7 +311,7 @@ fn it_should_correctly_parse_params_in_subapps() {
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
     ) -> MiddlewareResult<BasicContext> {
-        let body = &context.params.get("id").unwrap().clone();
+        let body = &context.params.as_ref().unwrap().get("id").unwrap().clone();
 
         context.body(body);
         Ok(context)
@@ -335,7 +338,7 @@ fn it_should_match_as_far_as_possible_in_a_subapp() {
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
     ) -> MiddlewareResult<BasicContext> {
-        let body = &context.params.get("id").unwrap().clone();
+        let body = &context.params.as_ref().unwrap().get("id").unwrap().clone();
 
         context.body(body);
         Ok(context)
@@ -372,7 +375,7 @@ fn it_should_trim_trailing_slashes() {
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
     ) -> MiddlewareResult<BasicContext> {
-        let body = &context.params.get("id").unwrap().clone();
+        let body = &context.params.as_ref().unwrap().get("id").unwrap().clone();
 
         context.body(body);
         Ok(context)
@@ -409,7 +412,7 @@ fn it_should_trim_trailing_slashes_after_params() {
         mut context: BasicContext,
         _next: MiddlewareNext<BasicContext>,
     ) -> MiddlewareResult<BasicContext> {
-        let body = &context.params.get("id").unwrap().clone();
+        let body = &context.params.as_ref().unwrap().get("id").unwrap().clone();
 
         context.body(body);
         Ok(context)
@@ -972,5 +975,70 @@ fn it_should_prefer_specificity_to_ambiguity() {
         let response = testing::get(&app2, "/b/order").await;
 
         assert!(response.body == "2");
+    });
+}
+
+#[test]
+fn it_should_prefer_nested_specificity_to_immediate_ambiguity() {
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
+
+    #[middleware_fn]
+    async fn test_fn_1(
+        mut context: BasicContext,
+        _next: MiddlewareNext<BasicContext>,
+    ) -> MiddlewareResult<BasicContext> {
+        context.body("1");
+        Ok(context)
+    };
+
+    #[middleware_fn]
+    async fn test_fn_2(
+        mut context: BasicContext,
+        _next: MiddlewareNext<BasicContext>,
+    ) -> MiddlewareResult<BasicContext> {
+        context.body("2");
+        Ok(context)
+    };
+
+    app1.get("/:id/d", async_middleware!(BasicContext, [test_fn_2]));
+    app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
+
+    let _ = Runtime::new().unwrap().block_on(async {
+        let response = testing::get(&app1, "/b/d").await;
+
+        println!("response.body: {}", response.body);
+        assert!(response.body == "2");
+    });
+}
+
+#[test]
+fn it_should_not_overwrite_wildcards_when_nesting() {
+    let mut app1 = App::<Request, BasicContext, ()>::new_basic();
+
+    #[middleware_fn]
+    async fn test_fn_1(
+        mut context: BasicContext,
+        _next: MiddlewareNext<BasicContext>,
+    ) -> MiddlewareResult<BasicContext> {
+        context.body("1");
+        Ok(context)
+    };
+
+    #[middleware_fn]
+    async fn test_fn_2(
+        mut context: BasicContext,
+        _next: MiddlewareNext<BasicContext>,
+    ) -> MiddlewareResult<BasicContext> {
+        context.body("2");
+        Ok(context)
+    };
+
+    app1.get("/a/:id", async_middleware!(BasicContext, [test_fn_1]));
+    app1.get("/a/:id/d", async_middleware!(BasicContext, [test_fn_2]));
+
+    let _ = Runtime::new().unwrap().block_on(async {
+        let response = testing::get(&app1, "/a/b").await;
+
+        assert!(response.body == "1");
     });
 }
