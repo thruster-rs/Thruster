@@ -6,6 +6,7 @@ use hyper::{Body, Request, Response};
 #[cfg(not(windows))]
 use net2::unix::UnixTcpBuilderExt;
 use std::future::Future;
+use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::net::ToSocketAddrs;
 use std::pin::Pin;
@@ -39,10 +40,11 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Hyp
 
         let incoming = listener.incoming();
 
-        let service = make_service_fn(|_| {
+        let service = make_service_fn(|stream: &tokio::net::TcpStream| {
             let app = arc_app.clone();
+            let ip = stream.peer_addr().unwrap().ip();
 
-            async { Ok::<_, hyper::Error>(_HyperService { app }) }
+            async move { Ok::<_, hyper::Error>(_HyperService { ip, app }) }
         });
         let server =
             hyper::server::Builder::new(hyper::server::accept::from_stream(incoming), Http::new())
@@ -111,6 +113,7 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Thr
 
 struct _HyperService<T: 'static + Context + Send, S: Send> {
     app: Arc<App<HyperRequest, T, S>>,
+    ip: IpAddr,
 }
 
 impl<T: 'static + Context + Send, S: 'static + Send> Service<Request<Body>>
@@ -130,7 +133,8 @@ impl<T: 'static + Context + Send, S: 'static + Send> Service<Request<Body>>
             &req.uri().path_and_query().unwrap().to_string(),
         );
 
-        let req = HyperRequest::new(req);
+        let mut req = HyperRequest::new(req);
+        req.ip = Some(self.ip);
         Box::pin(self.app.resolve(req, matched))
     }
 }

@@ -1,6 +1,7 @@
 use http::request::Parts;
 use hyper::{Body, Request};
 use std::collections::HashMap;
+use std::net::IpAddr;
 
 use crate::core::request::RequestWithParams;
 
@@ -9,6 +10,7 @@ pub struct HyperRequest {
     pub parts: Option<Parts>,
     pub body: Option<Body>,
     pub params: Option<HashMap<String, String>>,
+    pub ip: Option<IpAddr>,
 }
 
 impl HyperRequest {
@@ -18,6 +20,7 @@ impl HyperRequest {
             parts: None,
             body: None,
             params: None,
+            ip: None,
         }
     }
 }
