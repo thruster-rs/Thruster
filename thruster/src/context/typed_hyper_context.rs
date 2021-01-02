@@ -159,6 +159,13 @@ impl<S> TypedHyperContext<S> {
     }
 
     ///
+    /// Set the response status code
+    ///
+    pub fn status(&mut self, code: u32) {
+        self.status = code.try_into().unwrap();
+    }
+
+    ///
     /// Set the response `Content-Type`. A shortcode for
     ///
     /// ```ignore

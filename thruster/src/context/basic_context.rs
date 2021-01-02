@@ -60,6 +60,13 @@ impl BasicContext {
     }
 
     ///
+    /// Set the response status code
+    ///
+    pub fn status(&mut self, code: u32) {
+        self.status = code;
+    }
+
+    ///
     /// Set the response `Content-Type`. A shortcode for
     ///
     /// ```ignore
