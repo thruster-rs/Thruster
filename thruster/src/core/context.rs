@@ -31,5 +31,7 @@ pub trait Context {
     fn remove(&mut self, key: &str);
 
     /// status sets the http status of the response
-    fn status(&mut self, status: u16);
+    fn status(&mut self, _status: u16) {
+        warn!("status nothing by default, but is provided for backcompat. This will be removed in future releases.")
+    }
 }
