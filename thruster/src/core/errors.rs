@@ -4,7 +4,7 @@ use std::error::Error as StdError;
 pub struct ThrusterError<C> {
     pub context: C,
     pub message: String,
-    pub status: u16,
+    pub status: u32,
     pub cause: Option<Box<dyn StdError>>,
 }
 
@@ -14,7 +14,7 @@ pub trait Error<C> {
 
 impl<C: Context> Error<C> for ThrusterError<C> {
     fn build_context(mut self) -> C {
-        self.context.status(self.status);
+        self.context.status(self.status as u16);
         self.context.set_body(self.message.as_bytes().into());
         self.context
     }
