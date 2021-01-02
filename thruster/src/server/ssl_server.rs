@@ -43,7 +43,9 @@ impl<T: Context<Response = Response> + Send, S: 'static + Send + Sync> ThrusterS
     type Request = Request;
     type State = S;
 
-    fn new(app: App<Self::Request, T, Self::State>) -> Self {
+    fn new(mut app: App<Self::Request, T, Self::State>) -> Self {
+        app = app.commit();
+
         SSLServer {
             app,
             cert: None,

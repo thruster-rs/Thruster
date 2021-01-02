@@ -47,7 +47,9 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Thr
     type Request = HyperRequest;
     type State = S;
 
-    fn new(app: App<Self::Request, T, Self::State>) -> Self {
+    fn new(mut app: App<Self::Request, T, Self::State>) -> Self {
+        app = app.commit();
+
         SSLHyperServer {
             app,
             cert: None,

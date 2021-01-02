@@ -28,6 +28,13 @@ pub struct BasicContext {
     pub headers: HashMap<String, String>,
 }
 
+impl Clone for BasicContext {
+    fn clone(&self) -> Self {
+        warn!("You should not be calling this method -- it just returns a default context.");
+        BasicContext::new()
+    }
+}
+
 impl BasicContext {
     pub fn new() -> BasicContext {
         let mut ctx = BasicContext {

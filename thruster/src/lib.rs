@@ -6,10 +6,12 @@ extern crate log;
 
 mod app;
 mod core;
+// mod parser;
 mod server;
 
 pub mod context;
 pub mod middleware;
+pub mod parser;
 
 pub use crate::core::context::Context;
 pub use crate::core::errors;
@@ -17,9 +19,7 @@ pub use crate::core::http::Http;
 pub use crate::core::middleware::MiddlewareResult;
 pub use crate::core::request::{decode, Request, RequestWithParams};
 pub use crate::core::response::{encode, Response};
-pub use crate::core::{
-    Chain, Middleware, MiddlewareChain, MiddlewareFn, MiddlewareNext, MiddlewareReturnValue,
-};
+pub use crate::core::{MiddlewareFn, MiddlewareNext, MiddlewareReturnValue};
 pub use app::testing_async as testing;
 pub use app::App;
 

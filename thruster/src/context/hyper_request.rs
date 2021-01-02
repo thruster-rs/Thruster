@@ -3,7 +3,8 @@ use hyper::{Body, Request};
 use std::collections::HashMap;
 use std::net::IpAddr;
 
-use crate::core::request::RequestWithParams;
+// use crate::core::request::RequestWithParams;
+// use crate::parser::tree::Params;
 
 pub struct HyperRequest {
     pub request: Request<Body>,
@@ -22,12 +23,6 @@ impl HyperRequest {
             params: None,
             ip: None,
         }
-    }
-}
-
-impl RequestWithParams for HyperRequest {
-    fn set_params(&mut self, params: Option<HashMap<String, String>>) {
-        self.params = params;
     }
 }
 

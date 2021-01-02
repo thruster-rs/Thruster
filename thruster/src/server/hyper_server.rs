@@ -13,18 +13,30 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context as TaskContext, Poll};
 
-use crate::app::App;
 use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
 use crate::server::ThrusterServer;
+use crate::{app::App, core::request::ThrusterRequest};
 
-pub struct HyperServer<T: 'static + Context + Send, S: Send> {
+impl ThrusterRequest for HyperRequest {
+    fn method(&self) -> &str {
+        self.request.method().as_str()
+    }
+
+    fn path(&self) -> String {
+        self.request.uri().to_string()
+    }
+}
+
+pub struct HyperServer<T: 'static + Context + Clone + Send + Sync, S: 'static + Send> {
     app: App<HyperRequest, T, S>,
 }
 
-impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> HyperServer<T, S> {
+impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + Send + Sync>
+    HyperServer<T, S>
+{
     async fn process(
-        arc_app: Arc<App<HyperRequest, T, S>>,
+        app: Arc<App<HyperRequest, T, S>>,
         addr: &SocketAddr,
     ) -> Result<(), hyper::Error> {
         let mut listener = {
@@ -41,10 +53,10 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Hyp
         let incoming = listener.incoming();
 
         let service = make_service_fn(|stream: &tokio::net::TcpStream| {
-            let app = arc_app.clone();
             let ip = stream.peer_addr().unwrap().ip();
+            let arc_app = app.clone();
 
-            async move { Ok::<_, hyper::Error>(_HyperService { ip, app }) }
+            async move { Ok::<_, hyper::Error>(_HyperService::<T, S> { ip, app: arc_app }) }
         });
         let server =
             hyper::server::Builder::new(hyper::server::accept::from_stream(incoming), Http::new())
@@ -56,8 +68,8 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Hyp
     }
 
     #[allow(dead_code)]
-    pub async fn build_per_thread(mut self, host: &str, port: u16) {
-        self.app._route_parser.optimize();
+    pub async fn build_per_thread(self, host: &str, port: u16) {
+        // self.app._route_parser.optimize();
 
         let arc_app = Arc::new(self.app);
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
@@ -87,20 +99,22 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Hyp
 }
 
 #[async_trait]
-impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> ThrusterServer
-    for HyperServer<T, S>
+impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + Send + Sync>
+    ThrusterServer for HyperServer<T, S>
 {
     type Context = T;
     type Response = Response<Body>;
     type Request = HyperRequest;
     type State = S;
 
-    fn new(app: App<Self::Request, T, Self::State>) -> Self {
+    fn new(mut app: App<Self::Request, T, Self::State>) -> Self {
+        app = app.commit();
+
         HyperServer { app }
     }
 
     async fn build(mut self, host: &str, port: u16) {
-        self.app._route_parser.optimize();
+        // self.app._route_parser.optimize();
 
         let arc_app = Arc::new(self.app);
 
@@ -111,13 +125,22 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Thr
     }
 }
 
-struct _HyperService<T: 'static + Context + Send, S: Send> {
+struct _HyperService<T: 'static + Context + Clone + Send + Sync, S: Send> {
     app: Arc<App<HyperRequest, T, S>>,
     ip: IpAddr,
 }
 
-impl<T: 'static + Context + Send, S: 'static + Send> Service<Request<Body>>
-    for _HyperService<T, S>
+impl<T: 'static + Context + Clone + Send + Sync, S: Send> Clone for _HyperService<T, S> {
+    fn clone(&self) -> Self {
+        _HyperService {
+            app: self.app.clone(),
+            ip: self.ip.clone(),
+        }
+    }
+}
+
+impl<'a, T: 'static + Context + Clone + Send + Sync, S: 'static + Send + Sync>
+    Service<Request<Body>> for _HyperService<T, S>
 {
     type Response = T::Response;
     type Error = std::io::Error;
@@ -128,13 +151,23 @@ impl<T: 'static + Context + Send, S: 'static + Send> Service<Request<Body>>
     }
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
-        let matched = self.app.resolve_from_method_and_path(
-            &req.method().to_string(),
-            &req.uri().path_and_query().unwrap().to_string(),
-        );
-
         let mut req = HyperRequest::new(req);
-        req.ip = Some(self.ip);
-        Box::pin(self.app.resolve(req, matched))
+        req.ip = Some(self.ip.clone());
+
+        let clone = self.clone();
+
+        Box::pin(async move { clone.app.clone().match_and_resolve(req).await })
+        // let path = req.uri().path_and_query().unwrap().to_string();
+        // let matched = self
+        //     .app
+        //     .clone()
+        //     .resolve_from_method_and_path(&req.method().to_string(), path);
+
+        // let mut req = HyperRequest::new(req);
+        // req.ip = Some(self.ip.clone());
+
+        // // let fut = anonymous_resolve(req, matched, state, context_generator);
+
+        // Box::pin(self.app.resolve(req, matched))
     }
 }

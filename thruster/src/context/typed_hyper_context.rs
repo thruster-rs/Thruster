@@ -20,7 +20,7 @@ use crate::middleware::query_params::HasQueryParams;
 /// the raw hyper request into the context itself for easier access.
 ///
 #[middleware_fn(_internal)]
-pub async fn to_owned_request<T: 'static + Send>(
+pub async fn to_owned_request<T: 'static + Send + Sync>(
     context: TypedHyperContext<T>,
     next: MiddlewareNext<TypedHyperContext<T>>,
 ) -> MiddlewareResult<TypedHyperContext<T>> {
@@ -30,7 +30,7 @@ pub async fn to_owned_request<T: 'static + Send>(
 }
 
 #[derive(Default)]
-pub struct TypedHyperContext<S> {
+pub struct TypedHyperContext<S: 'static + Send + Sync> {
     pub body: Body,
     pub query_params: HashMap<String, String>,
     pub status: u16,
@@ -44,7 +44,13 @@ pub struct TypedHyperContext<S> {
     request_parts: Option<Parts>,
 }
 
-impl<S> TypedHyperContext<S> {
+impl<S: 'static + Send + Sync> Clone for TypedHyperContext<S> {
+    fn clone(&self) -> Self {
+        panic!("You should not be calling this method.");
+    }
+}
+
+impl<S: 'static + Send + Sync> TypedHyperContext<S> {
     pub fn new(req: HyperRequest, extra: S) -> TypedHyperContext<S> {
         let params = req.params.clone();
         let mut ctx = TypedHyperContext {
@@ -252,7 +258,7 @@ impl<S> TypedHyperContext<S> {
     }
 }
 
-impl<S> Context for TypedHyperContext<S> {
+impl<S: 'static + Send + Sync> Context for TypedHyperContext<S> {
     type Response = Response<Body>;
 
     fn get_response(self) -> Self::Response {
@@ -294,13 +300,13 @@ impl<S> Context for TypedHyperContext<S> {
     }
 }
 
-impl<S> HasQueryParams for TypedHyperContext<S> {
+impl<S: 'static + Send + Sync> HasQueryParams for TypedHyperContext<S> {
     fn set_query_params(&mut self, query_params: HashMap<String, String>) {
         self.query_params = query_params;
     }
 }
 
-impl<S> HasCookies for TypedHyperContext<S> {
+impl<S: 'static + Send + Sync> HasCookies for TypedHyperContext<S> {
     fn set_cookies(&mut self, cookies: Vec<Cookie>) {
         self.cookies.clear();
         for cookie in cookies {

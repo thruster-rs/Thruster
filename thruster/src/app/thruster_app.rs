@@ -1,45 +1,29 @@
-use std::io;
-
-use crate::context::basic_context::{generate_context, BasicContext};
-use crate::core::context::Context;
-use crate::core::errors::Error;
-use crate::core::middleware::MiddlewareChain;
-use crate::core::request::{Request, RequestWithParams};
-use crate::core::route_parser::{MatchedRoute, RouteParser};
 use std::future::Future;
+use std::io;
+use std::pin::Pin;
 
-enum Method {
-    DELETE,
-    GET,
-    OPTIONS,
-    POST,
-    PUT,
-    PATCH,
-}
+use crate::core::context::Context;
+use crate::core::request::Request;
+use crate::parser::{middleware_traits::MiddlewareTuple, tree::Node, tree::NodeOutput};
+use crate::{
+    context::basic_context::{generate_context, BasicContext},
+    core::request::ThrusterRequest,
+};
 
-// Warning, this method is slow and shouldn't be used for route matching, only for route adding
-fn _add_method_to_route(method: &Method, path: &str) -> String {
-    let prefix = match method {
-        Method::DELETE => "__DELETE__",
-        Method::GET => "__GET__",
-        Method::OPTIONS => "__OPTIONS__",
-        Method::POST => "__POST__",
-        Method::PUT => "__PUT__",
-        Method::PATCH => "__PATCH__",
-    };
-
-    match &path[0..1] {
-        "/" => format!("{}{}", prefix, path),
-        _ => format!("{}/{}", prefix, path),
+pub trait Middleware<CIn: Send + Sync, COut: Send + Sync, CErr: Send + Sync>:
+    FnOnce(CIn) -> Pin<Box<dyn Future<Output = Result<COut, CErr>> + Send + Sync>>
+{
+    fn val(&self) -> Self
+    where
+        Self: Sized + Copy,
+    {
+        panic!("Never use this.")
     }
 }
 
-#[inline]
-fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
-    templatify!("__" ; method ; "__" ; path ; "")
-}
+// type ReturnValue<T> = Result<T, ThrusterError<T>>;
+type ReturnValue<T> = T;
 
-///
 /// App, the main component of Thruster. The App is the entry point for your application
 /// and handles all incomming requests. Apps are also composeable, that is, via the `subapp`
 /// method, you can use all of the methods and middlewares contained within an app as a subset
@@ -77,20 +61,24 @@ fn _add_method_to_route_from_str(method: &str, path: &str) -> String {
 /// It will then return a future with the Response object that corresponds to the request. This can be
 /// useful if trying to integrate with a different type of load balancing system within the threads of the
 /// application.
-///
-pub struct App<R: RequestWithParams, T: 'static + Context + Send, S: Send> {
-    pub _route_parser: RouteParser<T>,
-    ///
+pub struct App<R: ThrusterRequest, T: 'static + Context + Clone + Send + Sync, S: Send> {
+    pub delete_root: Node<ReturnValue<T>>,
+    pub get_root: Node<ReturnValue<T>>,
+    pub options_root: Node<ReturnValue<T>>,
+    pub post_root: Node<ReturnValue<T>>,
+    pub put_root: Node<ReturnValue<T>>,
+    pub patch_root: Node<ReturnValue<T>>,
     /// Generate context is common to all `App`s. It's the function that's called upon receiving a request
     /// that translates an acutal `Request` struct to your custom Context type. It should be noted that
     /// the context_generator should be as fast as possible as this is called with every request, including
     /// 404s.
     pub context_generator: fn(R, &S, &str) -> T,
-    pub state: S,
-
+    pub state: std::sync::Arc<S>,
 }
 
-impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
+impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static + Send>
+    App<R, T, S>
+{
     /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
     /// examples, likely not a good solution for real code bases. The advantage is that the
     /// context_generator is already supplied for the developer.
@@ -102,9 +90,14 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     /// is called.
     pub fn create(generate_context: fn(R, &S, &str) -> T, state: S) -> App<R, T, S> {
         App {
-            _route_parser: RouteParser::new(),
+            delete_root: Node::default(),
+            get_root: Node::default(),
+            options_root: Node::default(),
+            post_root: Node::default(),
+            put_root: Node::default(),
+            patch_root: Node::default(),
             context_generator: generate_context,
-            state,
+            state: std::sync::Arc::new(state),
         }
     }
 
@@ -113,10 +106,23 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     pub fn use_middleware(
         &mut self,
         path: &str,
-        middleware: MiddlewareChain<T>,
-    ) -> &mut App<R, T, S> {
-        self._route_parser
-            .add_method_agnostic_middleware(path, middleware);
+        middlewares: MiddlewareTuple<ReturnValue<T>>,
+    ) -> &mut App<R, T, S>
+    where
+        T: Clone,
+    {
+        self.get_root
+            .add_non_leaf_value_at_path(path, middlewares.clone());
+        self.options_root
+            .add_non_leaf_value_at_path(path, middlewares.clone());
+        self.post_root
+            .add_non_leaf_value_at_path(path, middlewares.clone());
+        self.put_root
+            .add_non_leaf_value_at_path(path, middlewares.clone());
+        self.delete_root
+            .add_non_leaf_value_at_path(path, middlewares.clone());
+        self.patch_root
+            .add_non_leaf_value_at_path(path, middlewares.clone());
 
         self
     }
@@ -125,22 +131,23 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     /// in to all of the routes. This is a main feature of Thruster, as it allows projects to be extermely
     /// modular and composeable in nature.
     pub fn use_sub_app(&mut self, prefix: &str, app: App<R, T, S>) -> &mut App<R, T, S> {
-        self._route_parser
-            .route_tree
-            .add_route_tree(prefix, app._route_parser.route_tree);
+        self.get_root.add_node_at_path(prefix, app.get_root);
+        self.options_root.add_node_at_path(prefix, app.options_root);
+        self.post_root.add_node_at_path(prefix, app.post_root);
+        self.put_root.add_node_at_path(prefix, app.put_root);
+        self.delete_root.add_node_at_path(prefix, app.delete_root);
+        self.patch_root.add_node_at_path(prefix, app.patch_root);
 
         self
     }
 
-    /// Return the route parser for a given app
-    pub fn get_route_parser(&self) -> &RouteParser<T> {
-        &self._route_parser
-    }
-
     /// Add a route that responds to `GET`s to a given path
-    pub fn get(&mut self, path: &str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
-        self._route_parser
-            .add_route(&_add_method_to_route(&Method::GET, path), middlewares);
+    pub fn get(
+        &mut self,
+        path: &str,
+        middlewares: MiddlewareTuple<ReturnValue<T>>,
+    ) -> &mut App<R, T, S> {
+        self.get_root.add_value_at_path(path, middlewares);
 
         self
     }
@@ -149,26 +156,31 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     pub fn options(
         &mut self,
         path: &str,
-        middlewares: MiddlewareChain<T>,
+        middlewares: MiddlewareTuple<ReturnValue<T>>,
     ) -> &mut App<R, T, S> {
-        self._route_parser
-            .add_route(&_add_method_to_route(&Method::OPTIONS, path), middlewares);
+        self.options_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `POST`s to a given path
-    pub fn post(&mut self, path: &str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
-        self._route_parser
-            .add_route(&_add_method_to_route(&Method::POST, path), middlewares);
+    pub fn post(
+        &mut self,
+        path: &str,
+        middlewares: MiddlewareTuple<ReturnValue<T>>,
+    ) -> &mut App<R, T, S> {
+        self.post_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `PUT`s to a given path
-    pub fn put(&mut self, path: &str, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
-        self._route_parser
-            .add_route(&_add_method_to_route(&Method::PUT, path), middlewares);
+    pub fn put(
+        &mut self,
+        path: &str,
+        middlewares: MiddlewareTuple<ReturnValue<T>>,
+    ) -> &mut App<R, T, S> {
+        self.put_root.add_value_at_path(path, middlewares);
 
         self
     }
@@ -177,10 +189,9 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     pub fn delete(
         &mut self,
         path: &str,
-        middlewares: MiddlewareChain<T>,
+        middlewares: MiddlewareTuple<ReturnValue<T>>,
     ) -> &mut App<R, T, S> {
-        self._route_parser
-            .add_route(&_add_method_to_route(&Method::DELETE, path), middlewares);
+        self.delete_root.add_value_at_path(path, middlewares);
 
         self
     }
@@ -189,79 +200,114 @@ impl<R: RequestWithParams, T: Context + Send, S: Send> App<R, T, S> {
     pub fn patch(
         &mut self,
         path: &str,
-        middlewares: MiddlewareChain<T>,
+        middlewares: MiddlewareTuple<ReturnValue<T>>,
     ) -> &mut App<R, T, S> {
-        self._route_parser
-            .add_route(&_add_method_to_route(&Method::PATCH, path), middlewares);
+        self.patch_root.add_value_at_path(path, middlewares);
 
         self
     }
 
-    /// Sets the middleware if no route is successfully matched.
-    pub fn set404(&mut self, middlewares: MiddlewareChain<T>) -> &mut App<R, T, S> {
-        self._route_parser.add_route(
-            &_add_method_to_route(&Method::GET, "/*"),
-            middlewares.clone(),
-        );
-        self._route_parser.add_route(
-            &_add_method_to_route(&Method::POST, "/*"),
-            middlewares.clone(),
-        );
-        self._route_parser.add_route(
-            &_add_method_to_route(&Method::PUT, "/*"),
-            middlewares.clone(),
-        );
-        self._route_parser.add_route(
-            &_add_method_to_route(&Method::PATCH, "/*"),
-            middlewares.clone(),
-        );
-        self._route_parser
-            .add_route(&_add_method_to_route(&Method::DELETE, "/*"), middlewares);
+    /// Sets the middleware if no route is successfully matched. Note, that due to type restrictions,
+    /// we Context needs to implement Clone in order to call this function, even though _clone will
+    /// never be called._
+    pub fn set404(&mut self, middlewares: MiddlewareTuple<ReturnValue<T>>) -> &mut App<R, T, S>
+    where
+        T: Clone,
+    {
+        self.get_root.add_value_at_path("/*", middlewares.clone());
+        self.options_root
+            .add_value_at_path("/*", middlewares.clone());
+        self.post_root.add_value_at_path("/*", middlewares.clone());
+        self.put_root.add_value_at_path("/*", middlewares.clone());
+        self.delete_root
+            .add_value_at_path("/*", middlewares.clone());
+        self.patch_root.add_value_at_path("/*", middlewares.clone());
 
         self
     }
 
-    pub fn resolve_from_method_and_path(&self, method: &str, path: &str) -> MatchedRoute<T> {
-        let path_with_method = _add_method_to_route_from_str(method, path);
+    /// Commits and locks in the route tree for usage.
+    pub fn commit(mut self) -> Self {
+        self.get_root = self.get_root.commit();
+        self.options_root = self.options_root.commit();
+        self.post_root = self.post_root.commit();
+        self.put_root = self.put_root.commit();
+        self.delete_root = self.delete_root.commit();
+        self.patch_root = self.patch_root.commit();
 
-        self._route_parser.match_route(path_with_method)
+        self
     }
 
-    /// Resolves a request, returning a future that is processable into a Response
-    #[cfg(feature = "hyper_server")]
-    pub fn resolve(
-        &self,
+    pub fn resolve_from_method_and_path<'m>(
+        &'m self,
+        method: &str,
+        path: String,
+    ) -> NodeOutput<'m, ReturnValue<T>> {
+        match method {
+            "OPTION" => self.options_root.get_value_at_path(path),
+            "POST" => self.post_root.get_value_at_path(path),
+            "PUT" => self.put_root.get_value_at_path(path),
+            "DELETE" => self.delete_root.get_value_at_path(path),
+            "PATCH" => self.patch_root.get_value_at_path(path),
+            // default get
+            _ => self.get_root.get_value_at_path(path),
+        }
+    }
+
+    pub fn match_and_resolve<'m>(
+        &'m self,
         request: R,
-        matched_route: MatchedRoute<T>,
-    ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {
-        self._resolve(request, matched_route)
-    }
+    ) -> impl Future<Output = Result<T::Response, io::Error>> + 'm + Send + Sync {
+        let method = request.method();
+        let path = request.path();
 
-    #[cfg(not(feature = "hyper_server"))]
-    pub fn resolve(
-        &self,
-        request: R,
-        matched_route: MatchedRoute<T>,
-    ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {
-        self._resolve(request, matched_route)
-    }
+        let node = match method {
+            "OPTION" => self.options_root.get_value_at_path(path),
+            "POST" => self.post_root.get_value_at_path(path),
+            "PUT" => self.put_root.get_value_at_path(path),
+            "DELETE" => self.delete_root.get_value_at_path(path),
+            "PATCH" => self.patch_root.get_value_at_path(path),
+            // default get
+            _ => self.get_root.get_value_at_path(path),
+        };
 
-    fn _resolve(
-        &self,
-        mut request: R,
-        matched_route: MatchedRoute<T>,
-    ) -> impl Future<Output = Result<T::Response, io::Error>> + Send {
-        request.set_params(matched_route.params);
+        let context = (self.context_generator)(request, &self.state, &node.path);
 
-        let context = (self.context_generator)(request, &self.state, matched_route.path);
-
-        let copy = matched_route.middleware.clone();
+        let copy = node.value;
         async move {
-            let ctx = copy.run(context).await;
+            let ctx = (copy)(context).await;
 
             let ctx = match ctx {
                 Ok(val) => val,
-                Err(e) => e.build_context(),
+                Err(e) => e.context,
+            };
+
+            Ok(ctx.get_response())
+        }
+    }
+
+    pub fn resolve<'m>(
+        &self,
+        request: R,
+        matched_route: NodeOutput<'m, T>,
+    ) -> impl Future<Output = Result<T::Response, io::Error>> + 'm + Send + Sync {
+        self._resolve(request, matched_route)
+    }
+
+    fn _resolve<'m>(
+        &self,
+        request: R,
+        matched_route: NodeOutput<'m, T>,
+    ) -> impl Future<Output = Result<T::Response, io::Error>> + 'm + Send + Sync {
+        let context = (self.context_generator)(request, &self.state, &matched_route.path);
+
+        let copy = matched_route.value;
+        async move {
+            let ctx = (copy)(context).await;
+
+            let ctx = match ctx {
+                Ok(val) => val,
+                Err(e) => e.context,
             };
 
             Ok(ctx.get_response())

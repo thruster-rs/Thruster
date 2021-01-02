@@ -44,6 +44,10 @@ fn main() {
     app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
     app.set404(async_middleware!(Ctx, [test_fn_404]));
 
+    // app = app.commit();
+    // println!("{}", app.get_root.print());
+
     let server = Server::new(app);
+
     server.start("0.0.0.0", 4321);
 }

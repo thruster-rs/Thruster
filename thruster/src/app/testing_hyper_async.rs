@@ -9,14 +9,14 @@ use hyper::{body, Body, Request, Response};
 
 pub async fn request<
     B: HttpBody + Send + std::marker::Unpin,
-    T: Context<Response = Response<B>> + Send,
-    S: Send,
+    T: Context<Response = Response<B>> + Clone + Send + Sync,
+    S: 'static + Send,
 >(
     app: &App<HyperRequest, T, S>,
     request: Request<Body>,
 ) -> TestResponse {
-    let matched_route =
-        app.resolve_from_method_and_path(request.method().as_str(), &request.uri().to_string());
+    let uri = request.uri().to_string();
+    let matched_route = app.resolve_from_method_and_path(request.method().as_str(), uri);
     let response = app
         .resolve(HyperRequest::new(request), matched_route)
         .await

@@ -76,6 +76,13 @@ pub struct BasicHyperContext {
     headers: HeaderMap,
 }
 
+impl Clone for BasicHyperContext {
+    fn clone(&self) -> Self {
+        warn!("You should not be calling this method -- it just returns a default context.");
+        BasicHyperContext::default()
+    }
+}
+
 const SERVER_HEADER_NAME: HeaderName = SERVER;
 impl BasicHyperContext {
     pub fn new(req: HyperRequest) -> BasicHyperContext {

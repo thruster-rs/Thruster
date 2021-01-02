@@ -1,13 +1,12 @@
-use crate::app::App;
 use crate::core::context::Context;
-use crate::core::request::RequestWithParams;
+use crate::{app::App, core::request::ThrusterRequest};
 use async_trait::async_trait;
 
 #[async_trait]
 pub trait ThrusterServer {
-    type Context: Context + Send;
+    type Context: Context + Clone + Send + Sync;
     type Response: Send;
-    type Request: RequestWithParams + Send;
+    type Request: ThrusterRequest + Send;
     type State: Send;
 
     fn new(_: App<Self::Request, Self::Context, Self::State>) -> Self;
