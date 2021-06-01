@@ -8,7 +8,7 @@ use crate::core::request::decode;
 use crate::core::request::Request;
 use crate::core::response::{Response, StatusMessage};
 
-pub async fn request<T: Context<Response = Response> + Send, S: Send>(
+pub async fn request<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
     app: &App<Request, T, S>,
     method: &str,
     route: &str,
@@ -22,52 +22,52 @@ pub async fn request<T: Context<Response = Response> + Send, S: Send>(
     let headers = headers_mapped.join("\n");
     let body = format!(
         "{} {} HTTP/1.1\nHost: localhost:8080\n{}\n\n{}",
-        method, route, headers, body
+        method, route.to_owned(), headers, body
     );
 
     let mut bytes = BytesMut::with_capacity(body.len());
     bytes.put(body.as_bytes());
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let matched_route = app.resolve_from_method_and_path("GET", route);
+    let matched_route = app.resolve_from_method_and_path("GET", route.to_owned());
     let response = app.resolve(request, matched_route).await.unwrap();
 
     TestResponse::new(response)
 }
 
-pub async fn get<T: Context<Response = Response> + Send, S: Send>(
+pub async fn get<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
 ) -> TestResponse {
-    let body = format!("GET {} HTTP/1.1\nHost: localhost:8080\n\n", route);
+    let body = format!("GET {} HTTP/1.1\nHost: localhost:8080\n\n", route.to_owned());
 
     let mut bytes = BytesMut::with_capacity(body.len());
     bytes.put(body.as_bytes());
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let matched_route = app.resolve_from_method_and_path("GET", route);
+    let matched_route = app.resolve_from_method_and_path("GET", route.to_owned());
     let response = app.resolve(request, matched_route).await.unwrap();
 
     TestResponse::new(response)
 }
 
-pub async fn delete<T: Context<Response = Response> + Send, S: Send>(
+pub async fn delete<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
 ) -> TestResponse {
-    let body = format!("DELETE {} HTTP/1.1\nHost: localhost:8080\n\n", route);
+    let body = format!("DELETE {} HTTP/1.1\nHost: localhost:8080\n\n", route.to_owned());
 
     let mut bytes = BytesMut::with_capacity(body.len());
     bytes.put(body.as_bytes());
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let matched_route = app.resolve_from_method_and_path("DELETE", route);
+    let matched_route = app.resolve_from_method_and_path("DELETE", route.to_owned());
     let response = app.resolve(request, matched_route).await.unwrap();
 
     TestResponse::new(response)
 }
 
-pub async fn post<T: Context<Response = Response> + Send, S: Send>(
+pub async fn post<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
     content: &str,
@@ -83,13 +83,13 @@ pub async fn post<T: Context<Response = Response> + Send, S: Send>(
     bytes.put(body.as_bytes());
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let matched_route = app.resolve_from_method_and_path("POST", route);
+    let matched_route = app.resolve_from_method_and_path("POST", route.to_owned());
     let response = app.resolve(request, matched_route).await.unwrap();
 
     TestResponse::new(response)
 }
 
-pub async fn put<T: Context<Response = Response> + Send, S: Send>(
+pub async fn put<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
     content: &str,
@@ -105,13 +105,13 @@ pub async fn put<T: Context<Response = Response> + Send, S: Send>(
     bytes.put(body.as_bytes());
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let matched_route = app.resolve_from_method_and_path("PUT", route);
+    let matched_route = app.resolve_from_method_and_path("PUT", route.to_owned());
     let response = app.resolve(request, matched_route).await.unwrap();
 
     TestResponse::new(response)
 }
 
-pub async fn patch<T: Context<Response = Response> + Send, S: Send>(
+pub async fn patch<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
     content: &str,
@@ -127,7 +127,7 @@ pub async fn patch<T: Context<Response = Response> + Send, S: Send>(
     bytes.put(body.as_bytes());
 
     let request = decode(&mut bytes).unwrap().unwrap();
-    let matched_route = app.resolve_from_method_and_path("PATCH", route);
+    let matched_route = app.resolve_from_method_and_path("PATCH", route.to_owned());
     let response = app.resolve(request, matched_route).await.unwrap();
 
     TestResponse::new(response)
