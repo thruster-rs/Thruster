@@ -27,12 +27,13 @@ fn bench_route_match(c: &mut Criterion) {
 
         app.get("/test/hello", async_middleware!(BasicContext, [test_fn_1]));
 
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         bench.iter(|| {
             let mut bytes = BytesMut::with_capacity(47);
             bytes.put(&b"GET /test/hello HTTP/1.1\nHost: localhost:8080\n\n"[..]);
             let request = decode(&mut bytes).unwrap().unwrap();
-            let matched = app.resolve_from_method_and_path(request.method(), request.path());
+            let matched =
+                app.resolve_from_method_and_path(request.method(), request.path().to_owned());
             rt.block_on(async {
                 let _response = app.resolve(request, matched).await.unwrap();
             });
@@ -45,14 +46,14 @@ fn optimized_bench_route_match(c: &mut Criterion) {
         let mut app = App::<Request, BasicContext, ()>::new_basic();
 
         app.get("/test/hello", async_middleware!(BasicContext, [test_fn_1]));
-        app._route_parser.optimize();
 
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         bench.iter(|| {
             let mut bytes = BytesMut::with_capacity(47);
             bytes.put(&b"GET /test/hello HTTP/1.1\nHost: localhost:8080\n\n"[..]);
             let request = decode(&mut bytes).unwrap().unwrap();
-            let matched = app.resolve_from_method_and_path(request.method(), request.path());
+            let matched =
+                app.resolve_from_method_and_path(request.method(), request.path().to_owned());
             rt.block_on(async {
                 let _response = app.resolve(request, matched).await.unwrap();
             });
@@ -65,7 +66,13 @@ async fn test_params_1(
     mut context: BasicContext,
     _next: MiddlewareNext<BasicContext>,
 ) -> MiddlewareResult<BasicContext> {
-    let body = &context.params.get("hello").unwrap().clone();
+    let body = &context
+        .params
+        .as_ref()
+        .unwrap()
+        .get("hello")
+        .unwrap()
+        .clone();
     context.body(body);
     Ok(context)
 }
@@ -79,12 +86,13 @@ fn bench_route_match_with_param(c: &mut Criterion) {
             async_middleware!(BasicContext, [test_params_1]),
         );
 
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         bench.iter(|| {
             let mut bytes = BytesMut::with_capacity(48);
             bytes.put(&b"GET /test/world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
             let request = decode(&mut bytes).unwrap().unwrap();
-            let matched = app.resolve_from_method_and_path(request.method(), request.path());
+            let matched =
+                app.resolve_from_method_and_path(request.method(), request.path().to_owned());
             rt.block_on(async {
                 let _response = app.resolve(request, matched).await.unwrap();
             });
@@ -97,7 +105,13 @@ async fn test_query_params_1(
     mut context: BasicContext,
     _next: MiddlewareNext<BasicContext>,
 ) -> MiddlewareResult<BasicContext> {
-    let body = &context.query_params.get("hello").unwrap().clone();
+    let body = &context
+        .query_params
+        .as_ref()
+        .unwrap()
+        .get("hello")
+        .unwrap()
+        .clone();
     context.body(body);
     Ok(context)
 }
@@ -111,12 +125,13 @@ fn bench_route_match_with_query_param(c: &mut Criterion) {
             async_middleware!(BasicContext, [test_query_params_1]),
         );
 
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         bench.iter(|| {
             let mut bytes = BytesMut::with_capacity(54);
             bytes.put(&b"GET /test?hello=world HTTP/1.1\nHost: localhost:8080\n\n"[..]);
             let request = decode(&mut bytes).unwrap().unwrap();
-            let matched = app.resolve_from_method_and_path(request.method(), request.path());
+            let matched =
+                app.resolve_from_method_and_path(request.method(), request.path().to_owned());
             rt.block_on(async {
                 let _response = app.resolve(request, matched).await.unwrap();
             });
