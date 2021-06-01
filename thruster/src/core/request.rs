@@ -1,10 +1,16 @@
+use crate::parser::tree::Params;
 use bytes::BytesMut;
 use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::{fmt, io, str};
 
 pub trait RequestWithParams {
-    fn set_params(&mut self, _: Option<HashMap<String, String>>);
+    fn set_params(&mut self, _: Params);
+}
+
+pub trait ThrusterRequest {
+    fn method(&self) -> &str;
+    fn path(&self) -> String;
 }
 
 ///
@@ -21,6 +27,15 @@ pub struct Request {
     pub headers: SmallVec<[(Slice, Slice); 8]>,
     data: BytesMut,
     pub params: Option<HashMap<String, String>>,
+}
+
+impl ThrusterRequest for Request {
+    fn method(&self) -> &str {
+        self.method()
+    }
+    fn path(&self) -> String {
+        self.path().to_owned()
+    }
 }
 
 type Slice = (usize, usize);
@@ -129,12 +144,6 @@ impl Request {
     ///
     pub fn params(&self) -> &Option<HashMap<String, String>> {
         &self.params
-    }
-}
-
-impl RequestWithParams for Request {
-    fn set_params(&mut self, params: Option<HashMap<String, String>>) {
-        self.params = params;
     }
 }
 

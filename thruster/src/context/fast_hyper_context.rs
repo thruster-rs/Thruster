@@ -31,6 +31,13 @@ pub struct FastHyperContext {
     pub http_version: hyper::Version,
 }
 
+impl Clone for FastHyperContext {
+    fn clone(&self) -> Self {
+        warn!("You should not be calling this method -- it just returns a default context.");
+        FastHyperContext::default()
+    }
+}
+
 const SERVER_HEADER_NAME: HeaderName = SERVER;
 impl FastHyperContext {
     pub fn new(req: HyperRequest) -> FastHyperContext {

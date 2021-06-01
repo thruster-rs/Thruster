@@ -63,11 +63,22 @@ impl<C: Context> ErrorSet<C> for ThrusterError<C> {
     }
 }
 
-impl<C: Context> std::fmt::Debug for ThrusterError<C> {
+impl<C> std::fmt::Debug for ThrusterError<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ThrusterError")
             .field("message", &self.message)
             .field("status", &self.status)
             .finish()
+    }
+}
+
+impl<C: Clone> Clone for ThrusterError<C> {
+    fn clone(&self) -> Self {
+        ThrusterError {
+            context: self.context.clone(),
+            message: self.message.clone(),
+            status: self.status,
+            cause: None,
+        }
     }
 }

@@ -7,8 +7,8 @@ use std::time::Instant;
 ///
 /// Middleware to set the request to respond with JSON type.
 ///
-#[middleware_fn]
-pub async fn json<T: 'static + Context + Send>(
+#[middleware_fn(_internal)]
+pub async fn json<T: 'static + Context + Send + Sync>(
     mut context: T,
     next: MiddlewareNext<T>,
 ) -> MiddlewareResult<T> {

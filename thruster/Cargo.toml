@@ -67,6 +67,10 @@ harness = false
 name = "integration_async"
 path = "src/integration_async_tests.rs"
 
+# [[test]]
+# name = "parse_tree"
+# path = "src/parser/tree.rs"
+
 [features]
 default = []
 hyper_server = [
@@ -89,7 +93,7 @@ file = [
 async-trait = "0.1"
 hyperlocal = { version = "0.7.0", optional = true }
 hyper = { version = "0.13.1", optional = true }
-thruster-proc = "=1.0.1"
+thruster-proc = { path = "../thruster-proc" }
 bytes = "0.5.4"
 dashmap = { version = "3.11.9", optional = true }
 futures-legacy = { version = "0.1.23", package = "futures" }
@@ -101,6 +105,7 @@ lazy_static = "1.4.0"
 log = "0.4"
 net2 = "0.2"
 num_cpus = "1.0"
+paste = "1.0.3"
 serde = "1.0.24"
 serde_json = "1.0.8"
 serde_derive = "1.0.24"

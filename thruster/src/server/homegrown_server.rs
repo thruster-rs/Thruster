@@ -22,8 +22,11 @@ use crate::core::response::Response;
 
 use crate::server::ThrusterServer;
 
-pub struct Server<T: 'static + Context<Response = Response> + Send, S: Send> {
-    app: App<Request, T, S>,
+pub struct Server<
+    T: 'static + Context<Response = Response> + Clone + Send + Sync,
+    S: 'static + Send,
+> {
+    app: Arc<App<Request, T, S>>,
 }
 
 // impl<T: 'static + Context<Response = Response> + Send> Server<T> {
@@ -102,36 +105,43 @@ pub struct Server<T: 'static + Context<Response = Response> + Send, S: Send> {
 // }
 
 #[async_trait]
-impl<T: Context<Response = Response> + Send, S: 'static + Send + Sync> ThrusterServer for Server<T, S> {
+impl<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send + Sync> ThrusterServer
+    for Server<T, S>
+{
     type Context = T;
     type Response = Response;
     type Request = Request;
     type State = S;
 
-    fn new(app: App<Self::Request, T, S>) -> Self {
-        Server { app }
+    fn new(mut app: App<Self::Request, T, S>) -> Self {
+        app = app.commit();
+
+        Server { app: Arc::new(app) }
     }
 
     async fn build(mut self, host: &str, port: u16) {
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
-        self.app._route_parser.optimize();
+        // self.app._route_parser.optimize();
 
         let mut listener = TcpListener::bind(&addr).await.unwrap();
         let mut incoming = listener.incoming();
-        let arc_app = Arc::new(self.app);
+        let arc_app = self.app;
 
         while let Some(Ok(stream)) = incoming.next().await {
             let cloned = arc_app.clone();
             tokio::spawn(async move {
-                if let Err(e) = process(cloned, stream).await {
+                if let Err(e) = process(&cloned, stream).await {
                     println!("failed to process connection; error = {}", e);
                 }
             });
         }
 
-        async fn process<T: Context<Response = Response> + Send, S: Send>(
-            app: Arc<App<Request, T, S>>,
+        async fn process<
+            T: Context<Response = Response> + Clone + Send + Sync,
+            S: 'static + Send,
+        >(
+            app: &App<Request, T, S>,
             socket: TcpStream,
         ) -> Result<(), Box<dyn Error>> {
             let mut framed = Framed::new(socket, Http);
@@ -139,8 +149,9 @@ impl<T: Context<Response = Response> + Send, S: 'static + Send + Sync> ThrusterS
             while let Some(request) = framed.next().await {
                 match request {
                     Ok(request) => {
-                        let matched =
-                            app.resolve_from_method_and_path(request.method(), request.path());
+                        let path = request.path().to_owned();
+                        let method = &request.method().to_owned();
+                        let matched = app.resolve_from_method_and_path(method, path);
                         let response = app.resolve(request, matched).await?;
                         framed.send(response).await?;
                     }

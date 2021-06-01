@@ -41,7 +41,7 @@ lazy_static! {
 /// var RUST_CACHE=off
 ///
 #[middleware_fn(_internal)]
-pub async fn file<T: 'static + Context + Send>(
+pub async fn file<T: 'static + Context + Send + Sync>(
     mut context: T,
     _next: MiddlewareNext<T>,
 ) -> MiddlewareResult<T> {

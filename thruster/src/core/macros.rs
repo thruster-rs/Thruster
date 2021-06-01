@@ -15,21 +15,45 @@ macro_rules! map_try {
 #[macro_export]
 macro_rules! async_middleware {
   ($ctx:ty, [$($x:expr),+]) => {{
-      use thruster::{Chain, Middleware, MiddlewareChain, MiddlewareNext, MiddlewareReturnValue};
+      use thruster::parser::middleware_traits::{MiddlewareFnPointer, MiddlewareTuple, ToTuple};
 
-      const __MIDDLEWARE_ARRAY: &'static [
-          fn($ctx, MiddlewareNext<$ctx>) -> MiddlewareReturnValue<$ctx>
-      ] = &[$( $x ),*];
-
-      static __MIDDLEWARE: Middleware<$ctx> = Middleware {
-          middleware: __MIDDLEWARE_ARRAY
-      };
-
-      let chain = Chain::new(vec![&__MIDDLEWARE]);
-
-      MiddlewareChain {
-          chain,
-          assigned: true
-      }
+      let val: (MiddlewareFnPointer<$ctx>,) = ($( $x ),*,);
+      val.to_tuple()
   }}
+}
+
+#[macro_export]
+macro_rules! async_middlewarez {
+  (@internal $last:ident @internal_rest $head:ident, $($tail:ident),+) => {
+      |v| $head(v, Some(Box::new(async_middlewarez!(@internal $last @internal_rest $($tail),*))))
+  };
+  (@internal $last:ident @internal_rest $head:ident) => {
+      |v| $head(v, $last)
+  };
+
+  (@return_type $ctx:ty) => {
+    Pin<
+      Box<
+          (dyn futures::Future<Output = std::result::Result<$ctx, ThrusterError<$ctx>>>
+              + std::marker::Send
+              + 'static),
+      >,
+    >
+  };
+
+  ($outter_ctx:ty:$inner_ctx:ty, $($middlewares:ident),+) => {{
+      fn _internal(ctx: $outter_ctx, last: Option<Box<(dyn Middleware<$inner_ctx, $inner_ctx> + Sync + Send + 'static)>>) -> async_middlewarez!(@return_type $outter_ctx) {
+        async_middlewarez!(@internal last @internal_rest $($middlewares),*)(ctx)
+      }
+
+      _internal
+  }};
+
+  ($ctx_type:ty, $($middlewares:ident),+) => {{
+      fn _internal(ctx: $ctx_type, last: Option<Box<(dyn Middleware<$ctx_type, $ctx_type> + Sync + Send + 'static)>>) -> async_middlewarez!(@return_type $ctx_type) {
+        async_middlewarez!(@internal last @internal_rest $($middlewares),*)(ctx)
+      }
+
+      _internal
+  }};
 }
