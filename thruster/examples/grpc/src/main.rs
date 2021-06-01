@@ -80,3 +80,7 @@
 //     let server = HyperServer::new(app);
 //     server.start("0.0.0.0", 50051);
 // }
+
+fn main() {
+    println!("This is disabled for now.");
+}
