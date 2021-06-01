@@ -1,11 +1,10 @@
-use futures::SinkExt;
+use async_trait::async_trait;
+use futures::{SinkExt, StreamExt};
 use std::error::Error;
 use std::net::ToSocketAddrs;
 use std::sync::Arc;
-
-use async_trait::async_trait;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::stream::StreamExt;
+use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::codec::Framed;
 
 use crate::app::App;
@@ -124,11 +123,10 @@ impl<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send + 
 
         // self.app._route_parser.optimize();
 
-        let mut listener = TcpListener::bind(&addr).await.unwrap();
-        let mut incoming = listener.incoming();
+        let mut listener = TcpListenerStream::new(TcpListener::bind(&addr).await.unwrap());
         let arc_app = self.app;
 
-        while let Some(Ok(stream)) = incoming.next().await {
+        while let Some(Ok(stream)) = listener.next().await {
             let cloned = arc_app.clone();
             tokio::spawn(async move {
                 if let Err(e) = process(&cloned, stream).await {

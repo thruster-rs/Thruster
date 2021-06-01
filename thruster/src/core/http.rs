@@ -16,8 +16,7 @@ impl Decoder for Http {
     }
 }
 
-impl Encoder for Http {
-    type Item = Response;
+impl Encoder<Response> for Http {
     type Error = io::Error;
 
     fn encode(&mut self, msg: Response, buf: &mut BytesMut) -> io::Result<()> {

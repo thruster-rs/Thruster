@@ -3,8 +3,7 @@ use hyper::server::conn::Http;
 use hyper::service::make_service_fn;
 use hyper::service::Service;
 use hyper::{Body, Request, Response};
-#[cfg(not(windows))]
-use net2::unix::UnixTcpBuilderExt;
+use socket2::{Domain, Socket, Type};
 use std::future::Future;
 use std::net::IpAddr;
 use std::net::SocketAddr;
@@ -12,6 +11,7 @@ use std::net::ToSocketAddrs;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context as TaskContext, Poll};
+use tokio_stream::wrappers::TcpListenerStream;
 
 use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
@@ -39,18 +39,20 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         app: Arc<App<HyperRequest, T, S>>,
         addr: &SocketAddr,
     ) -> Result<(), hyper::Error> {
-        let mut listener = {
-            let builder = net2::TcpBuilder::new_v4().unwrap();
-            #[cfg(not(windows))]
-            builder.reuse_address(true).unwrap();
-            #[cfg(not(windows))]
-            builder.reuse_port(true).unwrap();
+        let listener = TcpListenerStream::new({
+            let socket = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
 
-            builder.bind(addr).unwrap();
-            tokio::net::TcpListener::from_std(builder.listen(2048).unwrap()).unwrap()
-        };
+            let address = addr.clone().into();
+            socket.set_reuse_address(true).unwrap();
+            #[cfg(unix)]
+            socket.set_reuse_port(true).unwrap();
+            socket.bind(&address).unwrap();
+            socket.listen(1024).unwrap();
+            socket.set_nonblocking(true).unwrap();
 
-        let incoming = listener.incoming();
+            let listener: std::net::TcpListener = socket.into();
+            tokio::net::TcpListener::from_std(listener).unwrap()
+        });
 
         let service = make_service_fn(|stream: &tokio::net::TcpStream| {
             let ip = stream.peer_addr().unwrap().ip();
@@ -59,7 +61,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
             async move { Ok::<_, hyper::Error>(_HyperService::<T, S> { ip, app: arc_app }) }
         });
         let server =
-            hyper::server::Builder::new(hyper::server::accept::from_stream(incoming), Http::new())
+            hyper::server::Builder::new(hyper::server::accept::from_stream(listener), Http::new())
                 .serve(service);
 
         server.await?;
@@ -78,8 +80,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
             let arc_app = arc_app.clone();
 
             std::thread::spawn(move || {
-                let mut rt = tokio::runtime::Builder::new()
-                    .threaded_scheduler()
+                let rt = tokio::runtime::Builder::new_current_thread()
                     .enable_all()
                     .build()
                     .unwrap();
@@ -157,17 +158,5 @@ impl<'a, T: 'static + Context + Clone + Send + Sync, S: 'static + Send + Sync>
         let clone = self.clone();
 
         Box::pin(async move { clone.app.clone().match_and_resolve(req).await })
-        // let path = req.uri().path_and_query().unwrap().to_string();
-        // let matched = self
-        //     .app
-        //     .clone()
-        //     .resolve_from_method_and_path(&req.method().to_string(), path);
-
-        // let mut req = HyperRequest::new(req);
-        // req.ip = Some(self.ip.clone());
-
-        // // let fut = anonymous_resolve(req, matched, state, context_generator);
-
-        // Box::pin(self.app.resolve(req, matched))
     }
 }
