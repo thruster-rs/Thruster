@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "1.1.1"
+version = "1.1.2"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
@@ -99,6 +99,7 @@ hyper = { version = "0.14.8", optional = true, features = ["http1", "http2", "ru
 thruster-proc = { version = "1.1.0" }
 bytes = "1.0.1"
 dashmap = { version = "4.0.2", optional = true }
+fnv = "1.0.3"
 futures = "0.3"
 http = "0.2.4"
 httplib = { package = "http", version = "0.1.7" }

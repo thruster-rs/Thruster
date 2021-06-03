@@ -49,6 +49,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
             socket.bind(&address).unwrap();
             socket.listen(1024).unwrap();
             socket.set_nonblocking(true).unwrap();
+            let _ = socket.set_nodelay(true);
 
             let listener: std::net::TcpListener = socket.into();
             tokio::net::TcpListener::from_std(listener).unwrap()
@@ -60,8 +61,12 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 
             async move { Ok::<_, hyper::Error>(_HyperService::<T, S> { ip, app: arc_app }) }
         });
+
+        let mut http = Http::new();
+        http.http1_only(true);
+
         let server =
-            hyper::server::Builder::new(hyper::server::accept::from_stream(listener), Http::new())
+            hyper::server::Builder::new(hyper::server::accept::from_stream(listener), http)
                 .serve(service);
 
         server.await?;
@@ -81,11 +86,12 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
+                    .enable_io()
                     .build()
                     .unwrap();
 
-                rt.block_on(async {
+                let addr = addr.clone();
+                rt.spawn(async move {
                     Self::process(arc_app, &addr)
                         .await
                         .expect("Unable to spawn hyper server thread.");

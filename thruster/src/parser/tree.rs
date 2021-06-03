@@ -1,3 +1,4 @@
+use fnv::FnvHashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::str::Split;
@@ -40,12 +41,25 @@ pub struct Node<T: Clone> {
     /// Whether or not this node has committed middleware.
     has_committed_middleware: bool,
 
+    /// The committed middleware represented as a tuple. This is helpful because the tuple is clonable.
+    committed_value: Option<MiddlewareTuple<T>>,
+
     /// Is the node a leaf node or not. Leaf nodes are nodes in which a route can be terminated.
     is_leaf: bool,
 
     /// If there is a non-leaf value to this node, then this is the middleware that represents it
     /// and should be pushed down the tree on commit.
     non_leaf_value: Option<MiddlewareTuple<T>>,
+
+    /// A shortcut for fast matching so that we don't have to traverse the tree for trivial matches
+    fastmatch_map: FnvHashMap<
+        String,
+        Box<
+            dyn Fn(T) -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + Sync + Send>>
+                + Send
+                + Sync,
+        >,
+    >,
 }
 
 impl<T: Clone> Debug for Node<T> {
@@ -129,9 +143,11 @@ impl<T: 'static + Context + Clone + Send + Sync> Default for Node<T> {
                     })
                 })
             }),
+            committed_value: None,
             has_committed_middleware: false,
             is_leaf: false,
             non_leaf_value: None,
+            fastmatch_map: FnvHashMap::default(),
         }
     }
 }
@@ -152,6 +168,14 @@ impl<T: 'static + Context + Clone + Send + Sync> Default for Node<T> {
 impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
     /// Gets the value at the end of the path.
     pub fn get_value_at_path<'m, 'k: 'm>(&'k self, path: String) -> NodeOutput<'m, T> {
+        if let Some(value) = self.fastmatch_map.get(&path) {
+            return NodeOutput {
+                value: value,
+                params: Params::default(),
+                path,
+            };
+        }
+
         let mut split = path.split('/');
         let _ = split.next();
 
@@ -433,8 +457,30 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
         }
     }
 
+    pub(crate) fn enumerate(&self, path: &str) -> Vec<(String, Option<MiddlewareTuple<T>>)> {
+        let path = format!("{}/{}", path, self.path_piece);
+
+        let mut enumeration = vec![(path.clone(), self.committed_value.clone())];
+
+        for child in &self.children {
+            enumeration.append(&mut child.enumerate(&path));
+        }
+
+        enumeration
+    }
+
     pub(crate) fn commit(self) -> Self {
-        self.commit_inner(None)
+        let mut committed = self.commit_inner(None);
+
+        let enumerations = committed.enumerate("");
+
+        for (path, value) in enumerations {
+            if let Some(value) = value {
+                committed.fastmatch_map.insert(path, value.middleware());
+            }
+        }
+
+        committed
     }
 
     fn commit_inner(mut self, collected_middleware: Option<MiddlewareTuple<T>>) -> Self {
@@ -452,14 +498,16 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
             .map(|c| c.commit_inner(updated_collected_middleware.clone()))
             .collect();
         let has_committed_middleware = self.value.is_some();
-        let committed = match self.value.take() {
+        let (committed, committed_tuple) = match self.value.take() {
             Some(v) => match updated_collected_middleware.clone() {
                 Some(updated_collected_middleware) => {
-                    updated_collected_middleware.combine(v).middleware()
+                    let combined = updated_collected_middleware.combine(v);
+
+                    (combined.clone().middleware(), Some(combined))
                 }
-                None => v.middleware(),
+                None => (v.clone().middleware(), Some(v)),
             },
-            None => self.committed_middleware,
+            None => (self.committed_middleware, None),
         };
 
         let committed_node = Node {
@@ -471,9 +519,11 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
             param_name: self.param_name,
             children: children,
             committed_middleware: committed,
+            committed_value: committed_tuple,
             has_committed_middleware,
             is_leaf: self.is_leaf,
             non_leaf_value: None,
+            fastmatch_map: FnvHashMap::default(),
         };
 
         committed_node
@@ -936,5 +986,49 @@ pub mod test {
 
                 assert!(result == 3);
             });
+    }
+
+    #[test]
+    fn it_should_be_able_to_enumerate() {
+        async fn f1(a: i32, _b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
+            Ok(a + 1)
+        }
+
+        let mut root: Node<i32> = Node::default();
+
+        root.add_value_at_path("a/b/c", MiddlewareTuple::A(pinbox!(i32, f1)));
+        root.add_value_at_path("a/b/d", MiddlewareTuple::A(pinbox!(i32, f1)));
+        root.add_value_at_path("e/f", MiddlewareTuple::A(pinbox!(i32, f1)));
+
+        let enumerated = root
+            .commit()
+            .enumerate("")
+            .into_iter()
+            .filter(|v| v.1.is_some())
+            .collect::<Vec<(String, Option<MiddlewareTuple<i32>>)>>();
+
+        println!("enumerated len(): {}", enumerated.len());
+
+        println!("0: {}", enumerated.get(0).as_ref().unwrap().0);
+        println!("1: {}", enumerated.get(1).as_ref().unwrap().0);
+        println!("2: {}", enumerated.get(2).as_ref().unwrap().0);
+
+        assert!(
+            enumerated.len() == 3,
+            "it should have three enumerated nodes"
+        );
+
+        assert!(
+            enumerated.get(0).unwrap().0 == format!("/{}/a/b/c", ROOT_ROUTE_ID),
+            "it should have a/b/c"
+        );
+        assert!(
+            enumerated.get(1).unwrap().0 == format!("/{}/a/b/d", ROOT_ROUTE_ID),
+            "it should have a/b/d"
+        );
+        assert!(
+            enumerated.get(2).unwrap().0 == format!("/{}/e/f", ROOT_ROUTE_ID),
+            "it should have e/f"
+        );
     }
 }
