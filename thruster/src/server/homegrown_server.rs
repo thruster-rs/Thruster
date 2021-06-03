@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use futures::{SinkExt, StreamExt};
+use socket2::{Domain, Socket, Type};
 use std::error::Error;
 use std::net::ToSocketAddrs;
 use std::sync::Arc;
@@ -28,80 +29,111 @@ pub struct Server<
     app: Arc<App<Request, T, S>>,
 }
 
-// impl<T: 'static + Context<Response = Response> + Send> Server<T> {
-//   ///
-//   /// Starts the app with the default tokio runtime execution model
-//   ///
-//   pub fn start_work_stealing_optimized(self, host: &str, port: u16) {
-//     self.start(host, port);
-//   }
+impl<T: 'static + Context<Response = Response> + Clone + Send + Sync, S: 'static + Send + Sync>
+    Server<T, S>
+{
+    ///
+    /// Starts the app with the default tokio runtime execution model
+    ///
+    pub fn start_work_stealing_optimized(self, host: &str, port: u16) {
+        self.start(host, port);
+    }
 
-//   ///
-//   /// Starts the app with a thread pool optimized for small requests and quick timeouts. This
-//   /// is done internally by spawning a separate thread for each reactor core. This is valuable
-//   /// if all server endpoints are similar in their load, as work is divided evenly among threads.
-//   /// As seanmonstar points out though, this is a very specific use case and might not be useful
-//   /// for everyday work loads.alloc
-//   ///
-//   /// See the discussion here for more information:
-//   ///
-//   /// https://users.rust-lang.org/t/getting-tokio-to-match-actix-web-performance/18659/7
-//   ///
-//   pub fn start_small_load_optimized(mut self, host: &str, port: u16) {
-//     let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-//     let mut threads = Vec::new();
-//     self.app._route_parser.optimize();
-//     let arc_app = Arc::new(self.app);
+    ///
+    /// Starts the app with a thread pool optimized for small requests and quick timeouts. This
+    /// is done internally by spawning a separate thread for each reactor core. This is valuable
+    /// if all server endpoints are similar in their load, as work is divided evenly among threads.
+    /// As seanmonstar points out though, this is a very specific use case and might not be useful
+    /// for everyday work loads.alloc
+    ///
+    /// See the discussion here for more information:
+    ///
+    /// https://users.rust-lang.org/t/getting-tokio-to-match-actix-web-performance/18659/7
+    ///
+    pub fn start_small_load_optimized(self, host: &str, port: u16) {
+        let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+        let mut threads = Vec::new();
 
-//     for _ in 0..num_cpus::get() {
-//       let arc_app = arc_app.clone();
-//       threads.push(thread::spawn(move || {
-//         let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let arc_app = Arc::new(self.app);
 
-//         let server = async || {
-//           let listener = {
-//             let builder = TcpBuilder::new_v4().unwrap();
-//             #[cfg(not(windows))]
-//             builder.reuse_address(true).unwrap();
-//             #[cfg(not(windows))]
-//             builder.reuse_port(true).unwrap();
-//             builder.bind(addr).unwrap();
-//             builder.listen(2048).unwrap()
-//           };
-//           let listener = TcpListener::from_std(listener, &tokio::reactor::Handle::default()).unwrap();
+        for _ in 0..num_cpus::get() {
+            let arc_app = arc_app.clone();
+            threads.push(std::thread::spawn(move || {
+                let runtime = tokio::runtime::Builder::new_current_thread()
+                    .enable_io()
+                    .build()
+                    .unwrap();
 
-//           listener.incoming().for_each(move |socket| {
-//             process(Arc::clone(&arc_app), socket);
-//             Ok(())
-//           })
-//           .map_err(|err| eprintln!("accept error = {:?}", err))
-//         };
+                let server = async move {
+                    let listener = {
+                        let socket = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
 
-//         runtime.spawn(server);
-//         runtime.run().unwrap();
-//       }));
-//     }
+                        let address = addr.clone().into();
+                        socket.set_reuse_address(true).unwrap();
+                        #[cfg(unix)]
+                        socket.set_reuse_port(true).unwrap();
+                        socket.bind(&address).unwrap();
+                        socket.listen(1024).unwrap();
+                        socket.set_nonblocking(true).unwrap();
 
-//     println!("Server running on {}", addr);
+                        let listener: std::net::TcpListener = socket.into();
+                        tokio::net::TcpListener::from_std(listener).unwrap()
+                    };
 
-//     for thread in threads {
-//       thread.join().unwrap();
-//     }
+                    TcpListenerStream::new(listener)
+                        .for_each(move |socket| {
+                            process(Arc::clone(&arc_app), socket.unwrap());
+                            async { () }
+                        })
+                        .await;
+                };
 
-//     fn process<T: Context<Response = Response> + Send>(app: Arc<App<Request, T>>, socket: TcpStream) {
-//       let framed = Framed::new(socket, Http);
-//       let (tx, rx) = framed.split();
+                runtime.block_on(server);
+            }));
+        }
 
-//       let task = tx.send_all(rx.and_then(move |request: Request| {
-//             let matched = app.resolve_from_method_and_path(request.method(), request.path());
-//             app.resolve(request, matched)
-//           }));
+        for thread in threads {
+            thread.join().unwrap();
+        }
 
-//       // Spawn the task that handles the connection.
-//       tokio::spawn(task);
-//     }
-//   }
-// }
+        fn process<
+            T: Context<Response = Response> + Clone + Send + Sync,
+            S: 'static + Send + Sync,
+        >(
+            app: Arc<App<Request, T, S>>,
+            socket: TcpStream,
+        ) {
+            // let framed = Framed::new(socket, Http);
+            // let (tx, rx) = framed.split();
+
+            // let task = tx.send_all(&mut rx.and_then(move |request: Request| {
+            //     let matched =
+            //         app.resolve_from_method_and_path(request.method(), request.path().to_owned());
+            //     std::boxed::Box::pin(app.resolve(request, matched))
+            // }));
+
+            // Spawn the task that handles the connection.
+            tokio::spawn(async move {
+                let mut framed = Framed::new(socket, Http);
+
+                while let Some(request) = framed.next().await {
+                    match request {
+                        Ok(request) => {
+                            let path = request.path().to_owned();
+                            let method = &request.method().to_owned();
+                            let matched = app.resolve_from_method_and_path(method, path);
+                            let response = app.resolve(request, matched).await.unwrap();
+                            framed.send(response).await.unwrap();
+                        }
+                        Err(_e) => return (),
+                    }
+                }
+
+                ()
+            });
+        }
+    }
+}
 
 #[async_trait]
 impl<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send + Sync> ThrusterServer
