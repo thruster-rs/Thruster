@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "1.1.0"
+version = "1.1.1"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "README.md"
@@ -34,6 +34,9 @@ required-features = ["hyper_server"]
 [[example]]
 name = "fast_hyper"
 required-features = ["hyper_server"]
+
+[[example]]
+name = "fast_homegrown"
 
 [[example]]
 name = "hyper_most_basic_ssl"
