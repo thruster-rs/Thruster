@@ -55,7 +55,7 @@ use std::pin::Pin;
 use std::time::Instant;
 
 use thruster::{App, BasicContext as Ctx, Request};
-use thruster::{async_middleware, middleware_fn, MiddlewareNext, MiddlewareResult, Server, ThrusterServer};
+use thruster::{m, middleware_fn, MiddlewareNext, MiddlewareResult, Server, ThrusterServer};
 
 #[middleware_fn]
 async fn profile(context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
@@ -92,10 +92,10 @@ async fn four_oh_four(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Middlewar
 fn main() {
     println!("Starting server...");
 
-    let mut app = App::<Request, Ctx>::new_basic();
+    let mut app = App::<Request, Ctx, ()>::new_basic();
 
-    app.get("/plaintext", async_middleware!(Ctx, [profile, plaintext]));
-    app.set404(async_middleware!(Ctx, [four_oh_four]));
+    app.get("/plaintext", m![profile, plaintext]);
+    app.set404(m![four_oh_four]);
 
     let server = Server::new(app);
     server.build("0.0.0.0", 4321).await;
@@ -162,12 +162,12 @@ async fn json_error_handler(context: Ctx, next: MiddlewareNext<Ctx>) -> Middlewa
 fn main() {
     println!("Starting server...");
 
-    let mut app = App::<Request, Ctx>::new_basic();
+    let mut app = App::<Request, Ctx, ()>::new_basic();
 
-    app.use_middleware("/", async_middleware!(Ctx, [json_error_handler]));
+    app.use_middleware("/", m![json_error_handler]);
 
-    app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
-    app.get("/error", async_middleware!(Ctx, [error]));
+    app.get("/plaintext", m![plaintext]);
+    app.get("/error", m![error]);
 
     let server = Server::new(app);
     server.build("0.0.0.0", 4321).await;
@@ -214,11 +214,11 @@ This is all configurable and none of it is hidden from the developer. It's like 
 Thruster provides an easy test suite to test your endpoints, simply include the `testing` module as below:
 
 ```rust
-let mut app = App::<Request, Ctx>::new_basic();
+let mut app = App::<Request, Ctx, ()>::new_basic();
 
 ...
 
-app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
+app.get("/plaintext", m![plaintext]);
 
 ...
 
