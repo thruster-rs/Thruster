@@ -15,10 +15,19 @@ macro_rules! map_try {
 #[macro_export]
 macro_rules! async_middleware {
   ($ctx:ty, [$($x:expr),+]) => {{
-      use thruster::parser::middleware_traits::{MiddlewareFnPointer, MiddlewareTuple, ToTuple};
+    use thruster::m;
 
-      let val: (MiddlewareFnPointer<$ctx>,) = ($( $x ),*,);
-      val.to_tuple()
+    m![$($x),*]
+  }}
+}
+
+#[macro_export]
+macro_rules! m {
+  [$($x:expr),+] => {{
+    use thruster::parser::middleware_traits::{MiddlewareFnPointer, MiddlewareTuple, ToTuple};
+
+    let val: (MiddlewareFnPointer<_>,) = ($( $x ),*,);
+    val.to_tuple()
   }}
 }
 
