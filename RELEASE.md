@@ -2,6 +2,24 @@
 
 Below you'll find a set of notes for migrating between versions. It should be noted that although the intent is to follow semantic versioning, until thruster is released in earnest (1.x), the second digit will be the one that dictates breaking changes.
 
+## 1.1.2
+
+The _entire parser was rebuilt from scratch_. That might not really mean much, but it amounted to a roughly 8% increase in speed across the board! It also means the code backing it is much less of a rat's nest and much more maintainable -- so really a win-win all around.
+
+Since the parser got rewritten, we were able to make the `async_middleware` macros more concise too! In this version, the old `async_middleware` will still work the same, but actually it's just a wrapper around the more simple `m![]` middleware now. The usage is much more straightfoward, as you don't have to provide the context type.
+
+Before:
+```rs
+app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
+```
+
+After:
+```rs
+app.get("/plaintext", m![plaintext]);
+```
+
+All of the dependencies were also upgraded. This, unfortunately, means that when attempting to update the TechEmpower benchmarks, everything broke. If anyone wants to lend a helping hand with getting them back up and tuned correctly, please send a message on Discord!
+
 ## 1.0.0
 
 My, my, how time flies! I'd like to introduce everyone to thruster 1.0. I have been using thruster in my projects exclusively for the past year, and finally believe that it is stable enough for a 1.0 release. Contained within the official 1.0 release (since the last release,) you'll find the changes listed below. Some of my favorite highlights:
