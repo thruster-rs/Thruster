@@ -59,6 +59,23 @@ impl BasicContext {
         self.response
             .body_bytes_from_vec(body_string.as_bytes().to_vec());
     }
+    
+    ///
+    /// Set the body as a string and sets header Content-Type to application/json
+    ///
+    pub fn json(&mut self, body_string: &str) {
+        self.set("Content-Type", "application/json");
+        self.response
+            .body_bytes_from_vec(body_string.as_bytes().to_vec());
+    }
+    
+    ///
+    /// Set the response status code 
+    ///
+    pub fn set_status(&mut self, code: u32 ) -> &mut BasicContext {
+        self.status(code);
+        self
+    }
 
     pub fn get_body(&self) -> String {
         str::from_utf8(&self.response.response)
