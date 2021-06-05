@@ -151,6 +151,10 @@ impl Context for BasicContext {
     fn get_response(mut self) -> Self::Response {
         self.response.status_code(self.status, "");
 
+        for (key, value) in self.headers {
+            self.response.header(&key, &value);
+        }
+
         self.response
     }
 
