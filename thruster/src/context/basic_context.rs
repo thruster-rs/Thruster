@@ -63,7 +63,7 @@ impl BasicContext {
     }
     
     ///
-    /// Set the body as a string and sets header Content-Type to application/json
+    /// Set Generic Serialize as body and sets header Content-Type to application/json
     ///
     pub fn json<T: Serialize>(&mut self, body: T) {
         self.set("Content-Type", "application/json");
