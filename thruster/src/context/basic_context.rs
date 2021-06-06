@@ -1,4 +1,6 @@
 use bytes::Bytes;
+use serde::Serialize;
+use serde_json::to_vec;
 use std::collections::HashMap;
 use std::str;
 
@@ -63,10 +65,9 @@ impl BasicContext {
     ///
     /// Set the body as a string and sets header Content-Type to application/json
     ///
-    pub fn json(&mut self, body_string: &str) {
+    pub fn json<T: Serialize>(&mut self, body: T) {
         self.set("Content-Type", "application/json");
-        self.response
-            .body_bytes_from_vec(body_string.as_bytes().to_vec());
+        self.response.body_bytes_from_vec(to_vec(&body).unwrap());
     }
     
     ///
