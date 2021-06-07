@@ -1,9 +1,75 @@
-// #![feature(proc_macro_diagnostic)]
+#![feature(proc_macro_diagnostic)]
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span as Span2, TokenStream as TokenStream2, TokenTree as TokenTree2};
 use quote::quote;
+
+#[proc_macro]
+pub fn m(items: TokenStream) -> TokenStream {
+    let items = proc_macro2::TokenStream::from(items);
+
+    let idents = items.clone();
+    let pointers = items.clone().into_iter().map(|_| {
+        quote! {
+            MiddlewareFnPointer<_>
+        }
+    });
+
+    let gen = quote! {
+        {
+            use thruster::parser::middleware_traits::{MiddlewareFnPointer, MiddlewareTuple, ToTuple};
+
+            let val: (#( #pointers),*,) = (#( #idents ),*,);
+            val.to_tuple()
+        }
+    };
+
+    // proc_macro::Span::call_site()
+    //     .note("Thruster code output")
+    //     .note(gen.to_string())
+    //     .emit();
+
+    gen.into()
+}
+
+#[proc_macro]
+pub fn async_middleware(items: TokenStream) -> TokenStream {
+    let items = proc_macro2::TokenStream::from(items);
+
+    let mut item_iter = items.into_iter();
+
+    item_iter.next();
+    item_iter.next();
+
+    let items = match item_iter.next() {
+        Some(TokenTree2::Group(g)) => g.stream(),
+        _ => panic!("Second item should be a group."),
+    };
+
+    let idents = items.clone();
+    let pointers = items.clone().into_iter().map(|_| {
+        quote! {
+            MiddlewareFnPointer<_>
+        }
+    });
+
+    let gen = quote! {
+        {
+            use thruster::parser::middleware_traits::{MiddlewareFnPointer, MiddlewareTuple, ToTuple};
+
+            let val: (#( #pointers),*,) = (#( #idents ),*,);
+            val.to_tuple()
+        }
+    };
+
+    // proc_macro::Span::call_site()
+    //     .note("Thruster code output")
+    //     .note(gen.to_string())
+    //     .emit();
+
+    gen.into()
+}
 
 #[proc_macro_attribute]
 pub fn middleware_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
