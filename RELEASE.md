@@ -2,6 +2,14 @@
 
 Below you'll find a set of notes for migrating between versions. It should be noted that although the intent is to follow semantic versioning, until thruster is released in earnest (1.x), the second digit will be the one that dictates breaking changes.
 
+## 1.1.4
+
+Quick release, realized that multiple pieces of middleware weren't working, e.g. `[profile, plaintext]`. Now we have the fix in!
+
+## 1.1.3
+
+Minor release! Add a few convenience message like `json` on `BasicContext` and fix a bug in the redirect code for `BasicContext` as well.
+
 ## 1.1.2
 
 The _entire parser was rebuilt from scratch_. That might not really mean much, but it amounted to a roughly 8% increase in speed across the board! It also means the code backing it is much less of a rat's nest and much more maintainable -- so really a win-win all around.
