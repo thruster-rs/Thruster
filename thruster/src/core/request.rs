@@ -132,6 +132,16 @@ impl Request {
     }
 
     ///
+    /// Reading body as json with given Deserialize struct
+    ///
+    pub fn body_json<T>(&self) -> serde_json::Result<T>
+    where
+        T: serde::de::DeserializeOwned,
+    {   
+        serde_json::from_str(self.body())
+    }
+
+    ///
     /// Fetch a piece of the raw body
     ///
     fn slice(&self, slice: &Slice) -> &[u8] {
