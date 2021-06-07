@@ -227,6 +227,28 @@ let result = testing::get(app, "/plaintext");
 assert!(result.body == "Hello, World!");
 ```
 
+## Make your own middleware modules
+Middleware is super easy to make! Simply create a function and export it at a module level. Below, you'll see a piece of middleware that allows profiling of requests:
+
+```rust
+#[middleware_fn]
+async fn profiling<C: 'static + Context + Send + Sync>(
+    mut context: C,
+    next: MiddlewareNext<C>,
+) -> MiddlewareResult<C> {
+    let start_time = Instant::now();
+
+    context = next(context).await?;
+
+    let elapsed_time = start_time.elapsed();
+    info!("[{}μs] {}", elapsed_time.as_micros(), context.route());
+
+    Ok(context)
+}
+```
+
+You might find that you want to allow for more specific data stored on the context, for example, perhaps you want to be able to hydrate query parameters into a hashmap for later use by other middlewares. In order to do this, you can create an additional trait for the context that middlewares downstream must adhere to. Check out the provided [query_params middleware](https://github.com/thruster-rs/Thruster/blob/master/thruster/src/middleware/query_params.rs) for an example.
+
 ## Other, or Custom Backends
 
 Thruster is capable of just providing the routing layer on top of a server of some sort, for example, in the Hyper snippet above. This can be applied broadly to any backend, as long as the server implements `ThrusterServer`.
