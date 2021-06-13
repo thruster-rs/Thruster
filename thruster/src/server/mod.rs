@@ -23,7 +23,7 @@ pub use crate::ssl_server::SSLServer;
 #[cfg(feature = "hyper_server")]
 pub use crate::hyper_server::HyperServer;
 
-#[cfg(feautre = "unix_hyper_server")]
+#[cfg(feature = "unix_hyper_server")]
 pub use crate::unix_hyper_server::UnixHyperServer;
 
 #[cfg(all(feature = "hyper_server", feature = "tls"))]
