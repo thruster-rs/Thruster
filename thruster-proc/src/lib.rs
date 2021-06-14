@@ -1,4 +1,4 @@
-// #![feature(proc_macro_diagnostic)]
+#![feature(proc_macro_diagnostic)]
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
@@ -11,7 +11,13 @@ pub fn m(items: TokenStream) -> TokenStream {
 
     let idents = items
         .into_iter()
-        .filter(|v| matches!(v, TokenTree2::Ident(_)))
+        .filter(|v| {
+            if let TokenTree2::Ident(_) = v {
+                true
+            } else {
+                false
+            }
+        })
         .clone();
     let pointers = idents.clone().into_iter().map(|_| {
         quote! {
@@ -28,10 +34,10 @@ pub fn m(items: TokenStream) -> TokenStream {
         }
     };
 
-    // proc_macro::Span::call_site()
-    //     .note("Thruster code output")
-    //     .note(gen.to_string())
-    //     .emit();
+    proc_macro::Span::call_site()
+        .note("Thruster code output")
+        .note(gen.to_string())
+        .emit();
 
     gen.into()
 }
@@ -52,7 +58,13 @@ pub fn async_middleware(items: TokenStream) -> TokenStream {
 
     let idents = items
         .into_iter()
-        .filter(|v| matches!(v, TokenTree2::Ident(_)))
+        .filter(|v| {
+            if let TokenTree2::Ident(_) = v {
+                true
+            } else {
+                false
+            }
+        })
         .clone();
     let pointers = idents.clone().into_iter().map(|_| {
         quote! {
