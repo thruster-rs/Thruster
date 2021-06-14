@@ -1,6 +1,6 @@
 use log::info;
 use std::time::Instant;
-use thruster::{async_middleware, middleware_fn};
+use thruster::{m, middleware_fn};
 use thruster::{App, BasicContext as Ctx, Request, Server, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
 
@@ -41,8 +41,8 @@ fn main() {
     let mut app = App::<Request, Ctx, ()>::new_basic();
 
     // app.use_middleware("/", async_middleware!(Ctx, [profiling]));
-    app.get("/plaintext", async_middleware!(Ctx, [profiling, plaintext]));
-    app.set404(async_middleware!(Ctx, [test_fn_404]));
+    app.get("/plaintext", m![profiling, plaintext]);
+    app.set404(m![test_fn_404]);
 
     let server = Server::new(app);
 

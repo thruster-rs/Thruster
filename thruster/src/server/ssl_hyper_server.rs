@@ -1,17 +1,17 @@
 use futures::stream::StreamExt;
+use std::io::{self, BufReader};
 use std::net::ToSocketAddrs;
-use std::io::{ self, BufReader };
 
 use async_trait::async_trait;
 use hyper::server::conn::Http;
 use hyper::server::Builder;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response};
+use log::error;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use log::error;
-use tokio_rustls::rustls::{ NoClientAuth, ServerConfig };
-use tokio_rustls::rustls::internal::pemfile::{ certs, pkcs8_private_keys };
+use tokio_rustls::rustls::internal::pemfile::{certs, pkcs8_private_keys};
+use tokio_rustls::rustls::{NoClientAuth, ServerConfig};
 use tokio_rustls::TlsAcceptor;
 
 use crate::app::App;
@@ -41,7 +41,9 @@ impl<T: 'static + Context + Send, S: Send> SSLHyperServer<T, S> {
 }
 
 #[async_trait]
-impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> ThrusterServer for SSLHyperServer<T, S> {
+impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> ThrusterServer
+    for SSLHyperServer<T, S>
+{
     type Context = T;
     type Response = Response<Body>;
     type Request = HyperRequest;
@@ -71,8 +73,10 @@ impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> Thr
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid key"))
             .unwrap();
         let mut config = ServerConfig::new(NoClientAuth::new());
-        config.set_single_cert(certs, keys.remove(0))
-            .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err)).unwrap();
+        config
+            .set_single_cert(certs, keys.remove(0))
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))
+            .unwrap();
         let tls_acceptor = TlsAcceptor::from(Arc::new(config));
         // let cert = self.cert.unwrap();
         // let cert_pass = self.cert_pass;

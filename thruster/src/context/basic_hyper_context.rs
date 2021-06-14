@@ -58,7 +58,7 @@ pub async fn to_owned_request(
     context: BasicHyperContext,
     next: MiddlewareNext<BasicHyperContext>,
 ) -> MiddlewareResult<BasicHyperContext> {
-    let context = next(context.to_owned_request()).await?;
+    let context = next(context.into_owned_request()).await?;
 
     Ok(context)
 }
@@ -116,7 +116,7 @@ impl BasicHyperContext {
     pub async fn get_body(self) -> Result<(String, BasicHyperContext), Error> {
         let ctx = match self.request_body {
             Some(_) => self,
-            None => self.to_owned_request(),
+            None => self.into_owned_request(),
         };
 
         let mut results = "".to_string();
@@ -149,7 +149,7 @@ impl BasicHyperContext {
             .expect("Must call `to_owned_request` prior to getting parts")
     }
 
-    pub fn to_owned_request(self) -> BasicHyperContext {
+    pub fn into_owned_request(self) -> BasicHyperContext {
         let hyper_request = self.hyper_request.expect(
             "`hyper_request` is None! That means `to_owned_request` has already been called",
         );
@@ -208,7 +208,7 @@ impl BasicHyperContext {
         let cookie_value = match self.headers.get("Set-Cookie") {
             Some(val) => format!(
                 "{}, {}",
-                val.to_str().unwrap_or_else(|_| ""),
+                val.to_str().unwrap_or(""),
                 self.cookify_options(name, value, &options)
             ),
             None => self.cookify_options(name, value, &options),

@@ -3,8 +3,8 @@ use std::{fs, path::Path};
 use async_trait::async_trait;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
-use std::sync::Arc;
 use hyperlocal::UnixServerExt;
+use std::sync::Arc;
 
 use crate::app::App;
 use crate::context::basic_hyper_context::HyperRequest;
@@ -16,7 +16,9 @@ pub struct UnixHyperServer<T: 'static + Context + Send, S: Send> {
 }
 
 #[async_trait]
-impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> ThrusterServer for UnixHyperServer<T, S> {
+impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> ThrusterServer
+    for UnixHyperServer<T, S>
+{
     type Context = T;
     type Response = Response<Body>;
     type Request = HyperRequest;

@@ -68,12 +68,7 @@ impl TestResponse {
         }
         .to_vec();
 
-        TestResponse {
-            body,
-            headers,
-            status,
-            trailers,
-        }
+        TestResponse { body, headers, trailers, status }
     }
 
     pub fn body_string(&self) -> String {

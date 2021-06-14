@@ -1,3 +1,6 @@
+#![allow(clippy::needless_lifetimes)]
+#![allow(clippy::type_complexity)]
+
 #[macro_use]
 extern crate templatify;
 

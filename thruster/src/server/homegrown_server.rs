@@ -68,7 +68,7 @@ impl<T: 'static + Context<Response = Response> + Clone + Send + Sync, S: 'static
                     let listener = {
                         let socket = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
 
-                        let address = addr.clone().into();
+                        let address = addr.into();
                         socket.set_reuse_address(true).unwrap();
                         #[cfg(unix)]
                         socket.set_reuse_port(true).unwrap();
@@ -83,7 +83,7 @@ impl<T: 'static + Context<Response = Response> + Clone + Send + Sync, S: 'static
                     TcpListenerStream::new(listener)
                         .for_each(move |socket| {
                             process(Arc::clone(&arc_app), socket.unwrap());
-                            async { () }
+                            async {  }
                         })
                         .await;
                 };
@@ -125,11 +125,11 @@ impl<T: 'static + Context<Response = Response> + Clone + Send + Sync, S: 'static
                             let response = app.resolve(request, matched).await.unwrap();
                             framed.send(response).await.unwrap();
                         }
-                        Err(_e) => return (),
+                        Err(_e) => return ,
                     }
                 }
 
-                ()
+                
             });
         }
     }

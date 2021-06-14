@@ -22,7 +22,10 @@ pub async fn request<T: Context<Response = Response> + Clone + Send + Sync, S: '
     let headers = headers_mapped.join("\n");
     let body = format!(
         "{} {} HTTP/1.1\nHost: localhost:8080\n{}\n\n{}",
-        method, route.to_owned(), headers, body
+        method,
+        route.to_owned(),
+        headers,
+        body
     );
 
     let mut bytes = BytesMut::with_capacity(body.len());
@@ -39,7 +42,10 @@ pub async fn get<T: Context<Response = Response> + Clone + Send + Sync, S: 'stat
     app: &App<Request, T, S>,
     route: &str,
 ) -> TestResponse {
-    let body = format!("GET {} HTTP/1.1\nHost: localhost:8080\n\n", route.to_owned());
+    let body = format!(
+        "GET {} HTTP/1.1\nHost: localhost:8080\n\n",
+        route.to_owned()
+    );
 
     let mut bytes = BytesMut::with_capacity(body.len());
     bytes.put(body.as_bytes());
@@ -55,7 +61,10 @@ pub async fn delete<T: Context<Response = Response> + Clone + Send + Sync, S: 's
     app: &App<Request, T, S>,
     route: &str,
 ) -> TestResponse {
-    let body = format!("DELETE {} HTTP/1.1\nHost: localhost:8080\n\n", route.to_owned());
+    let body = format!(
+        "DELETE {} HTTP/1.1\nHost: localhost:8080\n\n",
+        route.to_owned()
+    );
 
     let mut bytes = BytesMut::with_capacity(body.len());
     bytes.put(body.as_bytes());
