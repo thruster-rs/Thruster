@@ -96,7 +96,8 @@ file = [
 async-trait = "0.1"
 hyperlocal = { version = "0.8.0", optional = true }
 hyper = { version = "0.14.8", optional = true, features = ["http1", "http2", "runtime", "server", "stream"] }
-thruster-proc = { version = "1.1.4" }
+# thruster-proc = { version = "1.1.6" }
+thruster-proc = { path = "../thruster-proc" }
 bytes = "1.0.1"
 dashmap = { version = "4.0.2", optional = true }
 fnv = "1.0.3"
