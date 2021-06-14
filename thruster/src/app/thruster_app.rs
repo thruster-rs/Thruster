@@ -122,7 +122,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
         self.delete_root
             .add_non_leaf_value_at_path(path, middlewares.clone());
         self.patch_root
-            .add_non_leaf_value_at_path(path, middlewares.clone());
+            .add_non_leaf_value_at_path(path, middlewares);
 
         self
     }
@@ -221,7 +221,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
         self.put_root.add_value_at_path("/*", middlewares.clone());
         self.delete_root
             .add_value_at_path("/*", middlewares.clone());
-        self.patch_root.add_value_at_path("/*", middlewares.clone());
+        self.patch_root.add_value_at_path("/*", middlewares);
 
         self
     }

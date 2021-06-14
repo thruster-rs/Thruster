@@ -1,4 +1,4 @@
-#![feature(proc_macro_diagnostic)]
+// #![feature(proc_macro_diagnostic)]
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
@@ -11,13 +11,7 @@ pub fn m(items: TokenStream) -> TokenStream {
 
     let idents = items
         .into_iter()
-        .filter(|v| {
-            if let TokenTree2::Ident(_) = v {
-                true
-            } else {
-                false
-            }
-        })
+        .filter(|v| matches!(v, TokenTree2::Ident(_)))
         .clone();
     let pointers = idents.clone().into_iter().map(|_| {
         quote! {
@@ -34,10 +28,10 @@ pub fn m(items: TokenStream) -> TokenStream {
         }
     };
 
-    proc_macro::Span::call_site()
-        .note("Thruster code output")
-        .note(gen.to_string())
-        .emit();
+    // proc_macro::Span::call_site()
+    //     .note("Thruster code output")
+    //     .note(gen.to_string())
+    //     .emit();
 
     gen.into()
 }
@@ -58,13 +52,7 @@ pub fn async_middleware(items: TokenStream) -> TokenStream {
 
     let idents = items
         .into_iter()
-        .filter(|v| {
-            if let TokenTree2::Ident(_) = v {
-                true
-            } else {
-                false
-            }
-        })
+        .filter(|v| matches!(v, TokenTree2::Ident(_)))
         .clone();
     let pointers = idents.clone().into_iter().map(|_| {
         quote! {
@@ -93,7 +81,7 @@ pub fn async_middleware(items: TokenStream) -> TokenStream {
 pub fn middleware_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let syn::Item::Fn(mut function_item) = syn::parse(item.clone()).unwrap() {
         let name = function_item.ident.clone();
-        let new_name = Ident::new(&format!("__async_{}", name.clone()), Span2::call_site());
+        let new_name = Ident::new(&format!("__async_{}", name), Span2::call_site());
         function_item.ident = new_name.clone();
 
         let visibility = function_item.vis.clone();
@@ -105,7 +93,7 @@ pub fn middleware_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
             _ => panic!("Expected the first argument to be a context type"),
         };
         let new_return_type = Ident::new(
-            &format!("__MiddlewareReturnValue_{}", name.clone()),
+            &format!("__MiddlewareReturnValue_{}", name),
             Span2::call_site(),
         );
         let crate_path = match attr.to_string().as_str() {
@@ -143,10 +131,7 @@ pub fn generate_tuples(items: TokenStream) -> TokenStream {
 
     let mut idents: Vec<Ident> = items
         .into_iter()
-        .filter(|v| match v {
-            TokenTree2::Ident(_) => true,
-            _ => false,
-        })
+        .filter(|v| matches!(v, TokenTree2::Ident(_)))
         .map(|v| {
             if let TokenTree2::Ident(i) = v {
                 i
@@ -160,7 +145,7 @@ pub fn generate_tuples(items: TokenStream) -> TokenStream {
     let mut vec_collection: Vec<Vec<Ident>> = vec![];
     let mut aggregator = vec![];
 
-    while idents.len() > 0 {
+    while !idents.is_empty() {
         aggregator.push(idents.remove(0));
 
         vec_collection.push(aggregator.clone());
@@ -213,7 +198,7 @@ pub fn generate_tuples(items: TokenStream) -> TokenStream {
         });
     }
 
-    const VALUES: &'static str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const VALUES: &str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     let mut combine_outter = vec![];
     for i in 0..vec_collection.len() {
         let idents = vec_collection.get(i).unwrap();

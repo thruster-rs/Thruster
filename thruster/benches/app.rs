@@ -3,7 +3,7 @@ extern crate criterion;
 
 use bytes::{BufMut, BytesMut};
 use std::boxed::Box;
-use tokio;
+
 
 use criterion::Criterion;
 use thruster::middleware::query_params::query_params;

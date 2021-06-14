@@ -1,0 +1,274 @@
+"""
+@generated
+cargo-raze generated Bazel file.
+
+DO NOT EDIT! Replaced on runs of cargo-raze
+"""
+
+package(default_visibility = ["//visibility:public"])
+
+licenses([
+    "notice",  # See individual crates for specific licenses
+])
+
+# Aliased targets
+alias(
+    name = "async_trait",
+    actual = "@raze__async_trait__0_1_50//:async_trait",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "bytes",
+    actual = "@raze__bytes__1_0_1//:bytes",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "criterion",
+    actual = "@raze__criterion__0_3_4//:criterion",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "diesel",
+    actual = "@raze__diesel__1_4_7//:diesel",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "dotenv",
+    actual = "@raze__dotenv__0_15_0//:dotenv",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "env_logger",
+    actual = "@raze__env_logger__0_7_1//:env_logger",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "fnv",
+    actual = "@raze__fnv__1_0_7//:fnv",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "frank_jwt",
+    actual = "@raze__frank_jwt__3_1_2//:frank_jwt",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "futures",
+    actual = "@raze__futures__0_3_15//:futures",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "http",
+    actual = "@raze__http__0_2_4//:http",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "httparse",
+    actual = "@raze__httparse__1_4_1//:httparse",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "hyper",
+    actual = "@raze__hyper__0_14_9//:hyper",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "lazy_static",
+    actual = "@raze__lazy_static__1_4_0//:lazy_static",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "log",
+    actual = "@raze__log__0_4_14//:log",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "net2",
+    actual = "@raze__net2__0_2_37//:net2",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "num_cpus",
+    actual = "@raze__num_cpus__1_13_0//:num_cpus",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "paste",
+    actual = "@raze__paste__1_0_5//:paste",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "serde",
+    actual = "@raze__serde__1_0_126//:serde",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "serde_derive",
+    actual = "@raze__serde_derive__1_0_126//:serde_derive",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "serde_json",
+    actual = "@raze__serde_json__1_0_64//:serde_json",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "smallvec",
+    actual = "@raze__smallvec__1_6_1//:smallvec",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "snafu",
+    actual = "@raze__snafu__0_4_4//:snafu",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "socket2",
+    actual = "@raze__socket2__0_4_0//:socket2",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "templatify",
+    actual = "@raze__templatify__0_2_3//:templatify",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "thruster_proc",
+    actual = "@raze__thruster_proc__1_1_6//:thruster_proc",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "time",
+    actual = "@raze__time__0_1_44//:time",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "tokio",
+    actual = "@raze__tokio__1_6_1//:tokio",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "tokio_stream",
+    actual = "@raze__tokio_stream__0_1_6//:tokio_stream",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)
+
+alias(
+    name = "tokio_util",
+    actual = "@raze__tokio_util__0_6_7//:tokio_util",
+    tags = [
+        "cargo-raze",
+        "manual",
+    ],
+)

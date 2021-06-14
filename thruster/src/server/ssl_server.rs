@@ -37,7 +37,9 @@ impl<T: 'static + Context<Response = Response> + Send, S: Send> SSLServer<T, S> 
 }
 
 #[async_trait]
-impl<T: Context<Response = Response> + Send, S: 'static + Send + Sync> ThrusterServer for SSLServer<T, S> {
+impl<T: Context<Response = Response> + Send, S: 'static + Send + Sync> ThrusterServer
+    for SSLServer<T, S>
+{
     type Context = T;
     type Response = Response;
     type Request = Request;

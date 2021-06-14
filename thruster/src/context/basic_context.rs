@@ -61,7 +61,7 @@ impl BasicContext {
         self.response
             .body_bytes_from_vec(body_string.as_bytes().to_vec());
     }
-    
+
     ///
     /// Set Generic Serialize as body and sets header Content-Type to application/json
     ///
@@ -69,11 +69,11 @@ impl BasicContext {
         self.set("Content-Type", "application/json");
         self.response.body_bytes_from_vec(to_vec(&body).unwrap());
     }
-    
+
     ///
-    /// Set the response status code 
+    /// Set the response status code
     ///
-    pub fn set_status(&mut self, code: u32 ) -> &mut BasicContext {
+    pub fn set_status(&mut self, code: u32) -> &mut BasicContext {
         self.status(code);
         self
     }
@@ -211,9 +211,8 @@ impl HasCookies for BasicContext {
     fn get_cookies(&self) -> Vec<String> {
         self.request
             .headers()
-            .get("cookie")
-            .map(|v| v.clone())
-            .unwrap_or_else(|| vec![])
+            .get("cookie").cloned()
+            .unwrap_or_else(std::vec::Vec::new)
     }
 
     fn get_header(&self, key: &str) -> Vec<String> {

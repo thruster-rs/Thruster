@@ -116,7 +116,7 @@ pub struct OwnedNodeOutput<'m, T> {
 }
 
 impl<'m, T> NodeOutput<'m, T> {
-    pub fn to_owned(self) -> OwnedNodeOutput<'m, T> {
+    pub fn into_owned(self) -> OwnedNodeOutput<'m, T> {
         OwnedNodeOutput {
             value: self.value,
             params: None,
@@ -170,7 +170,7 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
     pub fn get_value_at_path<'m, 'k: 'm>(&'k self, path: String) -> NodeOutput<'m, T> {
         if let Some(value) = self.fastmatch_map.get(&path) {
             return NodeOutput {
-                value: value,
+                value,
                 params: Params::default(),
                 path,
             };
@@ -270,8 +270,29 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
                 self.add_node_at_path(&format!("{}/{}", path, child.path_piece), child);
             }
         } else {
-            // Node isn't conflicting with existing node, so add it as new.
-            self.add_value_at_split_path(split, added_node.value.unwrap(), true);
+            let mut last_node = self;
+            let split_vec = split.collect::<Vec<&str>>();
+
+            for i in 0..split_vec.len() - 1 {
+                let piece = split_vec.get(i).unwrap().to_owned();
+                let children: &mut Vec<Node<T>> = &mut last_node.children;
+
+                if let Some(index) = children.iter().position(|n| n.path_piece == piece) {
+                    last_node = children.get_mut(index).unwrap();
+                } else {
+                    let next_node = Node::<T> {
+                        path_piece: piece.to_owned(),
+                        ..Default::default()
+                    };
+
+                    children.push(next_node);
+
+                    last_node = children.get_mut(0).unwrap();
+                }
+            }
+
+            added_node.path_piece = split_vec.last().unwrap().to_string();
+            last_node.children.push(added_node);
         }
     }
 
@@ -398,8 +419,10 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
                             self.param_name = Some(path_piece[1..].to_string());
                         }
                         None => {
-                            let mut wildcard_node = Node::default();
-                            wildcard_node.path_piece = WILDCARD_ROUTE_ID.to_string();
+                            let mut wildcard_node = Node::<T> {
+                                path_piece: WILDCARD_ROUTE_ID.to_string(),
+                                ..Default::default()
+                            };
                             wildcard_node.add_value_at_split_path(path, value, is_leaf);
 
                             self.param_name = Some(path_piece[1..].to_string());
@@ -411,8 +434,10 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
                             wildcard_node.add_value_at_split_path(path, value, is_leaf);
                         }
                         None => {
-                            let mut wildcard_node = Node::default();
-                            wildcard_node.path_piece = WILDCARD_ROUTE_ID.to_string();
+                            let mut wildcard_node = Node::<T> {
+                                path_piece: WILDCARD_ROUTE_ID.to_string(),
+                                ..Default::default()
+                            };
                             wildcard_node.add_value_at_split_path(path, value, is_leaf);
 
                             self.wildcard_node = Some(Box::new(wildcard_node));
@@ -457,10 +482,21 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
         }
     }
 
-    pub(crate) fn enumerate(&self, path: &str) -> Vec<(String, Option<MiddlewareTuple<T>>)> {
+    pub(crate) fn enumerate(
+        &self,
+        path: &str,
+    ) -> Vec<(
+        String,
+        Option<MiddlewareTuple<T>>,
+        Option<MiddlewareTuple<T>>,
+    )> {
         let path = format!("{}/{}", path, self.path_piece);
 
-        let mut enumeration = vec![(path.clone(), self.committed_value.clone())];
+        let mut enumeration = vec![(
+            path.clone(),
+            self.committed_value.clone(),
+            self.value.clone(),
+        )];
 
         for child in &self.children {
             enumeration.append(&mut child.enumerate(&path));
@@ -474,8 +510,8 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
 
         let enumerations = committed.enumerate("");
 
-        for (path, value) in enumerations {
-            if let Some(value) = value {
+        for (path, committed_value, _value) in enumerations {
+            if let Some(value) = committed_value {
                 committed.fastmatch_map.insert(path, value.middleware());
             }
         }
@@ -510,23 +546,21 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
             None => (self.committed_middleware, None),
         };
 
-        let committed_node = Node {
+        Node {
             value: None,
             wildcard_node: self
                 .wildcard_node
                 .map(|n| Box::new(n.commit_inner(updated_collected_middleware.clone()))),
             path_piece: self.path_piece,
             param_name: self.param_name,
-            children: children,
+            children,
             committed_middleware: committed,
             committed_value: committed_tuple,
             has_committed_middleware,
             is_leaf: self.is_leaf,
             non_leaf_value: None,
             fastmatch_map: FnvHashMap::default(),
-        };
-
-        committed_node
+        }
     }
 }
 
@@ -701,7 +735,7 @@ pub mod test {
                 let node = committed.get_value_at_path("/a".to_owned());
 
                 let value = node.value;
-                assert!((value)(0 as i32).await.unwrap() == 1);
+                assert!((value)(0_i32).await.unwrap() == 1);
             });
     }
 
@@ -722,7 +756,7 @@ pub mod test {
                 let node = committed.get_value_at_path("/a/b/c".to_owned());
 
                 let value = node.value;
-                assert!((value)(0 as i32).await.unwrap() == 1);
+                assert!((value)(0_i32).await.unwrap() == 1);
             });
     }
 
@@ -743,7 +777,7 @@ pub mod test {
                 let node = committed.get_value_at_path("/a/b/c".to_owned());
 
                 let value = node.value;
-                assert!((value)(0 as i32).await.unwrap() == 1);
+                assert!((value)(0_i32).await.unwrap() == 1);
             });
     }
 
@@ -769,7 +803,7 @@ pub mod test {
                 let node = committed.get_value_at_path("/a/b/c".to_owned());
 
                 let value = node.value;
-                assert!((value)(0 as i32).await.unwrap() == 1);
+                assert!((value)(0_i32).await.unwrap() == 1);
             });
     }
 
@@ -795,7 +829,7 @@ pub mod test {
                 let node = committed.get_value_at_path("/a/b/c".to_owned());
 
                 let value = node.value;
-                assert!((value)(0 as i32).await.unwrap() == 1);
+                assert!((value)(0_i32).await.unwrap() == 1);
             });
     }
 
@@ -982,7 +1016,7 @@ pub mod test {
                 let node = committed.get_value_at_path("/a/b".to_owned());
 
                 let value = node.value;
-                let result = (value)(0 as i32).await.unwrap();
+                let result = (value)(0_i32).await.unwrap();
 
                 assert!(result == 3);
             });
@@ -1005,13 +1039,11 @@ pub mod test {
             .enumerate("")
             .into_iter()
             .filter(|v| v.1.is_some())
-            .collect::<Vec<(String, Option<MiddlewareTuple<i32>>)>>();
-
-        println!("enumerated len(): {}", enumerated.len());
-
-        println!("0: {}", enumerated.get(0).as_ref().unwrap().0);
-        println!("1: {}", enumerated.get(1).as_ref().unwrap().0);
-        println!("2: {}", enumerated.get(2).as_ref().unwrap().0);
+            .collect::<Vec<(
+                String,
+                Option<MiddlewareTuple<i32>>,
+                Option<MiddlewareTuple<i32>>,
+            )>>();
 
         assert!(
             enumerated.len() == 3,

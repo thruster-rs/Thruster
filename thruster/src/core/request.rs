@@ -113,7 +113,7 @@ impl Request {
                 }
                 None => {
                     header_map.insert(k, vec![v]);
-                    ()
+                    
                 }
             };
         }
@@ -137,7 +137,7 @@ impl Request {
     pub fn body_json<T>(&self) -> serde_json::Result<T>
     where
         T: serde::de::DeserializeOwned,
-    {   
+    {
         serde_json::from_str(self.body())
     }
 

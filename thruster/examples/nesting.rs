@@ -30,7 +30,7 @@ fn main() {
     app.get("/plaintext", m![plaintext]);
 
     let mut nested_app = App::<HyperRequest, Ctx, ()>::create(generate_context, ());
-    nested_app.get("/plaintext", m![plaintext]);
+    nested_app.get("/plaintext", m![nested_plaintext]);
 
     app.use_sub_app("/nested", nested_app);
 

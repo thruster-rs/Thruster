@@ -42,7 +42,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         let listener = TcpListenerStream::new({
             let socket = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
 
-            let address = addr.clone().into();
+            let address = (*addr).into();
             socket.set_reuse_address(true).unwrap();
             #[cfg(unix)]
             socket.set_reuse_port(true).unwrap();
@@ -90,7 +90,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
                     .build()
                     .unwrap();
 
-                let addr = addr.clone();
+                let addr = addr;
                 rt.spawn(async move {
                     Self::process(arc_app, &addr)
                         .await
@@ -141,7 +141,7 @@ impl<T: 'static + Context + Clone + Send + Sync, S: Send> Clone for _HyperServic
     fn clone(&self) -> Self {
         _HyperService {
             app: self.app.clone(),
-            ip: self.ip.clone(),
+            ip: self.ip,
         }
     }
 }
@@ -159,7 +159,7 @@ impl<'a, T: 'static + Context + Clone + Send + Sync, S: 'static + Send + Sync>
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         let mut req = HyperRequest::new(req);
-        req.ip = Some(self.ip.clone());
+        req.ip = Some(self.ip);
 
         let clone = self.clone();
 

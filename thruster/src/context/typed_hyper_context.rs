@@ -15,16 +15,16 @@ use crate::middleware::cookies::{Cookie, CookieOptions, HasCookies, SameSite};
 use crate::middleware::query_params::HasQueryParams;
 
 ///
-/// to_owned_request is needed in order to consume the body of a hyper
+/// into_owned_request is needed in order to consume the body of a hyper
 /// context. This request moves ownership of the parts and the body of
 /// the raw hyper request into the context itself for easier access.
 ///
 #[middleware_fn(_internal)]
-pub async fn to_owned_request<T: 'static + Send + Sync>(
+pub async fn into_owned_request<T: 'static + Send + Sync>(
     context: TypedHyperContext<T>,
     next: MiddlewareNext<TypedHyperContext<T>>,
 ) -> MiddlewareResult<TypedHyperContext<T>> {
-    let context = next(context.to_owned_request()).await?;
+    let context = next(context.into_owned_request()).await?;
 
     Ok(context)
 }
@@ -106,7 +106,7 @@ impl<S: 'static + Send + Sync> TypedHyperContext<S> {
     pub async fn get_body(self) -> Result<(String, TypedHyperContext<S>), Error> {
         let ctx = match self.request_body {
             Some(_) => self,
-            None => self.to_owned_request(),
+            None => self.into_owned_request(),
         };
 
         let mut results = "".to_string();
@@ -141,7 +141,7 @@ impl<S: 'static + Send + Sync> TypedHyperContext<S> {
             .expect("Must call `to_owned_request` prior to getting parts")
     }
 
-    pub fn to_owned_request(self) -> TypedHyperContext<S> {
+    pub fn into_owned_request(self) -> TypedHyperContext<S> {
         match self.hyper_request {
             Some(hyper_request) => {
                 let (parts, body) = hyper_request.request.into_parts();
@@ -204,7 +204,7 @@ impl<S: 'static + Send + Sync> TypedHyperContext<S> {
         let cookie_value = match self.headers.get("Set-Cookie") {
             Some(val) => format!(
                 "{}, {}",
-                val.to_str().unwrap_or_else(|_| ""),
+                val.to_str().unwrap_or(""),
                 self.cookify_options(name, value, &options)
             ),
             None => self.cookify_options(name, value, &options),
@@ -319,7 +319,7 @@ impl<S: 'static + Send + Sync> HasCookies for TypedHyperContext<S> {
             .headers
             .get_all("cookie")
             .iter()
-            .map(|v| v.to_str().unwrap_or_else(|_| "").to_string())
+            .map(|v| v.to_str().unwrap_or("").to_string())
             .collect();
 
         res
@@ -333,7 +333,7 @@ impl<S: 'static + Send + Sync> HasCookies for TypedHyperContext<S> {
             .headers()
             .get_all(key)
             .iter()
-            .map(|v| v.to_str().unwrap_or_else(|_| "").to_string())
+            .map(|v| v.to_str().unwrap_or("").to_string())
             .collect()
     }
 }
