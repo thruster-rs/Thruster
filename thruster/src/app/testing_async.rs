@@ -38,7 +38,7 @@ pub async fn request<T: Context<Response = Response> + Clone + Send + Sync, S: '
     TestResponse::new(response)
 }
 
-pub async fn get<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
+pub async fn get<T: Context<Response = Response> + Clone + Send, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
 ) -> TestResponse {
@@ -57,7 +57,7 @@ pub async fn get<T: Context<Response = Response> + Clone + Send + Sync, S: 'stat
     TestResponse::new(response)
 }
 
-pub async fn delete<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
+pub async fn delete<T: Context<Response = Response> + Clone + Send, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
 ) -> TestResponse {
@@ -76,7 +76,7 @@ pub async fn delete<T: Context<Response = Response> + Clone + Send + Sync, S: 's
     TestResponse::new(response)
 }
 
-pub async fn post<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
+pub async fn post<T: Context<Response = Response> + Clone + Send, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
     content: &str,
@@ -98,7 +98,7 @@ pub async fn post<T: Context<Response = Response> + Clone + Send + Sync, S: 'sta
     TestResponse::new(response)
 }
 
-pub async fn put<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
+pub async fn put<T: Context<Response = Response> + Clone + Send, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
     content: &str,
@@ -120,7 +120,7 @@ pub async fn put<T: Context<Response = Response> + Clone + Send + Sync, S: 'stat
     TestResponse::new(response)
 }
 
-pub async fn patch<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
+pub async fn patch<T: Context<Response = Response> + Clone + Send, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
     content: &str,

@@ -41,7 +41,7 @@ macro_rules! async_middlewarez {
   };
 
   ($outter_ctx:ty:$inner_ctx:ty, $($middlewares:ident),+) => {{
-      fn _internal(ctx: $outter_ctx, last: Option<Box<(dyn Middleware<$inner_ctx, $inner_ctx> + Sync + Send + 'static)>>) -> async_middlewarez!(@return_type $outter_ctx) {
+      fn _internal(ctx: $outter_ctx, last: Option<Box<(dyn Middleware<$inner_ctx, $inner_ctx> + Send + 'static)>>) -> async_middlewarez!(@return_type $outter_ctx) {
         async_middlewarez!(@internal last @internal_rest $($middlewares),*)(ctx)
       }
 
@@ -49,7 +49,7 @@ macro_rules! async_middlewarez {
   }};
 
   ($ctx_type:ty, $($middlewares:ident),+) => {{
-      fn _internal(ctx: $ctx_type, last: Option<Box<(dyn Middleware<$ctx_type, $ctx_type> + Sync + Send + 'static)>>) -> async_middlewarez!(@return_type $ctx_type) {
+      fn _internal(ctx: $ctx_type, last: Option<Box<(dyn Middleware<$ctx_type, $ctx_type> + Send + 'static)>>) -> async_middlewarez!(@return_type $ctx_type) {
         async_middlewarez!(@internal last @internal_rest $($middlewares),*)(ctx)
       }
 

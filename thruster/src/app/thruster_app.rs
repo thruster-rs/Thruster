@@ -1,6 +1,8 @@
-use std::future::Future;
+use crate::ReusableBoxFuture;
+use futures::FutureExt;
+
 use std::io;
-use std::pin::Pin;
+
 
 use crate::core::context::Context;
 use crate::core::request::Request;
@@ -10,8 +12,8 @@ use crate::{
     core::request::ThrusterRequest,
 };
 
-pub trait Middleware<CIn: Send + Sync, COut: Send + Sync, CErr: Send + Sync>:
-    FnOnce(CIn) -> Pin<Box<dyn Future<Output = Result<COut, CErr>> + Send + Sync>>
+pub trait Middleware<CIn: Send, COut: Send, CErr: Send>:
+    FnOnce(CIn) -> ReusableBoxFuture<Result<COut, CErr>> + Send
 {
     fn val(&self) -> Self
     where
@@ -61,7 +63,7 @@ type ReturnValue<T> = T;
 /// It will then return a future with the Response object that corresponds to the request. This can be
 /// useful if trying to integrate with a different type of load balancing system within the threads of the
 /// application.
-pub struct App<R: ThrusterRequest, T: 'static + Context + Clone + Send + Sync, S: Send> {
+pub struct App<R: ThrusterRequest + Send, T: 'static + Context + Clone + Send + Sync, S: Send> {
     pub delete_root: Node<ReturnValue<T>>,
     pub get_root: Node<ReturnValue<T>>,
     pub options_root: Node<ReturnValue<T>>,
@@ -76,7 +78,7 @@ pub struct App<R: ThrusterRequest, T: 'static + Context + Clone + Send + Sync, S
     pub state: std::sync::Arc<S>,
 }
 
-impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static + Send>
+impl<R: 'static + ThrusterRequest + Send, T: Context + Clone + Send + Sync, S: 'static + Send>
     App<R, T, S>
 {
     /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
@@ -254,10 +256,11 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
         }
     }
 
+    // pub async fn match_and_resolve<'m>(&'m self, request: R) -> Result<T::Response, io::Error> {
     pub fn match_and_resolve<'m>(
         &'m self,
         request: R,
-    ) -> impl Future<Output = Result<T::Response, io::Error>> + 'm + Send + Sync {
+    ) -> ReusableBoxFuture<Result<T::Response, io::Error>> {
         let method = request.method();
         let path = request.path();
 
@@ -273,44 +276,59 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
 
         let context = (self.context_generator)(request, &self.state, &node.path);
 
-        let copy = node.value;
-        async move {
-            let ctx = (copy)(context).await;
-
+        ReusableBoxFuture::new((node.value)(context).map(|ctx| {
             let ctx = match ctx {
                 Ok(val) => val,
                 Err(e) => e.context,
             };
 
             Ok(ctx.get_response())
-        }
+        }))
+
+        // let copy = node.value;
+        // let ctx = (copy)(context).await;
+
+        // let ctx = match ctx {
+        //     Ok(val) => val,
+        //     Err(e) => e.context,
+        // };
+
+        // Ok(ctx.get_response())
+
+        // let copy = node.value;
+        // let ctx = (copy)(context).await;
+
+        // let ctx = match ctx {
+        //     Ok(val) => val,
+        //     Err(e) => e.context,
+        // };
+
+        // Ok(ctx.get_response())
     }
 
-    pub fn resolve<'m>(
+    pub async fn resolve<'m>(
         &self,
         request: R,
         matched_route: NodeOutput<'m, T>,
-    ) -> impl Future<Output = Result<T::Response, io::Error>> + 'm + Send + Sync {
-        self._resolve(request, matched_route)
+    ) -> Result<T::Response, io::Error> {
+        self._resolve(request, matched_route).await
     }
 
-    fn _resolve<'m>(
+    async fn _resolve<'m>(
         &self,
         request: R,
         matched_route: NodeOutput<'m, T>,
-    ) -> impl Future<Output = Result<T::Response, io::Error>> + 'm + Send + Sync {
+    ) -> Result<T::Response, io::Error> {
         let context = (self.context_generator)(request, &self.state, &matched_route.path);
 
         let copy = matched_route.value;
-        async move {
-            let ctx = (copy)(context).await;
+        let ctx = (copy)(context).await;
 
-            let ctx = match ctx {
-                Ok(val) => val,
-                Err(e) => e.context,
-            };
+        let ctx = match ctx {
+            Ok(val) => val,
+            Err(e) => e.context,
+        };
 
-            Ok(ctx.get_response())
-        }
+        Ok(ctx.get_response())
     }
 }

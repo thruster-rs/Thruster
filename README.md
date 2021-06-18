@@ -232,7 +232,7 @@ Middleware is super easy to make! Simply create a function and export it at a mo
 
 ```rust
 #[middleware_fn]
-async fn profiling<C: 'static + Context + Send + Sync>(
+async fn profiling<C: 'static + Context + Send>(
     mut context: C,
     next: MiddlewareNext<C>,
 ) -> MiddlewareResult<C> {

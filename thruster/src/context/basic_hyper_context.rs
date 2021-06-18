@@ -6,11 +6,11 @@ use hyper::{Body, Error, Response, StatusCode};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::str;
-use thruster_proc::middleware_fn;
+
 
 pub use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
-use crate::core::{MiddlewareNext, MiddlewareResult};
+
 use crate::middleware::query_params::HasQueryParams;
 
 pub fn generate_context<S>(request: HyperRequest, _state: &S, _path: &str) -> BasicHyperContext {
@@ -46,21 +46,6 @@ impl CookieOptions {
             same_site: SameSite::Strict,
         }
     }
-}
-
-///
-/// to_owned_request is needed in order to consume the body of a hyper
-/// context. This request moves ownership of the parts and the body of
-/// the raw hyper request into the context itself for easier access.
-///
-#[middleware_fn(_internal)]
-pub async fn to_owned_request(
-    context: BasicHyperContext,
-    next: MiddlewareNext<BasicHyperContext>,
-) -> MiddlewareResult<BasicHyperContext> {
-    let context = next(context.into_owned_request()).await?;
-
-    Ok(context)
 }
 
 #[derive(Default)]

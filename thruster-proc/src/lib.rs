@@ -1,5 +1,5 @@
 // #![feature(proc_macro_diagnostic)]
-extern crate proc_macro;
+// extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span as Span2, TokenStream as TokenStream2, TokenTree as TokenTree2};
@@ -96,12 +96,13 @@ pub fn middleware_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
             &format!("__MiddlewareReturnValue_{}", name),
             Span2::call_site(),
         );
+        let new_rbf_type = Ident::new(&format!("__ReusableBoxFuture_{}", name), Span2::call_site());
         let crate_path = match attr.to_string().as_str() {
             "_internal" => quote! {
-                crate::core::{ MiddlewareReturnValue as #new_return_type }
+                crate::{core::{ MiddlewareReturnValue as #new_return_type }, ReusableBoxFuture as #new_rbf_type }
             },
             _ => quote! {
-                thruster::{ MiddlewareReturnValue as #new_return_type }
+                thruster::{ MiddlewareReturnValue as #new_return_type, ReusableBoxFuture as #new_rbf_type }
             },
         };
 
@@ -110,7 +111,7 @@ pub fn middleware_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             use #crate_path;
             #visibility fn #name#generics(ctx: #context_type, next: MiddlewareNext<#context_type>) -> #new_return_type<#context_type> {
-                Box::pin(#new_name(ctx, next))
+                #new_rbf_type::new(#new_name(ctx, next))
             }
         };
 
@@ -187,7 +188,7 @@ pub fn generate_tuples(items: TokenStream) -> TokenStream {
 
         from_tuple_variants.push(quote! {
             #[allow(unused_parens)]
-            impl<T: 'static + Sync + Send> ToTuple<T> for (#(#values_e),*,) {
+            impl<T: 'static + Send> ToTuple<T> for (#(#values_e),*,) {
                 fn to_tuple(self) -> MiddlewareTuple<T> {
                     #[allow(non_snake_case)]
                     let (#(#values_f),*,) = self;
@@ -268,7 +269,7 @@ pub fn generate_tuples(items: TokenStream) -> TokenStream {
             fn to_tuple(self) -> MiddlewareTuple<T>;
         }
 
-        impl<T: Send + Sync> MiddlewareTuple<T> {
+        impl<T: Send> MiddlewareTuple<T> {
             pub fn combine(self, other: MiddlewareTuple<T>) -> MiddlewareTuple<T> {
                 match self {
                     #(
@@ -278,8 +279,8 @@ pub fn generate_tuples(items: TokenStream) -> TokenStream {
             }
         }
 
-        impl<T: 'static + Send + Sync> IntoMiddleware<T, M<T>> for MiddlewareTuple<T> {
-            fn middleware(self) -> Box<dyn Fn(T) -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + Send + Sync>> + Send + Sync> {
+        impl<T: 'static + Send> IntoMiddleware<T, M<T>> for MiddlewareTuple<T> {
+            fn middleware(self) -> Box<dyn Fn(T) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync> {
                 match self {
                     #(
                         #to_tuple_variants.middleware()

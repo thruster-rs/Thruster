@@ -20,13 +20,13 @@ use crate::core::context::Context;
 
 use crate::server::ThrusterServer;
 
-pub struct SSLHyperServer<T: 'static + Context + Send, S: Send> {
+pub struct SSLHyperServer<T: 'static + Context + Send + Sync, S: Send> {
     app: App<HyperRequest, T, S>,
     cert: Option<Vec<u8>>,
     key: Option<Vec<u8>>,
 }
 
-impl<T: 'static + Context + Send, S: Send> SSLHyperServer<T, S> {
+impl<T: 'static + Context + Send + Sync, S: Send> SSLHyperServer<T, S> {
     ///
     /// Sets the cert on the server
     ///
@@ -41,7 +41,7 @@ impl<T: 'static + Context + Send, S: Send> SSLHyperServer<T, S> {
 }
 
 #[async_trait]
-impl<T: Context<Response = Response<Body>> + Send, S: 'static + Send + Sync> ThrusterServer
+impl<T: Context<Response = Response<Body>> + Send + Sync, S: 'static + Send> ThrusterServer
     for SSLHyperServer<T, S>
 {
     type Context = T;

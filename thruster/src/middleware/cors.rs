@@ -7,7 +7,7 @@ use crate::core::{MiddlewareNext, MiddlewareResult};
 /// Middleware to allow CORS.
 ///
 #[middleware_fn(_internal)]
-pub async fn cors<T: 'static + Context + Send + Sync>(
+pub async fn cors<T: 'static + Context + Send>(
     mut context: T,
     next: MiddlewareNext<T>,
 ) -> MiddlewareResult<T> {

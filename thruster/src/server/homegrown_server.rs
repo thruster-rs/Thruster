@@ -1,7 +1,7 @@
+use crate::ReusableBoxFuture;
 use async_trait::async_trait;
-use futures::{SinkExt, StreamExt};
+use futures::{FutureExt, SinkExt, StreamExt};
 use socket2::{Domain, Socket, Type};
-use std::error::Error;
 use std::net::ToSocketAddrs;
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
@@ -24,7 +24,7 @@ use crate::server::ThrusterServer;
 
 pub struct Server<
     T: 'static + Context<Response = Response> + Clone + Send + Sync,
-    S: 'static + Send,
+    S: 'static + Send + Sync,
 > {
     app: Arc<App<Request, T, S>>,
 }
@@ -51,6 +51,8 @@ impl<T: 'static + Context<Response = Response> + Clone + Send + Sync, S: 'static
     /// https://users.rust-lang.org/t/getting-tokio-to-match-actix-web-performance/18659/7
     ///
     pub fn start_small_load_optimized(self, host: &str, port: u16) {
+        // panic!("Nope!");
+
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
         let mut threads = Vec::new();
 
@@ -83,7 +85,7 @@ impl<T: 'static + Context<Response = Response> + Clone + Send + Sync, S: 'static
                     TcpListenerStream::new(listener)
                         .for_each(move |socket| {
                             process(Arc::clone(&arc_app), socket.unwrap());
-                            async {  }
+                            async {}
                         })
                         .await;
                 };
@@ -94,43 +96,6 @@ impl<T: 'static + Context<Response = Response> + Clone + Send + Sync, S: 'static
 
         for thread in threads {
             thread.join().unwrap();
-        }
-
-        fn process<
-            T: Context<Response = Response> + Clone + Send + Sync,
-            S: 'static + Send + Sync,
-        >(
-            app: Arc<App<Request, T, S>>,
-            socket: TcpStream,
-        ) {
-            // let framed = Framed::new(socket, Http);
-            // let (tx, rx) = framed.split();
-
-            // let task = tx.send_all(&mut rx.and_then(move |request: Request| {
-            //     let matched =
-            //         app.resolve_from_method_and_path(request.method(), request.path().to_owned());
-            //     std::boxed::Box::pin(app.resolve(request, matched))
-            // }));
-
-            // Spawn the task that handles the connection.
-            tokio::spawn(async move {
-                let mut framed = Framed::new(socket, Http);
-
-                while let Some(request) = framed.next().await {
-                    match request {
-                        Ok(request) => {
-                            let path = request.path().to_owned();
-                            let method = &request.method().to_owned();
-                            let matched = app.resolve_from_method_and_path(method, path);
-                            let response = app.resolve(request, matched).await.unwrap();
-                            framed.send(response).await.unwrap();
-                        }
-                        Err(_e) => return ,
-                    }
-                }
-
-                
-            });
         }
     }
 }
@@ -150,46 +115,61 @@ impl<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send + 
         Server { app: Arc::new(app) }
     }
 
-    async fn build(mut self, host: &str, port: u16) {
+    fn build(self, host: &str, port: u16) -> ReusableBoxFuture<()> {
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
         // self.app._route_parser.optimize();
 
-        let mut listener = TcpListenerStream::new(TcpListener::bind(&addr).await.unwrap());
         let arc_app = self.app;
-
-        while let Some(Ok(stream)) = listener.next().await {
-            let cloned = arc_app.clone();
-            tokio::spawn(async move {
-                if let Err(e) = process(&cloned, stream).await {
-                    println!("failed to process connection; error = {}", e);
+        let listener_fut = TcpListener::bind(addr).then(move |listener| {
+            TcpListenerStream::new(listener.unwrap()).for_each(move |res| {
+                if let Ok(stream) = res {
+                    let cloned = arc_app.clone();
+                    tokio::spawn(process(cloned, stream));
                 }
-            });
-        }
 
-        async fn process<
-            T: Context<Response = Response> + Clone + Send + Sync,
-            S: 'static + Send,
-        >(
-            app: &App<Request, T, S>,
-            socket: TcpStream,
-        ) -> Result<(), Box<dyn Error>> {
-            let mut framed = Framed::new(socket, Http);
+                async { () }
+            })
+        });
 
-            while let Some(request) = framed.next().await {
-                match request {
-                    Ok(request) => {
-                        let path = request.path().to_owned();
-                        let method = &request.method().to_owned();
-                        let matched = app.resolve_from_method_and_path(method, path);
-                        let response = app.resolve(request, matched).await?;
-                        framed.send(response).await?;
-                    }
-                    Err(e) => return Err(e.into()),
+        ReusableBoxFuture::new(listener_fut)
+    }
+}
+
+struct _Error {
+    _message: String,
+}
+
+fn process<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send + Sync>(
+    app: Arc<App<Request, T, S>>,
+    socket: TcpStream,
+) -> ReusableBoxFuture<Result<(), _Error>> {
+    let app = app.clone();
+
+    ReusableBoxFuture::new(async move {
+        let mut framed = Framed::new(socket, Http);
+
+        while let Some(request) = framed.next().await {
+            match request {
+                Ok(request) => {
+                    let path = request.path().to_owned();
+                    let method = &request.method().to_owned();
+                    let matched = app.resolve_from_method_and_path(method, path);
+                    let response = app.resolve(request, matched).await.map_err(|e| _Error {
+                        _message: e.to_string(),
+                    })?;
+                    framed.send(response).await.map_err(|e| _Error {
+                        _message: e.to_string(),
+                    })?;
+                }
+                Err(e) => {
+                    return Err(_Error {
+                        _message: e.to_string(),
+                    })
                 }
             }
-
-            Ok(())
         }
-    }
+
+        Ok(())
+    })
 }

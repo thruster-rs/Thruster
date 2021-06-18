@@ -7,7 +7,7 @@ use crate::core::{MiddlewareNext, MiddlewareResult};
 /// Middleware to set the request to respond with JSON type.
 ///
 #[middleware_fn(_internal)]
-pub async fn json<T: 'static + Context + Send + Sync>(
+pub async fn json<T: 'static + Context + Send>(
     mut context: T,
     next: MiddlewareNext<T>,
 ) -> MiddlewareResult<T> {

@@ -1,8 +1,7 @@
 use crate::core::context::Context;
+use crate::ReusableBoxFuture;
 use crate::{app::App, core::request::ThrusterRequest};
-use async_trait::async_trait;
 
-#[async_trait]
 pub trait ThrusterServer {
     type Context: Context + Clone + Send + Sync;
     type Response: Send;
@@ -10,7 +9,7 @@ pub trait ThrusterServer {
     type State: Send;
 
     fn new(_: App<Self::Request, Self::Context, Self::State>) -> Self;
-    async fn build(self, host: &str, port: u16);
+    fn build(self, host: &str, port: u16) -> ReusableBoxFuture<()>;
     fn start(self, host: &str, port: u16)
     where
         Self: Sized,

@@ -1,49 +1,27 @@
 use crate::core::errors::ThrusterError;
+use crate::ReusableBoxFuture;
 use paste::paste;
 use std::boxed::Box;
-use std::future::Future;
-use std::pin::Pin;
 use thruster_proc::generate_tuples;
 
-pub type NextFn<T> = Box<
-    dyn FnOnce(
-            T,
-        )
-            -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + 'static + Sync + Send>>
-        + 'static
-        + Sync
-        + Send,
->;
+pub type NextFn<T> =
+    Box<dyn FnOnce(T) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + 'static + Send>;
 pub type MiddlewareFnPointer<T> =
-    fn(
-        T,
-        NextFn<T>,
-    ) -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + 'static + Sync + Send>>;
+    fn(T, NextFn<T>) -> ReusableBoxFuture<Result<T, ThrusterError<T>>>;
 pub trait MiddlewareFunc<T>:
-    Fn(
-    T,
-    NextFn<T>,
-) -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + 'static + Sync + Send>>
+    Fn(T, NextFn<T>) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync
 {
 }
 
-impl<A, T: Sync + Send> MiddlewareFunc<T> for A where
-    A: Fn(
-        T,
-        NextFn<T>,
-    )
-        -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + 'static + Sync + Send>>
+impl<A, T: Send> MiddlewareFunc<T> for A where
+    A: Fn(T, NextFn<T>) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync
 {
 }
 
 pub trait IntoMiddleware<T, A> {
     fn middleware(
         self,
-    ) -> Box<
-        dyn Fn(T) -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + Sync + Send>>
-            + Send
-            + Sync,
-    >;
+    ) -> Box<dyn Fn(T) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync>;
 }
 
 pub trait CombineMiddleware<T, AFuncs, BFuncs, CFuncs> {
@@ -53,8 +31,8 @@ pub trait CombineMiddleware<T, AFuncs, BFuncs, CFuncs> {
 macro_rules! impl_into_middleware {
     ($($param: ident),*) => {
         #[allow(unused_parens)]
-        impl<T: 'static + Sync + Send, $($param: MiddlewareFunc<T> + 'static + Send + Sync + Copy),*> IntoMiddleware<T, ($($param,)*)> for ($($param,)*) {
-            fn middleware(self) -> Box<dyn Fn(T) -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + Sync + Send>> + Send + Sync> {
+        impl<T: 'static + Send, $($param: MiddlewareFunc<T> + 'static + Send + Copy),*> IntoMiddleware<T, ($($param,)*)> for ($($param,)*) {
+            fn middleware(self) -> Box<dyn Fn(T) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync> {
                 #[allow(non_snake_case)]
                 let ($($param,)*) = self;
 
@@ -69,7 +47,7 @@ macro_rules! recurse {
         Box::new(move |i| ($head)(i, recurse!($($tail),*)))
     };
     ($head:ident) => {
-        Box::new(move |i| ($head)(i, Box::new(|i| Box::pin(async move { Ok(i) }))))
+        Box::new(move |i| ($head)(i, Box::new(|i| ReusableBoxFuture::new(async move { Ok(i) }))))
     };
 }
 
@@ -79,9 +57,8 @@ macro_rules! pinbox {
         fn __internal(
             a: $type,
             b: NextFn<$type>,
-        ) -> Pin<Box<dyn Future<Output = Result<$type, ThrusterError<$type>>> + Sync + Send>>
-        {
-            Box::pin($fn(a, b))
+        ) -> ReusableBoxFuture<Result<$type, ThrusterError<$type>>> {
+            ReusableBoxFuture::new($fn(a, b))
         }
 
         __internal

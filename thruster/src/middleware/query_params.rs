@@ -9,7 +9,7 @@ pub trait HasQueryParams {
 }
 
 #[middleware_fn(_internal)]
-pub async fn query_params<T: 'static + Context + HasQueryParams + Send + Sync>(
+pub async fn query_params<T: 'static + Context + HasQueryParams + Send>(
     mut context: T,
     next: MiddlewareNext<T>,
 ) -> MiddlewareResult<T> {

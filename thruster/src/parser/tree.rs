@@ -1,6 +1,7 @@
+use crate::ReusableBoxFuture;
 use fnv::FnvHashMap;
-use std::future::Future;
-use std::pin::Pin;
+
+
 use std::str::Split;
 use std::{fmt, fmt::Debug};
 
@@ -13,7 +14,7 @@ const WILDCARD_ROUTE_ID: char = '*';
 const PARAM_ROUTE_LEADING_CHAR: char = ':';
 
 /// A single node in the route parse tree.
-pub struct Node<T: Clone> {
+pub struct Node<T: Clone + Send> {
     /// The value of the node. Not every node has a value, for example in the path /a/b, two nodes are created;
     /// a which has no value, but a child of b, and b, which has no children, but a value of a.
     value: Option<MiddlewareTuple<T>>,
@@ -32,11 +33,8 @@ pub struct Node<T: Clone> {
     children: Vec<Node<T>>,
 
     /// The committed middleware, only usable once node has been consumed and replaced.
-    committed_middleware: Box<
-        dyn Fn(T) -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + Sync + Send>>
-            + Send
-            + Sync,
-    >,
+    committed_middleware:
+        Box<dyn Fn(T) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync>,
 
     /// Whether or not this node has committed middleware.
     has_committed_middleware: bool,
@@ -54,15 +52,11 @@ pub struct Node<T: Clone> {
     /// A shortcut for fast matching so that we don't have to traverse the tree for trivial matches
     fastmatch_map: FnvHashMap<
         String,
-        Box<
-            dyn Fn(T) -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + Sync + Send>>
-                + Send
-                + Sync,
-        >,
+        Box<dyn Fn(T) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync>,
     >,
 }
 
-impl<T: Clone> Debug for Node<T> {
+impl<T: Clone + Send> Debug for Node<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Node")
             .field("path", &self.path_piece)
@@ -96,21 +90,13 @@ pub struct Param {
 }
 
 pub struct NodeOutput<'m, T> {
-    pub value: &'m Box<
-        dyn Fn(T) -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + Sync + Send>>
-            + Send
-            + Sync,
-    >,
+    pub value: &'m Box<dyn Fn(T) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync>,
     pub params: Params,
     pub path: String,
 }
 
 pub struct OwnedNodeOutput<'m, T> {
-    pub value: &'m Box<
-        dyn Fn(T) -> Pin<Box<dyn Future<Output = Result<T, ThrusterError<T>>> + Sync + Send>>
-            + Send
-            + Sync,
-    >,
+    pub value: &'m Box<dyn Fn(T) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync>,
     pub params: Option<std::collections::HashMap<String, String>>,
     pub path: String,
 }
@@ -125,7 +111,7 @@ impl<'m, T> NodeOutput<'m, T> {
     }
 }
 
-impl<T: 'static + Context + Clone + Send + Sync> Default for Node<T> {
+impl<T: 'static + Context + Clone + Send> Default for Node<T> {
     fn default() -> Node<T> {
         Node {
             value: None,
@@ -134,7 +120,7 @@ impl<T: 'static + Context + Clone + Send + Sync> Default for Node<T> {
             param_name: None,
             children: vec![],
             committed_middleware: Box::new(|c| {
-                Box::pin(async move {
+                ReusableBoxFuture::new(async move {
                     Err(ThrusterError {
                         context: c,
                         message: "Not found".to_string(),
@@ -165,7 +151,7 @@ impl<T: 'static + Context + Clone + Send + Sync> Default for Node<T> {
 //     }
 // }
 
-impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
+impl<T: 'static + Context + Clone + Send> Node<T> {
     /// Gets the value at the end of the path.
     pub fn get_value_at_path<'m, 'k: 'm>(&'k self, path: String) -> NodeOutput<'m, T> {
         if let Some(value) = self.fastmatch_map.get(&path) {
@@ -599,7 +585,7 @@ impl<T: 'static + Context + Clone + Send + Sync> Node<T> {
 //     }
 // }
 
-impl<T: Clone> Node<T> {
+impl<T: Clone + Send> Node<T> {
     /// Prints the tree at the current level and all levels beneath with appropraite indentation starting
     /// with zero indentation.
     pub fn print(&self) -> String {
