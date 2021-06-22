@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use futures::sink::SinkExt;
+use futures::stream::StreamExt;
 use native_tls::Identity;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::stream::StreamExt;
 use tokio_util::codec::Framed;
 
 use crate::app::App;
@@ -17,13 +17,13 @@ use crate::core::response::Response;
 
 use crate::server::ThrusterServer;
 
-pub struct SSLServer<T: 'static + Context<Response = Response> + Send, S: Send> {
+pub struct SSLServer<T: 'static + Context<Response = Response> + Clone + Send + Sync, S: Send> {
     app: App<Request, T, S>,
     cert: Option<Vec<u8>>,
     cert_pass: &'static str,
 }
 
-impl<T: 'static + Context<Response = Response> + Send, S: Send> SSLServer<T, S> {
+impl<T: 'static + Context<Response = Response> + Clone + Send + Sync, S: Send> SSLServer<T, S> {
     ///
     /// Sets the cert on the server
     ///
@@ -37,7 +37,7 @@ impl<T: 'static + Context<Response = Response> + Send, S: Send> SSLServer<T, S> 
 }
 
 #[async_trait]
-impl<T: Context<Response = Response> + Send, S: 'static + Send> ThrusterServer
+impl<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send> ThrusterServer
     for SSLServer<T, S>
 {
     type Context = T;
@@ -92,7 +92,7 @@ impl<T: Context<Response = Response> + Send, S: 'static + Send> ThrusterServer
         }
 
         // TODO(trezm): Add an argument here for the tls_acceptor to be passed in.
-        async fn process<T: Context<Response = Response> + Send, S: Send>(
+        async fn process<T: Context<Response = Response> + Clone + Send + Sync, S: Send>(
             app: Arc<App<Request, T, S>>,
             tls_acceptor: Arc<tokio_native_tls::TlsAcceptor>,
             socket: TcpStream,
