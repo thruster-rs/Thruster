@@ -120,7 +120,7 @@ pub async fn put<T: Context<Response = Response> + Clone + Send + Sync, S: 'stat
     TestResponse::new(response)
 }
 
-pub async fn patch<T: Context<Response = Response> + Clone + Send, S: 'static + Send>(
+pub async fn patch<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send>(
     app: &App<Request, T, S>,
     route: &str,
     content: &str,
