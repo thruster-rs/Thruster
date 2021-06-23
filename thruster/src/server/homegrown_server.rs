@@ -128,7 +128,7 @@ impl<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + Send + 
                     tokio::spawn(process(cloned, stream));
                 }
 
-                async { () }
+                async {}
             })
         });
 
@@ -144,8 +144,6 @@ fn process<T: Context<Response = Response> + Clone + Send + Sync, S: 'static + S
     app: Arc<App<Request, T, S>>,
     socket: TcpStream,
 ) -> ReusableBoxFuture<Result<(), _Error>> {
-    let app = app.clone();
-
     ReusableBoxFuture::new(async move {
         let mut framed = Framed::new(socket, Http);
 

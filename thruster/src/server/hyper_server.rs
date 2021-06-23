@@ -1,5 +1,4 @@
 use crate::ReusableBoxFuture;
-use async_trait::async_trait;
 use futures::FutureExt;
 use hyper::server::conn::Http;
 use hyper::service::make_service_fn;
@@ -56,10 +55,10 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         });
 
         let service = make_service_fn(|stream: &tokio::net::TcpStream| {
-            let ip = stream.peer_addr().unwrap().ip();
+            let ip = stream.peer_addr().map(|v| v.ip()).ok();
             let arc_app = app.clone();
 
-            async move { Ok::<_, hyper::Error>(_HyperService::<T, S> { ip, app: arc_app }) }
+            async move { Ok::<_, hyper::Error>(HyperService::<T, S> { ip, app: arc_app }) }
         });
 
         let mut http = Http::new();
@@ -104,7 +103,6 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
     }
 }
 
-#[async_trait]
 impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + Send + Sync>
     ThrusterServer for HyperServer<T, S>
 {
@@ -131,13 +129,13 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
     }
 }
 
-struct _HyperService<T: 'static + Context + Clone + Send + Sync, S: Send> {
-    app: Arc<App<HyperRequest, T, S>>,
-    ip: IpAddr,
+pub(crate) struct HyperService<T: 'static + Context + Clone + Send + Sync, S: Send> {
+    pub(crate) app: Arc<App<HyperRequest, T, S>>,
+    pub(crate) ip: Option<IpAddr>,
 }
 
 impl<T: 'static + Context + Clone + Send + Sync, S: 'static + Send + Sync> Service<Request<Body>>
-    for _HyperService<T, S>
+    for HyperService<T, S>
 {
     type Response = T::Response;
     type Error = std::io::Error;
@@ -149,7 +147,7 @@ impl<T: 'static + Context + Clone + Send + Sync, S: 'static + Send + Sync> Servi
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         let mut req = HyperRequest::new(req);
-        req.ip = Some(self.ip);
+        req.ip = self.ip;
 
         self.app.clone().match_and_resolve(req)
     }

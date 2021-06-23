@@ -1,12 +1,16 @@
+use futures::future;
 use futures::stream::StreamExt;
+use futures::FutureExt;
 use std::io::{self, BufReader};
 use std::net::ToSocketAddrs;
+use tokio_stream::wrappers::TcpListenerStream;
+use tokio_util::sync::ReusableBoxFuture;
 
 use async_trait::async_trait;
 use hyper::server::conn::Http;
 use hyper::server::Builder;
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Request, Response};
+use hyper::service::make_service_fn;
+use hyper::{Body, Response};
 use log::error;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -18,12 +22,16 @@ use crate::app::App;
 use crate::context::basic_hyper_context::HyperRequest;
 use crate::core::context::Context;
 
+use crate::hyper_server::HyperService;
 use crate::server::ThrusterServer;
 
+/// Fake certs generated using
+/// openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 3650 -nodes
 pub struct SSLHyperServer<T: 'static + Context + Clone + Send + Sync, S: Send> {
     app: App<HyperRequest, T, S>,
     cert: Option<Vec<u8>>,
     key: Option<Vec<u8>>,
+    tls_acceptor: Option<Arc<TlsAcceptor>>,
 }
 
 impl<T: 'static + Context + Clone + Send + Sync, S: Send> SSLHyperServer<T, S> {
@@ -41,8 +49,8 @@ impl<T: 'static + Context + Clone + Send + Sync, S: Send> SSLHyperServer<T, S> {
 }
 
 #[async_trait]
-impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + Send> ThrusterServer
-    for SSLHyperServer<T, S>
+impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + Send + Sync>
+    ThrusterServer for SSLHyperServer<T, S>
 {
     type Context = T;
     type Response = Response<Body>;
@@ -56,10 +64,11 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
             app,
             cert: None,
             key: None,
+            tls_acceptor: None,
         }
     }
 
-    async fn build(self, host: &str, port: u16) {
+    fn build(mut self, host: &str, port: u16) -> ReusableBoxFuture<()> {
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
 
         let arc_app = Arc::new(self.app);
@@ -77,70 +86,54 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
             .set_single_cert(certs, keys.remove(0))
             .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))
             .unwrap();
-        let tls_acceptor = TlsAcceptor::from(Arc::new(config));
-        // let cert = self.cert.unwrap();
-        // let cert_pass = self.cert_pass;
-        // let cert = Identity::from_pkcs12(&cert, cert_pass).expect("Could not decrypt p12 file");
-        // let tls_acceptor = tokio_native_tls::TlsAcceptor::from(
-        //     native_tls::TlsAcceptor::builder(cert)
-        //         .build()
-        //         .expect("Could not create TLS acceptor."),
-        // );
 
-        let arc_acceptor = Arc::new(tls_acceptor);
+        self.tls_acceptor = Some(Arc::new(TlsAcceptor::from(Arc::new(config))));
 
-        let service = make_service_fn(|_| {
-            let app = arc_app.clone();
+        let service = make_service_fn(
+            move |_: &tokio_rustls::server::TlsStream<tokio::net::TcpStream>| {
+                let ip = None;
+                let arc_app = arc_app.clone();
 
-            async {
-                Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
-                    let matched = app.resolve_from_method_and_path(
-                        &req.method().to_string(),
-                        &req.uri().path_and_query().unwrap().to_string(),
-                    );
-                    let req = HyperRequest::new(req);
-                    app.resolve(req, matched)
-                }))
-            }
-        });
+                async move { Ok::<_, hyper::Error>(HyperService::<T, S> { ip, app: arc_app }) }
+            },
+        );
 
-        let mut listener = TcpListener::bind(&addr).await.unwrap();
-        let incoming = listener.incoming();
+        let arc_acceptor = self.tls_acceptor.as_ref().unwrap().clone();
+        let listener_fut = TcpListener::bind(addr)
+            .then(move |listener| {
+                let arc_acceptor = arc_acceptor.clone();
+                let stream = TcpListenerStream::new(listener.unwrap());
 
-        async {
-            let server = Builder::new(
-                // Why did we use a filter_map here? Basically because I was too
-                // lazy to implement and wrapper and Accept trait for that class
-                // in order to wrap the TlsAcceptor correctly. This probably has
-                // a performance hit and should be fixed someday.
-                hyper::server::accept::from_stream(incoming.filter_map(|socket| async {
-                    match socket {
+                let hyper_stream = hyper::server::accept::from_stream(stream.filter_map(
+                    move |socket| match socket {
                         Ok(stream) => {
-                            let timed_out = arc_acceptor.clone().accept(stream).await;
+                            let acceptor = arc_acceptor.clone();
 
-                            match timed_out {
-                                Ok(val) => Some(Ok::<_, std::io::Error>(val)),
-                                Err(e) => {
-                                    error!("TLS error: {}", e);
-                                    None
-                                }
-                            }
+                            let timed_out_fut =
+                                acceptor.accept(stream).map(|timed_out| match timed_out {
+                                    Ok(val) => Some(Ok::<_, std::io::Error>(val)),
+                                    Err(e) => {
+                                        error!("TLS error: {}", e);
+                                        None
+                                    }
+                                });
+
+                            ReusableBoxFuture::new(timed_out_fut)
                         }
                         Err(e) => {
                             error!("TCP socket error: {}", e);
-                            None
+                            ReusableBoxFuture::new(future::ready(None))
                         }
-                    }
-                })),
-                Http::new(),
-            )
-            .serve(service);
+                    },
+                ));
 
-            server.await?;
+                Builder::new(hyper_stream, Http::new()).serve(service)
+            })
+            .map(|v| match v {
+                Ok(_) => (),
+                Err(e) => panic!("Hyper server error occurred: {:#?}", e),
+            });
 
-            Ok::<_, hyper::Error>(())
-        }
-        .await
-        .expect("hyper server failed");
+        ReusableBoxFuture::new(listener_fut)
     }
 }

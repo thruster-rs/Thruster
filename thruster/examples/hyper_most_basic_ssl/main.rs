@@ -31,7 +31,7 @@ fn main() {
     app.set404(async_middleware!(Ctx, [test_fn_404]));
 
     let mut server = SSLHyperServer::new(app);
-    server.cert(include_bytes!("identity.p12").to_vec());
-    server.cert_pass("asdfasdfasdf");
+    server.cert(include_bytes!("./cert.pem").to_vec());
+    server.key(include_bytes!("./key.pem").to_vec());
     server.start("0.0.0.0", 4321);
 }
