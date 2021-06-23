@@ -6,31 +6,16 @@ use hyper::{Body, Error, Response, StatusCode};
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::str;
-use thruster_proc::middleware_fn;
+
 
 use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
-use crate::core::{MiddlewareNext, MiddlewareResult};
+
 use crate::middleware::cookies::{Cookie, CookieOptions, HasCookies, SameSite};
 use crate::middleware::query_params::HasQueryParams;
 
-///
-/// into_owned_request is needed in order to consume the body of a hyper
-/// context. This request moves ownership of the parts and the body of
-/// the raw hyper request into the context itself for easier access.
-///
-#[middleware_fn(_internal)]
-pub async fn into_owned_request<T: 'static + Send + Sync>(
-    context: TypedHyperContext<T>,
-    next: MiddlewareNext<TypedHyperContext<T>>,
-) -> MiddlewareResult<TypedHyperContext<T>> {
-    let context = next(context.into_owned_request()).await?;
-
-    Ok(context)
-}
-
 #[derive(Default)]
-pub struct TypedHyperContext<S: 'static + Send + Sync> {
+pub struct TypedHyperContext<S: 'static + Send> {
     pub body: Body,
     pub query_params: HashMap<String, String>,
     pub status: u16,
@@ -44,13 +29,13 @@ pub struct TypedHyperContext<S: 'static + Send + Sync> {
     request_parts: Option<Parts>,
 }
 
-impl<S: 'static + Send + Sync> Clone for TypedHyperContext<S> {
+impl<S: 'static + Send> Clone for TypedHyperContext<S> {
     fn clone(&self) -> Self {
         panic!("You should not be calling this method.");
     }
 }
 
-impl<S: 'static + Send + Sync> TypedHyperContext<S> {
+impl<S: 'static + Send> TypedHyperContext<S> {
     pub fn new(req: HyperRequest, extra: S) -> TypedHyperContext<S> {
         let params = req.params.clone();
         let mut ctx = TypedHyperContext {
@@ -258,7 +243,7 @@ impl<S: 'static + Send + Sync> TypedHyperContext<S> {
     }
 }
 
-impl<S: 'static + Send + Sync> Context for TypedHyperContext<S> {
+impl<S: 'static + Send> Context for TypedHyperContext<S> {
     type Response = Response<Body>;
 
     fn get_response(self) -> Self::Response {
@@ -300,13 +285,13 @@ impl<S: 'static + Send + Sync> Context for TypedHyperContext<S> {
     }
 }
 
-impl<S: 'static + Send + Sync> HasQueryParams for TypedHyperContext<S> {
+impl<S: 'static + Send> HasQueryParams for TypedHyperContext<S> {
     fn set_query_params(&mut self, query_params: HashMap<String, String>) {
         self.query_params = query_params;
     }
 }
 
-impl<S: 'static + Send + Sync> HasCookies for TypedHyperContext<S> {
+impl<S: 'static + Send> HasCookies for TypedHyperContext<S> {
     fn set_cookies(&mut self, cookies: Vec<Cookie>) {
         self.cookies.clear();
         for cookie in cookies {

@@ -50,7 +50,7 @@ pub trait HasCookies {
 }
 
 #[middleware_fn(_internal)]
-pub async fn cookies<T: 'static + Context + HasCookies + Send + Sync>(
+pub async fn cookies<T: 'static + Context + HasCookies + Send>(
     mut context: T,
     next: MiddlewareNext<T>,
 ) -> MiddlewareResult<T> {

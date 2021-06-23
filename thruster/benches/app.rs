@@ -2,7 +2,7 @@
 extern crate criterion;
 
 use bytes::{BufMut, BytesMut};
-use std::boxed::Box;
+
 
 
 use criterion::Criterion;

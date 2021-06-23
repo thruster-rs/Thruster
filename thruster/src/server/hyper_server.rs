@@ -1,14 +1,13 @@
-use async_trait::async_trait;
+use crate::ReusableBoxFuture;
+use futures::FutureExt;
 use hyper::server::conn::Http;
 use hyper::service::make_service_fn;
 use hyper::service::Service;
 use hyper::{Body, Request, Response};
 use socket2::{Domain, Socket, Type};
-use std::future::Future;
 use std::net::IpAddr;
 use std::net::SocketAddr;
 use std::net::ToSocketAddrs;
-use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context as TaskContext, Poll};
 use tokio_stream::wrappers::TcpListenerStream;
@@ -37,12 +36,12 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 {
     async fn process(
         app: Arc<App<HyperRequest, T, S>>,
-        addr: &SocketAddr,
+        addr: SocketAddr,
     ) -> Result<(), hyper::Error> {
         let listener = TcpListenerStream::new({
             let socket = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
 
-            let address = (*addr).into();
+            let address = addr.into();
             socket.set_reuse_address(true).unwrap();
             #[cfg(unix)]
             socket.set_reuse_port(true).unwrap();
@@ -56,10 +55,10 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         });
 
         let service = make_service_fn(|stream: &tokio::net::TcpStream| {
-            let ip = stream.peer_addr().unwrap().ip();
+            let ip = stream.peer_addr().map(|v| v.ip()).ok();
             let arc_app = app.clone();
 
-            async move { Ok::<_, hyper::Error>(_HyperService::<T, S> { ip, app: arc_app }) }
+            async move { Ok::<_, hyper::Error>(HyperService::<T, S> { ip, app: arc_app }) }
         });
 
         let mut http = Http::new();
@@ -90,22 +89,20 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
                     .build()
                     .unwrap();
 
-                let addr = addr;
                 rt.spawn(async move {
-                    Self::process(arc_app, &addr)
+                    Self::process(arc_app, addr)
                         .await
                         .expect("Unable to spawn hyper server thread.");
                 });
             });
         }
 
-        Self::process(arc_app, &addr)
+        Self::process(arc_app, addr)
             .await
             .expect("Unable to spawn hyper server thread.");
     }
 }
 
-#[async_trait]
 impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + Send + Sync>
     ThrusterServer for HyperServer<T, S>
 {
@@ -120,38 +117,29 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         HyperServer { app }
     }
 
-    async fn build(mut self, host: &str, port: u16) {
+    fn build(self, host: &str, port: u16) -> ReusableBoxFuture<()> {
         // self.app._route_parser.optimize();
 
         let arc_app = Arc::new(self.app);
 
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-        Self::process(arc_app, &addr)
-            .await
-            .expect("hyper server failed");
+        ReusableBoxFuture::new(Self::process(arc_app, addr).map(|_| ()))
+        // .await
+        // .expect("hyper server failed");
     }
 }
 
-struct _HyperService<T: 'static + Context + Clone + Send + Sync, S: Send> {
-    app: Arc<App<HyperRequest, T, S>>,
-    ip: IpAddr,
+pub(crate) struct HyperService<T: 'static + Context + Clone + Send + Sync, S: Send> {
+    pub(crate) app: Arc<App<HyperRequest, T, S>>,
+    pub(crate) ip: Option<IpAddr>,
 }
 
-impl<T: 'static + Context + Clone + Send + Sync, S: Send> Clone for _HyperService<T, S> {
-    fn clone(&self) -> Self {
-        _HyperService {
-            app: self.app.clone(),
-            ip: self.ip,
-        }
-    }
-}
-
-impl<'a, T: 'static + Context + Clone + Send + Sync, S: 'static + Send + Sync>
-    Service<Request<Body>> for _HyperService<T, S>
+impl<T: 'static + Context + Clone + Send + Sync, S: 'static + Send + Sync> Service<Request<Body>>
+    for HyperService<T, S>
 {
     type Response = T::Response;
     type Error = std::io::Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+    type Future = ReusableBoxFuture<Result<Self::Response, Self::Error>>;
 
     fn poll_ready(&mut self, _cx: &mut TaskContext<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
@@ -159,10 +147,8 @@ impl<'a, T: 'static + Context + Clone + Send + Sync, S: 'static + Send + Sync>
 
     fn call(&mut self, req: Request<Body>) -> Self::Future {
         let mut req = HyperRequest::new(req);
-        req.ip = Some(self.ip);
+        req.ip = self.ip;
 
-        let clone = self.clone();
-
-        Box::pin(async move { clone.app.clone().match_and_resolve(req).await })
+        self.app.clone().match_and_resolve(req)
     }
 }
