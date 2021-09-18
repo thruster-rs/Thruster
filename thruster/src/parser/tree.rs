@@ -1,7 +1,6 @@
 use crate::ReusableBoxFuture;
 use fnv::FnvHashMap;
 
-
 use std::str::Split;
 use std::{fmt, fmt::Debug};
 
@@ -54,6 +53,9 @@ pub struct Node<T: Clone + Send> {
         String,
         Box<dyn Fn(T) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync>,
     >,
+
+    /// Should respect "strict mode", that is disambiguating /a and /a/
+    pub(crate) strict_mode: bool,
 }
 
 impl<T: Clone + Send> Debug for Node<T> {
@@ -134,6 +136,7 @@ impl<T: 'static + Context + Clone + Send> Default for Node<T> {
             is_leaf: false,
             non_leaf_value: None,
             fastmatch_map: FnvHashMap::default(),
+            strict_mode: false,
         }
     }
 }
@@ -396,6 +399,8 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
     ) {
         let path_piece = path.next();
 
+        println!("Trying piece: {:#?}", path_piece);
+
         match path_piece {
             Some(path_piece) => {
                 match path_piece.chars().next() {
@@ -407,6 +412,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
                         None => {
                             let mut wildcard_node = Node::<T> {
                                 path_piece: WILDCARD_ROUTE_ID.to_string(),
+                                strict_mode: self.strict_mode,
                                 ..Default::default()
                             };
                             wildcard_node.add_value_at_split_path(path, value, is_leaf);
@@ -422,6 +428,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
                         None => {
                             let mut wildcard_node = Node::<T> {
                                 path_piece: WILDCARD_ROUTE_ID.to_string(),
+                                strict_mode: self.strict_mode,
                                 ..Default::default()
                             };
                             wildcard_node.add_value_at_split_path(path, value, is_leaf);
@@ -430,28 +437,20 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
                         }
                     },
                     Some(_) => {
-                        let existing_index = self
-                            .children
-                            .iter()
-                            .position(|n| n.path_piece == path_piece);
-
-                        // Note: This operation no longer preserves order.
-                        let mut child_node = match existing_index {
-                            Some(i) => self.children.remove(i),
-                            None => Node::default(),
-                        };
-
-                        child_node.path_piece = path_piece.to_owned();
-                        child_node.add_value_at_split_path(path, value, is_leaf);
-                        self.children.push(child_node);
+                        self.add_value_at_split_path_helper(path_piece, path, value, is_leaf);
                     }
+                    // Route ending with a `/`
                     None => {
-                        self.is_leaf = is_leaf;
-
-                        if self.is_leaf {
-                            self.value = Some(value)
+                        if self.strict_mode {
+                            self.add_value_at_split_path_helper(path_piece, path, value, is_leaf);
                         } else {
-                            self.non_leaf_value = Some(value);
+                            self.is_leaf = is_leaf;
+
+                            if self.is_leaf {
+                                self.value = Some(value)
+                            } else {
+                                self.non_leaf_value = Some(value);
+                            }
                         }
                     }
                 };
@@ -466,6 +465,32 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
                 }
             }
         }
+    }
+
+    fn add_value_at_split_path_helper(
+        &mut self,
+        path_piece: &str,
+        path: Split<char>,
+        value: MiddlewareTuple<T>,
+        is_leaf: bool,
+    ) {
+        let existing_index = self
+            .children
+            .iter()
+            .position(|n| n.path_piece == path_piece);
+
+        // Note: This operation no longer preserves order.
+        let mut child_node = match existing_index {
+            Some(i) => self.children.remove(i),
+            None => Node::<T> {
+                strict_mode: self.strict_mode,
+                ..Node::default()
+            },
+        };
+
+        child_node.path_piece = path_piece.to_owned();
+        child_node.add_value_at_split_path(path, value, is_leaf);
+        self.children.push(child_node);
     }
 
     pub(crate) fn enumerate(
@@ -546,6 +571,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
             is_leaf: self.is_leaf,
             non_leaf_value: None,
             fastmatch_map: FnvHashMap::default(),
+            strict_mode: self.strict_mode,
         }
     }
 }
@@ -588,7 +614,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
 impl<T: Clone + Send> Node<T> {
     /// Prints the tree at the current level and all levels beneath with appropraite indentation starting
     /// with zero indentation.
-    pub fn print(&self) -> String {
+    pub fn to_string(&self) -> String {
         self.print_with_indentation(0)
     }
 
@@ -688,7 +714,7 @@ pub mod test {
         root.add_value_at_path("a/b/c", MiddlewareTuple::A(pinbox!(i32, f1)));
         root.add_value_at_path("a/b/d", MiddlewareTuple::A(pinbox!(i32, f2)));
 
-        let printed = root.commit().print();
+        let printed = root.commit().to_string();
 
         assert!(
             printed
@@ -900,7 +926,7 @@ pub mod test {
 
         let committed = root_a.commit();
 
-        let printed = committed.print();
+        let printed = committed.to_string();
 
         assert!(
             printed
@@ -932,7 +958,7 @@ pub mod test {
         root_b.add_value_at_path("c", MiddlewareTuple::A(pinbox!(i32, f2)));
         root_a.add_node_at_path("a/b", root_b);
 
-        let printed = root_a.commit().print();
+        let printed = root_a.commit().to_string();
 
         assert!(
             printed
@@ -963,7 +989,7 @@ pub mod test {
         root_b.add_value_at_path("c/*/d", MiddlewareTuple::A(pinbox!(i32, f2)));
         root_a.add_node_at_path("a/b", root_b);
 
-        let printed = root_a.commit().print();
+        let printed = root_a.commit().to_string();
 
         assert!(
             printed
@@ -1048,5 +1074,42 @@ pub mod test {
             enumerated.get(2).unwrap().0 == format!("/{}/e/f", ROOT_ROUTE_ID),
             "it should have e/f"
         );
+    }
+
+    #[test]
+    fn it_should_respect_strict_mode() {
+        async fn f1(a: i32, _b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
+            Ok(a + 1)
+        }
+
+        async fn f2(a: i32, _b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
+            Ok(a - 1)
+        }
+
+        let _ = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async move {
+                let mut root: Node<i32> = Node::default();
+                root.strict_mode = true;
+
+                root.add_value_at_path("a", MiddlewareTuple::A(pinbox!(i32, f1)));
+                root.add_value_at_path("a/", MiddlewareTuple::A(pinbox!(i32, f2)));
+                let committed = root.commit();
+
+                println!("{}", committed.to_string());
+
+                assert!(
+                    (committed.get_value_at_path("/a".to_owned()).value)(0_i32)
+                        .await
+                        .unwrap()
+                        == 1
+                );
+                assert!(
+                    (committed.get_value_at_path("/a/".to_owned()).value)(0_i32)
+                        .await
+                        .unwrap()
+                        == -1
+                );
+            });
     }
 }
