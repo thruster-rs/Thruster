@@ -227,6 +227,22 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
         self
     }
 
+    /// Sets whether this app router uses strict mode for route parsing or not. Strict mode considers
+    /// `/a` to be distinct from `/a/`.
+    pub fn set_strict_mode(&mut self, strict_mode: bool) -> &mut App<R, T, S>
+    where
+        T: Clone,
+    {
+        self.get_root.strict_mode = strict_mode;
+        self.options_root.strict_mode = strict_mode;
+        self.post_root.strict_mode = strict_mode;
+        self.put_root.strict_mode = strict_mode;
+        self.delete_root.strict_mode = strict_mode;
+        self.patch_root.strict_mode = strict_mode;
+
+        self
+    }
+
     /// Commits and locks in the route tree for usage.
     pub fn commit(mut self) -> Self {
         self.get_root = self.get_root.commit();
