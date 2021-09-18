@@ -45,6 +45,7 @@ impl TestResponse {
 
         let status = response.status().as_u16();
         let mut trailers = None;
+
         match response.trailers().await {
             Ok(res) => {
                 // Refactor this to use optional methods

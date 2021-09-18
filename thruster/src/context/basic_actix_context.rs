@@ -1,19 +1,19 @@
-use bytes::Bytes;
-use futures::stream::StreamExt;
-use http::header::{HeaderMap, HeaderName, HeaderValue, SERVER};
-use http::request::Parts;
-use hyper::{Body, Error, Response, StatusCode};
+use actix_compat_bytes::Bytes;
+use actix_web::http::{HeaderMap, HeaderName};
+use http::header::SERVER;
+use http::HeaderValue;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::str;
 
-pub use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
+use crate::Response;
 
+pub use crate::context::actix_request::ActixRequest;
 use crate::middleware::query_params::HasQueryParams;
 
-pub fn generate_context<S>(request: HyperRequest, _state: &S, _path: &str) -> BasicHyperContext {
-    BasicHyperContext::new(request)
+pub fn generate_context<S>(request: ActixRequest, _state: &S, _path: &str) -> BasicActixContext {
+    BasicActixContext::new(request)
 }
 
 pub enum SameSite {
@@ -47,42 +47,48 @@ impl CookieOptions {
     }
 }
 
-#[derive(Default)]
-pub struct BasicHyperContext {
-    pub body: Body,
+pub struct BasicActixContext {
     pub query_params: HashMap<String, String>,
     pub status: u16,
     pub params: Option<HashMap<String, String>>,
-    pub hyper_request: Option<HyperRequest>,
-    request_body: Option<Body>,
-    request_parts: Option<Parts>,
-    http_version: hyper::Version,
+    pub actix_request: Option<ActixRequest>,
+    response_body: Bytes,
     headers: HeaderMap,
 }
 
-impl Clone for BasicHyperContext {
+impl Default for BasicActixContext {
+    fn default() -> Self {
+        BasicActixContext {
+            query_params: HashMap::default(),
+            status: 0,
+            params: None,
+            actix_request: None,
+            response_body: Bytes::new(),
+            headers: HeaderMap::new(),
+        }
+    }
+}
+
+impl Clone for BasicActixContext {
     fn clone(&self) -> Self {
         warn!("You should not be calling this method -- it just returns a default context.");
-        BasicHyperContext::default()
+        BasicActixContext::default()
     }
 }
 
 const SERVER_HEADER_NAME: HeaderName = SERVER;
-impl BasicHyperContext {
-    pub fn new(req: HyperRequest) -> BasicHyperContext {
+impl BasicActixContext {
+    pub fn new(req: ActixRequest) -> BasicActixContext {
         let params = req.params.clone();
         let mut headers = HeaderMap::new();
         headers.insert(SERVER_HEADER_NAME, HeaderValue::from_static("thruster"));
 
-        BasicHyperContext {
-            body: Body::empty(),
+        BasicActixContext {
             query_params: HashMap::new(),
             status: 200,
             params,
-            hyper_request: Some(req),
-            request_body: None,
-            request_parts: None,
-            http_version: hyper::Version::HTTP_11,
+            actix_request: Some(req),
+            response_body: Bytes::new(),
             headers,
         }
     }
@@ -91,65 +97,28 @@ impl BasicHyperContext {
     /// Set the body as a string
     ///
     pub fn body(&mut self, body_string: &str) {
-        self.body = Body::from(body_string.to_string());
+        self.response_body = Bytes::from(body_string.as_bytes().to_vec());
     }
 
     ///
-    /// Get the body as a string
+    /// Get the request body as a string
     ///
-    pub async fn get_body(self) -> Result<(String, BasicHyperContext), Error> {
-        let ctx = match self.request_body {
-            Some(_) => self,
-            None => self.into_owned_request(),
-        };
+    pub async fn get_body(self) -> Result<(String, BasicActixContext), Box<dyn std::error::Error>> {
+        let request = self.actix_request.unwrap();
 
-        let mut results = "".to_string();
-        let mut unwrapped_body = ctx.request_body.unwrap();
-        while let Some(chunk) = unwrapped_body.next().await {
-            // TODO(trezm): Dollars to donuts this is pretty slow -- could make it faster with a
-            // mutable byte buffer.
-            results = format!("{}{}", results, String::from_utf8_lossy(chunk?.as_ref()));
-        }
+        let results = String::from_utf8(request.payload).unwrap();
 
         Ok((
             results,
-            BasicHyperContext {
-                body: ctx.body,
-                query_params: ctx.query_params,
-                status: ctx.status,
-                params: ctx.params,
-                hyper_request: ctx.hyper_request,
-                request_body: Some(Body::empty()),
-                request_parts: ctx.request_parts,
-                http_version: ctx.http_version,
-                headers: ctx.headers,
+            BasicActixContext {
+                query_params: self.query_params,
+                status: self.status,
+                params: self.params,
+                actix_request: None,
+                response_body: Bytes::new(),
+                headers: self.headers,
             },
         ))
-    }
-
-    pub fn parts(&self) -> &Parts {
-        self.request_parts
-            .as_ref()
-            .expect("Must call `to_owned_request` prior to getting parts")
-    }
-
-    pub fn into_owned_request(self) -> BasicHyperContext {
-        let hyper_request = self.hyper_request.expect(
-            "`hyper_request` is None! That means `to_owned_request` has already been called",
-        );
-        let (parts, body) = hyper_request.request.into_parts();
-
-        BasicHyperContext {
-            body: self.body,
-            query_params: self.query_params,
-            status: self.status,
-            params: hyper_request.params,
-            hyper_request: None,
-            request_body: Some(body),
-            request_parts: Some(parts),
-            http_version: self.http_version,
-            headers: self.headers,
-        }
     }
 
     ///
@@ -232,47 +201,44 @@ impl BasicHyperContext {
         format!("{}={}; {}", name, value, pieces.join("; "))
     }
 
-    pub fn set_http2(&mut self) {
-        self.http_version = hyper::Version::HTTP_2;
-    }
+    // pub fn set_http2(&mut self) {
+    //     self.http_version = hyper::Version::HTTP_2;
+    // }
 
-    pub fn set_http11(&mut self) {
-        self.http_version = hyper::Version::HTTP_11;
-    }
+    // pub fn set_http11(&mut self) {
+    //     self.http_version = hyper::Version::HTTP_11;
+    // }
 
-    pub fn set_http10(&mut self) {
-        self.http_version = hyper::Version::HTTP_10;
-    }
+    // pub fn set_http10(&mut self) {
+    //     self.http_version = hyper::Version::HTTP_10;
+    // }
 }
 
-impl Context for BasicHyperContext {
-    type Response = Response<Body>;
+impl Context for BasicActixContext {
+    type Response = Response;
 
     fn get_response(self) -> Self::Response {
-        let mut response = Response::new(self.body);
+        let mut response = Response::new();
 
-        *response.status_mut() = StatusCode::from_u16(self.status).unwrap();
-        *response.headers_mut() = self.headers;
-        *response.version_mut() = self.http_version;
+        for (key, value) in self.headers.into_iter() {
+            response.header(key.as_str(), value.to_str().unwrap());
+        }
+
+        response.body_bytes(&self.response_body);
 
         response
     }
 
     fn set_body(&mut self, body: Vec<u8>) {
-        self.body = Body::from(body);
+        self.response_body = Bytes::from(body);
     }
 
-    fn set_body_bytes(&mut self, bytes: Bytes) {
-        self.body = Body::from(bytes);
+    fn set_body_bytes(&mut self, bytes: bytes::Bytes) {
+        self.response_body = Bytes::from(bytes.to_vec());
     }
 
     fn route(&self) -> &str {
-        let uri = self.hyper_request.as_ref().unwrap().request.uri();
-
-        match uri.path_and_query() {
-            Some(val) => val.as_str(),
-            None => uri.path(),
-        }
+        &self.actix_request.as_ref().unwrap().path
     }
 
     fn set(&mut self, key: &str, value: &str) {
@@ -287,7 +253,7 @@ impl Context for BasicHyperContext {
     }
 }
 
-impl HasQueryParams for BasicHyperContext {
+impl HasQueryParams for BasicActixContext {
     fn set_query_params(&mut self, query_params: HashMap<String, String>) {
         self.query_params = query_params;
     }

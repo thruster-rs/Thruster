@@ -4,8 +4,8 @@ use crate::{app::App, core::request::ThrusterRequest};
 
 pub trait ThrusterServer {
     type Context: Context + Clone + Send + Sync;
-    type Response: Send;
-    type Request: ThrusterRequest + Send;
+    type Response;
+    type Request: ThrusterRequest;
     type State: Send;
 
     fn new(_: App<Self::Request, Self::Context, Self::State>) -> Self;

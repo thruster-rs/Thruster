@@ -13,6 +13,9 @@ pub mod unix_hyper_server;
 #[cfg(all(feature = "hyper_server", feature = "tls"))]
 pub mod ssl_hyper_server;
 
+#[cfg(feature = "actix_server")]
+pub mod actix_server;
+
 mod thruster_server;
 
 pub use thruster_server::ThrusterServer;
@@ -28,3 +31,6 @@ pub use crate::unix_hyper_server::UnixHyperServer;
 
 #[cfg(all(feature = "hyper_server", feature = "tls"))]
 pub use crate::ssl_hyper_server::SSLHyperServer;
+
+#[cfg(feature = "actix_server")]
+pub use crate::actix_server::ActixServer;

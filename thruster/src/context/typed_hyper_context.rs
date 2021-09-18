@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::convert::TryInto;
 use std::str;
 
-
 use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
 
