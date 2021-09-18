@@ -2,6 +2,11 @@
 
 ## An fast and intuitive rust web framework
 
+Don't have time to read the docs? Check out
+
+- [Why you should use thruster](#why-you-should-use-thruster)
+- [Why you shouldn't use thruster (definitely read this one)](#why-you-shouldnt-use-thruster)
+
 ✅ Runs in stable
 ✅ Runs fast
 ✅ Doesn't use unsafe
@@ -285,3 +290,74 @@ If you have `cargo generate` installed, you can simply run the [cargo generator]
 ```
 cargo generate --git https://github.com/ami44/thruster-basic-template.git --name myproject
 ```
+
+## Why you should use thruster
+- Change your backends at will. Out of the box, thruster now can be used over: [actix-web](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/actix_most_basic.rs), [hyper](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/hyper_most_basic.rs), or [a custom backend](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/hello_world.rs)
+- Thruster supports [testing](#testing) from the framework level
+- @trezm gets lonely when no one makes PRs or opens issues.
+- Thruster is more succinct for more middleware-centric concepts -- like a route guard. Take this example in actix to restrict IPs:
+```rust
+fn ip_guard(head: &RequestHead) -> bool {
+    // Check for the cloudflare IP header
+    let ip = if let Some(val) = head.headers().get(CF_IP_HEADER) {
+        val.to_str().unwrap_or("").to_owned()
+    } else if let Some(val) = head.peer_addr {
+        val.to_string()
+    } else {
+        return false;
+    };
+
+    "1.2.3.4".contains(&ip)
+}
+
+#[actix_web::post("/ping")]
+async fn ping() -> Result<HttpResponse, UserPersonalError> {
+    Ok(HttpResponse::Ok().body("pong"))
+}
+
+...
+        web::scope("/*")
+            // This is confusing, but we catch all routes that _aren't_
+            // ip guarded and return an error.
+            .guard(guard::Not(ip_guard))
+            .route("/*", web::to(HttpResponse::Forbidden)),
+    )
+    .service(ping);
+...
+```
+
+Here is thruster:
+
+```rust
+
+#[middleware_fn]
+async fn ip_guard(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+    if "1.2.3.4".contains(&context.headers().get("Auth-Token").unwrap_or("")) {
+        context = next(context).await?;
+
+        Ok(context)
+    } else {
+        Err(Error::unauthorized_error(context))
+    }
+
+}
+
+#[middleware_fn]
+async fn ping(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+    context.body("pong");
+    Ok(context)
+}
+
+...
+    app.get("/ping", m![ip_guard, plaintext]);
+...
+```
+A bit more direct is nice!
+
+## Why you shouldn't use thruster
+- It's got few maintainers (pretty much just one.)
+- There are other projects that have been _far_ more battle tested. Thruster is in use in production, but nowhere that you'd know or that matters.
+- It hasn't been optimized by wicked smarties. @trezm tries his best, but keeps getting distracted by his dog.
+- Serously, this framework could be great, but it definitely hasn't been poked and proded like others. Your help could go a long way to making it more secure and robust, but we might now be there just yet.
+
+If you got this far, thanks for reading! Always feel free to reach out.
