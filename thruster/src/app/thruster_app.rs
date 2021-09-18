@@ -3,7 +3,6 @@ use futures::FutureExt;
 
 use std::io;
 
-
 use crate::core::context::Context;
 use crate::core::request::Request;
 use crate::parser::{middleware_traits::MiddlewareTuple, tree::Node, tree::NodeOutput};
@@ -63,7 +62,7 @@ type ReturnValue<T> = T;
 /// It will then return a future with the Response object that corresponds to the request. This can be
 /// useful if trying to integrate with a different type of load balancing system within the threads of the
 /// application.
-pub struct App<R: ThrusterRequest + Send, T: 'static + Context + Clone + Send + Sync, S: Send> {
+pub struct App<R: ThrusterRequest, T: 'static + Context + Clone + Send + Sync, S: Send> {
     pub delete_root: Node<ReturnValue<T>>,
     pub get_root: Node<ReturnValue<T>>,
     pub options_root: Node<ReturnValue<T>>,
@@ -78,7 +77,7 @@ pub struct App<R: ThrusterRequest + Send, T: 'static + Context + Clone + Send + 
     pub state: std::sync::Arc<S>,
 }
 
-impl<R: 'static + ThrusterRequest + Send, T: Context + Clone + Send + Sync, S: 'static + Send>
+impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static + Send>
     App<R, T, S>
 {
     /// Creates a new instance of app with the library supplied `BasicContext`. Useful for trivial
