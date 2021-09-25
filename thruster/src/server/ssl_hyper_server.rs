@@ -3,13 +3,12 @@ use futures::stream::StreamExt;
 use futures::FutureExt;
 use std::io::{self, BufReader};
 use std::net::ToSocketAddrs;
+use tokio::time::{timeout, Duration};
 use tokio_stream::wrappers::TcpListenerStream;
 use tokio_util::sync::ReusableBoxFuture;
 
 use async_trait::async_trait;
 use hyper::server::conn::Http;
-use hyper::server::Builder;
-use hyper::service::make_service_fn;
 use hyper::{Body, Response};
 use log::error;
 use std::sync::Arc;
@@ -89,50 +88,60 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 
         self.tls_acceptor = Some(Arc::new(TlsAcceptor::from(Arc::new(config))));
 
-        let service = make_service_fn(
-            move |_: &tokio_rustls::server::TlsStream<tokio::net::TcpStream>| {
-                let ip = None;
-                let arc_app = arc_app.clone();
-
-                async move { Ok::<_, hyper::Error>(HyperService::<T, S> { ip, app: arc_app }) }
-            },
-        );
-
         let arc_acceptor = self.tls_acceptor.as_ref().unwrap().clone();
-        let listener_fut = TcpListener::bind(addr)
-            .then(move |listener| {
-                let arc_acceptor = arc_acceptor.clone();
-                let stream = TcpListenerStream::new(listener.unwrap());
+        let listener_fut = TcpListener::bind(addr).then(move |listener| {
+            let arc_acceptor = arc_acceptor.clone();
 
-                let hyper_stream = hyper::server::accept::from_stream(stream.filter_map(
-                    move |socket| match socket {
-                        Ok(stream) => {
-                            let acceptor = arc_acceptor.clone();
+            let stream = TcpListenerStream::new(listener.unwrap());
 
-                            let timed_out_fut =
-                                acceptor.accept(stream).map(|timed_out| match timed_out {
-                                    Ok(val) => Some(Ok::<_, std::io::Error>(val)),
-                                    Err(e) => {
-                                        error!("TLS error: {}", e);
-                                        None
-                                    }
-                                });
+            let mut hyper_stream = stream.filter_map(move |socket| match socket {
+                Ok(stream) => {
+                    let acceptor = arc_acceptor.clone();
 
-                            ReusableBoxFuture::new(timed_out_fut)
-                        }
+                    let timed_out_fut = acceptor.accept(stream).map(|timed_out| match timed_out {
+                        Ok(val) => Some(Ok::<_, std::io::Error>(val)),
                         Err(e) => {
-                            error!("TCP socket error: {}", e);
-                            ReusableBoxFuture::new(future::ready(None))
+                            error!("TLS error: {}", e);
+                            None
                         }
-                    },
-                ));
+                    });
 
-                Builder::new(hyper_stream, Http::new()).serve(service)
-            })
-            .map(|v| match v {
-                Ok(_) => (),
-                Err(e) => panic!("Hyper server error occurred: {:#?}", e),
+                    ReusableBoxFuture::new(timed_out_fut)
+                }
+                Err(e) => {
+                    error!("TCP socket error: {}", e);
+                    ReusableBoxFuture::new(future::ready(None))
+                }
             });
+
+            async move {
+                loop {
+                    let stream = match hyper_stream.next().await {
+                        Some(Ok(val)) => val,
+                        _ => break,
+                    };
+
+                    // let ip = stream.peer_addr().map(|v| v.ip()).ok();
+                    let arc_app = arc_app.clone();
+                    let connection_timeout = arc_app.connection_timeout;
+
+                    tokio::spawn(async move {
+                        let mut http_future = Http::new().serve_connection(
+                            stream,
+                            HyperService::<T, S> {
+                                ip: None,
+                                app: arc_app,
+                            },
+                        );
+
+                        let _res =
+                            timeout(Duration::from_millis(connection_timeout), &mut http_future)
+                                .await;
+                    });
+                }
+            }
+            // Builder::new(hyper_stream, Http::new()).serve(service)
+        });
 
         ReusableBoxFuture::new(listener_fut)
     }

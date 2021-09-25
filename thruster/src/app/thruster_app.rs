@@ -75,6 +75,8 @@ pub struct App<R: ThrusterRequest, T: 'static + Context + Clone + Send + Sync, S
     /// 404s.
     pub context_generator: fn(R, &S, &str) -> T,
     pub state: std::sync::Arc<S>,
+    /// The connection timeout for the app in milliseconds. Defaults to 3600000ms (1 hour)
+    pub connection_timeout: u64,
 }
 
 impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static + Send>
@@ -99,6 +101,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
             patch_root: Node::default(),
             context_generator: generate_context,
             state: std::sync::Arc::new(state),
+            connection_timeout: 3600000,
         }
     }
 

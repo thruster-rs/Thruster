@@ -20,6 +20,7 @@ fn main() {
     info!("Starting server...");
 
     let mut app = App::<HyperRequest, Ctx, ()>::create(generate_context, ());
+    app.connection_timeout = 5000;
     app.get("/plaintext", m![plaintext]);
 
     let server = HyperServer::new(app);
