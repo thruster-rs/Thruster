@@ -123,14 +123,10 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
     }
 
     fn build(self, host: &str, port: u16) -> ReusableBoxFuture<()> {
-        // self.app._route_parser.optimize();
-
         let arc_app = Arc::new(self.app);
 
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
         ReusableBoxFuture::new(Self::process(arc_app, addr).map(|_| ()))
-        // .await
-        // .expect("hyper server failed");
     }
 }
 
@@ -155,18 +151,5 @@ impl<T: 'static + Context + Clone + Send + Sync, S: 'static + Send + Sync> Servi
         req.ip = self.ip;
 
         self.app.clone().match_and_resolve(req)
-        // ReusableBoxFuture::new(
-        //     timeout(
-        //         Duration::from_millis(self.connection_timeout),
-        //         self.app.clone().match_and_resolve(req),
-        //     )
-        //     .map(|v| match v {
-        //         Ok(val) => val,
-        //         Err(_) => Err(std::io::Error::new(
-        //             ErrorKind::TimedOut,
-        //             "Connection took too long to respond.",
-        //         )),
-        //     }),
-        // )
     }
 }

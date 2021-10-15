@@ -83,10 +83,7 @@ path = "src/integration_async_tests.rs"
 # path = "src/parser/tree.rs"
 
 [features]
-default = [
-  "hyper_server",
-  "tls"
-]
+default = []
 actix_server = [
   "actix-web",
   "actix-service",
