@@ -1,7 +1,6 @@
 use crate::ReusableBoxFuture;
 use futures::FutureExt;
 use hyper::server::conn::Http;
-use hyper::service::make_service_fn;
 use hyper::service::Service;
 use hyper::{Body, Request, Response};
 use socket2::{Domain, Socket, Type};
@@ -10,7 +9,7 @@ use std::net::SocketAddr;
 use std::net::ToSocketAddrs;
 use std::sync::Arc;
 use std::task::{Context as TaskContext, Poll};
-use tokio_stream::wrappers::TcpListenerStream;
+use tokio::time::{timeout, Duration};
 
 use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
@@ -38,7 +37,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         app: Arc<App<HyperRequest, T, S>>,
         addr: SocketAddr,
     ) -> Result<(), hyper::Error> {
-        let listener = TcpListenerStream::new({
+        let listener = {
             let socket = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
 
             let address = addr.into();
@@ -52,23 +51,29 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 
             let listener: std::net::TcpListener = socket.into();
             tokio::net::TcpListener::from_std(listener).unwrap()
-        });
-
-        let service = make_service_fn(|stream: &tokio::net::TcpStream| {
-            let ip = stream.peer_addr().map(|v| v.ip()).ok();
-            let arc_app = app.clone();
-
-            async move { Ok::<_, hyper::Error>(HyperService::<T, S> { ip, app: arc_app }) }
-        });
+        };
 
         let mut http = Http::new();
         http.http1_only(true);
 
-        let server =
-            hyper::server::Builder::new(hyper::server::accept::from_stream(listener), http)
-                .serve(service);
+        loop {
+            let (stream, _addr) = match listener.accept().await {
+                Ok(val) => val,
+                _ => break,
+            };
 
-        server.await?;
+            let ip = stream.peer_addr().map(|v| v.ip()).ok();
+            let arc_app = app.clone();
+            let connection_timeout = arc_app.connection_timeout;
+
+            tokio::spawn(async move {
+                let mut http_future =
+                    Http::new().serve_connection(stream, HyperService::<T, S> { ip, app: arc_app });
+
+                let _res =
+                    timeout(Duration::from_millis(connection_timeout), &mut http_future).await;
+            });
+        }
 
         Ok::<_, hyper::Error>(())
     }
@@ -150,5 +155,18 @@ impl<T: 'static + Context + Clone + Send + Sync, S: 'static + Send + Sync> Servi
         req.ip = self.ip;
 
         self.app.clone().match_and_resolve(req)
+        // ReusableBoxFuture::new(
+        //     timeout(
+        //         Duration::from_millis(self.connection_timeout),
+        //         self.app.clone().match_and_resolve(req),
+        //     )
+        //     .map(|v| match v {
+        //         Ok(val) => val,
+        //         Err(_) => Err(std::io::Error::new(
+        //             ErrorKind::TimedOut,
+        //             "Connection took too long to respond.",
+        //         )),
+        //     }),
+        // )
     }
 }

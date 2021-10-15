@@ -399,8 +399,6 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
     ) {
         let path_piece = path.next();
 
-        println!("Trying piece: {:#?}", path_piece);
-
         match path_piece {
             Some(path_piece) => {
                 match path_piece.chars().next() {

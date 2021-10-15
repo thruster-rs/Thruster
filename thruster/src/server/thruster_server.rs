@@ -14,8 +14,12 @@ pub trait ThrusterServer {
     where
         Self: Sized,
     {
-        tokio::runtime::Runtime::new()
-            .unwrap()
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("build runtime")
+            // tokio::runtime::Runtime::new()
+            //     .unwrap()
             .block_on(self.build(host, port))
     }
 }
