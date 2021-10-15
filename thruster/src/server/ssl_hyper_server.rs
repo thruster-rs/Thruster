@@ -140,7 +140,6 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
                     });
                 }
             }
-            // Builder::new(hyper_stream, Http::new()).serve(service)
         });
 
         ReusableBoxFuture::new(listener_fut)
