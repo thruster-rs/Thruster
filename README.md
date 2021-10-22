@@ -22,6 +22,7 @@ Don't have time to read the docs? Check out
 - [static file serving](https://github.com/thruster-rs/Thruster/tree/master/thruster/examples/static_file)
 - [socketio](https://github.com/thruster-rs/thruster-socketio)
 - [gRPC](https://github.com/thruster-rs/Thruster/tree/master/thruster/examples/grpc), and more experimental [non-tonic based gRPC](https://github.com/thruster-rs/thruster-grpc)
+- [dependency injection](https://github.com/thruster-rs/thruster-jab)
 
 ## Motivation
 

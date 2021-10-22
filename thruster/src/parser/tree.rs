@@ -87,8 +87,8 @@ impl Params {
 
 #[derive(Debug, Default)]
 pub struct Param {
-    key: String,
-    param: String,
+    pub key: String,
+    pub param: String,
 }
 
 pub struct NodeOutput<'m, T> {
