@@ -28,6 +28,7 @@ impl ThrusterRequest for HyperRequest {
 
 pub struct HyperServer<T: 'static + Context + Clone + Send + Sync, S: 'static + Send> {
     app: App<HyperRequest, T, S>,
+    upgrade: bool,
 }
 
 impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + Send + Sync>
@@ -36,6 +37,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
     async fn process(
         app: Arc<App<HyperRequest, T, S>>,
         addr: SocketAddr,
+        upgrade: bool,
     ) -> Result<(), hyper::Error> {
         let listener = {
             let socket = Socket::new(Domain::IPV4, Type::STREAM, None).unwrap();
@@ -70,8 +72,16 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
                 let mut http_future =
                     Http::new().serve_connection(stream, HyperService::<T, S> { ip, app: arc_app });
 
-                let _res =
-                    timeout(Duration::from_millis(connection_timeout), &mut http_future).await;
+                if upgrade {
+                    let _res = timeout(
+                        Duration::from_millis(connection_timeout),
+                        &mut http_future.with_upgrades(),
+                    )
+                    .await;
+                } else {
+                    let _res =
+                        timeout(Duration::from_millis(connection_timeout), &mut http_future).await;
+                }
             });
         }
 
@@ -84,6 +94,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 
         let arc_app = Arc::new(self.app);
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
+        let upgrade = self.upgrade;
 
         for _ in 0..num_cpus::get() - 1 {
             let arc_app = arc_app.clone();
@@ -95,14 +106,14 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
                     .unwrap();
 
                 rt.spawn(async move {
-                    Self::process(arc_app, addr)
+                    Self::process(arc_app, addr, upgrade)
                         .await
                         .expect("Unable to spawn hyper server thread.");
                 });
             });
         }
 
-        Self::process(arc_app, addr)
+        Self::process(arc_app, addr, upgrade)
             .await
             .expect("Unable to spawn hyper server thread.");
     }
@@ -119,14 +130,27 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
     fn new(mut app: App<Self::Request, T, Self::State>) -> Self {
         app = app.commit();
 
-        HyperServer { app }
+        HyperServer {
+            app,
+            upgrade: true, // Upgrade is defaulted to true to preserve behavior of older versions
+        }
     }
 
     fn build(self, host: &str, port: u16) -> ReusableBoxFuture<()> {
         let arc_app = Arc::new(self.app);
 
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-        ReusableBoxFuture::new(Self::process(arc_app, addr).map(|_| ()))
+        ReusableBoxFuture::new(Self::process(arc_app, addr, self.upgrade).map(|_| ()))
+    }
+}
+
+impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + Send + Sync>
+    HyperServer<T, S>
+{
+    pub fn with_upgrades(mut self, upgrade: bool) -> Self {
+        self.upgrade = upgrade;
+
+        self
     }
 }
 

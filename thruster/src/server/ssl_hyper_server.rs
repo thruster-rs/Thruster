@@ -11,10 +11,10 @@ use async_trait::async_trait;
 use hyper::server::conn::Http;
 use hyper::{Body, Response};
 use log::error;
+use rustls_pemfile::{certs, pkcs8_private_keys};
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio_rustls::rustls::internal::pemfile::{certs, pkcs8_private_keys};
-use tokio_rustls::rustls::{NoClientAuth, ServerConfig};
+use tokio_rustls::rustls::{Certificate, PrivateKey, ServerConfig};
 use tokio_rustls::TlsAcceptor;
 
 use crate::app::App;
@@ -31,6 +31,7 @@ pub struct SSLHyperServer<T: 'static + Context + Clone + Send + Sync, S: Send> {
     cert: Option<Vec<u8>>,
     key: Option<Vec<u8>>,
     tls_acceptor: Option<Arc<TlsAcceptor>>,
+    upgrade: bool,
 }
 
 impl<T: 'static + Context + Clone + Send + Sync, S: Send> SSLHyperServer<T, S> {
@@ -64,27 +65,30 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
             cert: None,
             key: None,
             tls_acceptor: None,
+            upgrade: true,
         }
     }
 
     fn build(mut self, host: &str, port: u16) -> ReusableBoxFuture<()> {
         let addr = (host, port).to_socket_addrs().unwrap().next().unwrap();
-
+        let upgrade = self.upgrade;
         let arc_app = Arc::new(self.app);
 
         let cert_u8: &[u8] = &self.cert.unwrap();
         let key_u8: &[u8] = &self.key.unwrap();
         let certs = certs(&mut BufReader::new(cert_u8))
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid cert"))
-            .unwrap();
-        let mut keys = pkcs8_private_keys(&mut BufReader::new(key_u8))
+            .map(|mut certs| certs.drain(..).map(Certificate).collect())
+            .expect("Could not form certs passed in");
+        let mut keys: Vec<PrivateKey> = pkcs8_private_keys(&mut BufReader::new(key_u8))
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid key"))
-            .unwrap();
-        let mut config = ServerConfig::new(NoClientAuth::new());
-        config
-            .set_single_cert(certs, keys.remove(0))
-            .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))
-            .unwrap();
+            .map(|mut keys| keys.drain(..).map(PrivateKey).collect())
+            .expect("Could not form private keys passed in");
+        let config = ServerConfig::builder()
+            .with_safe_defaults()
+            .with_no_client_auth()
+            .with_single_cert(certs, keys.remove(0))
+            .expect("Bad certificates");
 
         self.tls_acceptor = Some(Arc::new(TlsAcceptor::from(Arc::new(config))));
 
@@ -102,7 +106,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
                         Ok(val) => Some(Ok::<_, std::io::Error>(val)),
                         Err(e) => {
                             error!("TLS error: {}", e);
-                            None
+                            Some(Err(e))
                         }
                     });
 
@@ -118,7 +122,9 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
                 loop {
                     let stream = match hyper_stream.next().await {
                         Some(Ok(val)) => val,
-                        _ => break,
+                        _ => {
+                            continue;
+                        }
                     };
 
                     // let ip = stream.peer_addr().map(|v| v.ip()).ok();
@@ -134,14 +140,34 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
                             },
                         );
 
-                        let _res =
-                            timeout(Duration::from_millis(connection_timeout), &mut http_future)
-                                .await;
+                        if upgrade {
+                            let _res = timeout(
+                                Duration::from_millis(connection_timeout),
+                                &mut http_future.with_upgrades(),
+                            )
+                            .await;
+                        } else {
+                            let _res = timeout(
+                                Duration::from_millis(connection_timeout),
+                                &mut http_future,
+                            )
+                            .await;
+                        }
                     });
                 }
             }
         });
 
         ReusableBoxFuture::new(listener_fut)
+    }
+}
+
+impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + Send + Sync>
+    SSLHyperServer<T, S>
+{
+    pub fn with_upgrades(mut self, upgrade: bool) -> Self {
+        self.upgrade = upgrade;
+
+        self
     }
 }
