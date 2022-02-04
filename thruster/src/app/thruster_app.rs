@@ -283,7 +283,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
         let path = request.path();
 
         let node = match method {
-            "OPTION" => self.options_root.get_value_at_path(path),
+            "OPTIONS" => self.options_root.get_value_at_path(path),
             "POST" => self.post_root.get_value_at_path(path),
             "PUT" => self.put_root.get_value_at_path(path),
             "DELETE" => self.delete_root.get_value_at_path(path),
