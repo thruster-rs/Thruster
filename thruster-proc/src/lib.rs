@@ -78,6 +78,11 @@ pub fn async_middleware(items: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
+pub fn middleware(attr: TokenStream, item: TokenStream) -> TokenStream {
+    middleware_fn(attr, item)
+}
+
+#[proc_macro_attribute]
 pub fn middleware_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let syn::Item::Fn(mut function_item) = syn::parse(item.clone()).unwrap() {
         let name = function_item.ident.clone();
