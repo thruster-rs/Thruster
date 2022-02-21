@@ -1,11 +1,17 @@
-# Thruster [![Build Status](https://travis-ci.com/trezm/Thruster.svg?branch=master)](https://travis-ci.org/trezm/Thruster) ![Crates.io](https://img.shields.io/crates/v/thruster.svg) ![Crates.io](https://img.shields.io/crates/d/thruster.svg) [![Discord](https://img.shields.io/discord/658730946211610643)](https://discord.gg/m9JrPRd)
+# Thruster [![Latest Version]][crates.io] [![Downloads]][crates.io] [![Online]][discord]
 
-## An fast and intuitive rust web framework
+[Latest Version]: https://img.shields.io/crates/v/thruster.svg
+[Downloads]: https://img.shields.io/crates/d/thruster.svg
+[Online]: https://img.shields.io/discord/658730946211610643
+[crates.io]: https://crates.io/crates/thruster
+[discord]: https://discord.gg/m9JrPRds
+
+## A fast and intuitive rust web framework
 
 Don't have time to read the docs? Check out
 
-- [Why you should use thruster](#why-you-should-use-thruster)
-- [Why you shouldn't use thruster (definitely read this one)](#why-you-shouldnt-use-thruster)
+- [Why you should use Thruster](#why-you-should-use-thruster)
+- [Why you shouldn't use Thruster (definitely read this one)](#why-you-shouldnt-use-thruster)
 
 ✅ Runs in stable
 ✅ Runs fast
@@ -41,7 +47,7 @@ Thruster can be run with different server backends and represents a nicely packa
 
 ## Intuitive
 
-Based on frameworks like Koa, and Express, thruster aims to be a pleasure to develop with.
+Based on frameworks like Koa, and Express, Thruster aims to be a pleasure to develop with.
 
 ## Example
 
@@ -50,7 +56,7 @@ For example, `cargo run --example hello_world` and open [http://localhost:4321/]
 
 ### Middleware Based
 
-The core parts that make the new async await code work is designating middleware functions with the `#[middleware_fn]` attribute (which marks the middleware so that it's compatible with the stable futures version that thruster is built on,) and then the `async_middleware!` macro in the actual routes.
+The core parts that make the new async await code work is designating middleware functions with the `#[middleware_fn]` attribute (which marks the middleware so that it's compatible with the stable futures version that Thruster is built on,) and then the `async_middleware!` macro in the actual routes.
 
 A simple example for using async await is:
 
@@ -192,9 +198,9 @@ The easiest way to get started is to just clone the [starter kit](https://github
 
 The example provides a simple plaintext route, a route with JSON serialization, and the preferred way to organize sub routes using sub apps.
 
-### Quick setup with postgres
+### Quick setup with Postgres
 
-The easiest way to get started with postgres is to install thruster-cli,
+The easiest way to get started with Postgres is to install thruster-cli,
 
 ```bash
 > cargo install thruster-cli
@@ -208,7 +214,7 @@ And then to run
 > thruster-cli migrate
 ```
 
-Which will generate everything you need to get started! Note that this requires a running postgres connection and assumes the following connection string is valid:
+Which will generate everything you need to get started! Note that this requires a running Postgres connection and assumes the following connection string is valid:
 
 ```
 postgres://postgres@localhost/<Your Project Name>
@@ -284,7 +290,7 @@ Within the `build` function, the server implementation should:
 
 ## Using cargo generate
 
-_Note: This hasn't yet been updated for the latest version of thruster_
+_Note: This hasn't yet been updated for the latest version of Thruster_
 
 If you have `cargo generate` installed, you can simply run the [cargo generator](https://github.com/ami44/thruster-basic-template)
 
@@ -292,8 +298,8 @@ If you have `cargo generate` installed, you can simply run the [cargo generator]
 cargo generate --git https://github.com/ami44/thruster-basic-template.git --name myproject
 ```
 
-## Why you should use thruster
-- Change your backends at will. Out of the box, thruster now can be used over: [actix-web](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/actix_most_basic.rs), [hyper](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/hyper_most_basic.rs), or [a custom backend](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/hello_world.rs)
+## Why you should use Thruster
+- Change your backends at will. Out of the box, Thruster now can be used over: [actix-web](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/actix_most_basic.rs), [hyper](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/hyper_most_basic.rs), or [a custom backend](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/hello_world.rs)
 - Thruster supports [testing](#testing) from the framework level
 - @trezm gets lonely when no one makes PRs or opens issues.
 - Thruster is more succinct for more middleware-centric concepts -- like a route guard. Take this example in actix to restrict IPs:
@@ -327,7 +333,7 @@ async fn ping() -> Result<HttpResponse, UserPersonalError> {
 ...
 ```
 
-Here is thruster:
+Here is Thruster:
 
 ```rust
 
@@ -355,7 +361,7 @@ async fn ping(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<
 ```
 A bit more direct is nice!
 
-## Why you shouldn't use thruster
+## Why you shouldn't use Thruster
 - It's got few maintainers (pretty much just one.)
 - There are other projects that have been _far_ more battle tested. Thruster is in use in production, but nowhere that you'd know or that matters.
 - It hasn't been optimized by wicked smarties. @trezm tries his best, but keeps getting distracted by his dog.
