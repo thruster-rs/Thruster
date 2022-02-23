@@ -17,8 +17,8 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<ActixRequest, Ctx, ()>::create(generate_context, ());
-    app.get("/plaintext", m![plaintext]);
+    let app =
+        App::<ActixRequest, Ctx, ()>::create(generate_context, ()).get("/plaintext", m![plaintext]);
 
     let server = ActixServer::new(app);
     server.start("0.0.0.0", 4321);
