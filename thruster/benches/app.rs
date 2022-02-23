@@ -3,8 +3,6 @@ extern crate criterion;
 
 use bytes::{BufMut, BytesMut};
 
-
-
 use criterion::Criterion;
 use thruster::middleware::query_params::query_params;
 use thruster::{

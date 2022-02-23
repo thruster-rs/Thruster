@@ -146,66 +146,42 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
     }
 
     /// Add a route that responds to `GET`s to a given path
-    pub fn get(
-        mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> Self {
+    pub fn get(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.get_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `OPTION`s to a given path
-    pub fn options(
-        mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> Self {
+    pub fn options(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.options_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `POST`s to a given path
-    pub fn post(
-        mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> Self {
+    pub fn post(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.post_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `PUT`s to a given path
-    pub fn put(
-        mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> Self {
+    pub fn put(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.put_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `DELETE`s to a given path
-    pub fn delete(
-        mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> Self {
+    pub fn delete(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.delete_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `PATCH`s to a given path
-    pub fn patch(
-        mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> Self {
+    pub fn patch(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.patch_root.add_value_at_path(path, middlewares);
 
         self

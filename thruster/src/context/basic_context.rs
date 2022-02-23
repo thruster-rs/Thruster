@@ -211,7 +211,8 @@ impl HasCookies for BasicContext {
     fn get_cookies(&self) -> Vec<String> {
         self.request
             .headers()
-            .get("cookie").cloned()
+            .get("cookie")
+            .cloned()
             .unwrap_or_else(std::vec::Vec::new)
     }
 
