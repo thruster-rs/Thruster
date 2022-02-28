@@ -41,14 +41,14 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<HyperRequest, Ctx, ServerConfig>::create(
+    let app = App::<HyperRequest, Ctx, ServerConfig>::create(
         generate_context,
         ServerConfig {
             server_id: "some-test-id".to_string(),
         },
-    );
-    app.get("/a/:key1", async_middleware!(Ctx, [state_printer]));
-    app.get("/b/:key2", async_middleware!(Ctx, [state_printer]));
+    )
+    .get("/a/:key1", async_middleware!(Ctx, [state_printer]))
+    .get("/b/:key2", async_middleware!(Ctx, [state_printer]));
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);

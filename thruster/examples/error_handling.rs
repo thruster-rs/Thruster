@@ -97,12 +97,10 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<Request, Ctx, ()>::new_basic();
-
-    app.use_middleware("/", async_middleware!(Ctx, [json_error_handler]));
-
-    app.get("/error", async_middleware!(Ctx, [error]));
-    app.set404(async_middleware!(Ctx, [four_oh_four]));
+    let app = App::<Request, Ctx, ()>::new_basic()
+        .use_middleware("/", async_middleware!(Ctx, [json_error_handler]))
+        .get("/error", async_middleware!(Ctx, [error]))
+        .set404(async_middleware!(Ctx, [four_oh_four]));
 
     let server = Server::new(app);
     server.start("0.0.0.0", 4321);

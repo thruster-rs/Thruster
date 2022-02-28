@@ -19,9 +19,10 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<HyperRequest, Ctx, ()>::create(generate_context, ());
+    let mut app =
+        App::<HyperRequest, Ctx, ()>::create(generate_context, ()).get("/plaintext", m![plaintext]);
+
     app.connection_timeout = 5000;
-    app.get("/plaintext", m![plaintext]);
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);

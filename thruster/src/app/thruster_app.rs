@@ -91,7 +91,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
 
     /// Create a new app with the given context generator. The app does not begin listening until start
     /// is called.
-    pub fn create(generate_context: fn(R, &S, &str) -> T, state: S) -> App<R, T, S> {
+    pub fn create(generate_context: fn(R, &S, &str) -> T, state: S) -> Self {
         App {
             delete_root: Node::default(),
             get_root: Node::default(),
@@ -108,10 +108,10 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
     /// Add method-agnostic middleware for a route. This is useful for applying headers, logging, and
     /// anything else that might not be sensitive to the HTTP method for the endpoint.
     pub fn use_middleware(
-        &mut self,
+        mut self,
         path: &str,
         middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> &mut App<R, T, S>
+    ) -> Self
     where
         T: Clone,
     {
@@ -134,7 +134,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
     /// Add an app as a predetermined set of routes and middleware. Will prefix whatever string is passed
     /// in to all of the routes. This is a main feature of Thruster, as it allows projects to be extermely
     /// modular and composeable in nature.
-    pub fn use_sub_app(&mut self, prefix: &str, app: App<R, T, S>) -> &mut App<R, T, S> {
+    pub fn use_sub_app(mut self, prefix: &str, app: App<R, T, S>) -> Self {
         self.get_root.add_node_at_path(prefix, app.get_root);
         self.options_root.add_node_at_path(prefix, app.options_root);
         self.post_root.add_node_at_path(prefix, app.post_root);
@@ -146,66 +146,42 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
     }
 
     /// Add a route that responds to `GET`s to a given path
-    pub fn get(
-        &mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> &mut App<R, T, S> {
+    pub fn get(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.get_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `OPTION`s to a given path
-    pub fn options(
-        &mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> &mut App<R, T, S> {
+    pub fn options(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.options_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `POST`s to a given path
-    pub fn post(
-        &mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> &mut App<R, T, S> {
+    pub fn post(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.post_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `PUT`s to a given path
-    pub fn put(
-        &mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> &mut App<R, T, S> {
+    pub fn put(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.put_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `DELETE`s to a given path
-    pub fn delete(
-        &mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> &mut App<R, T, S> {
+    pub fn delete(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.delete_root.add_value_at_path(path, middlewares);
 
         self
     }
 
     /// Add a route that responds to `PATCH`s to a given path
-    pub fn patch(
-        &mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> &mut App<R, T, S> {
+    pub fn patch(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self {
         self.patch_root.add_value_at_path(path, middlewares);
 
         self
@@ -214,7 +190,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
     /// Sets the middleware if no route is successfully matched. Note, that due to type restrictions,
     /// we Context needs to implement Clone in order to call this function, even though _clone will
     /// never be called._
-    pub fn set404(&mut self, middlewares: MiddlewareTuple<ReturnValue<T>>) -> &mut App<R, T, S>
+    pub fn set404(mut self, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self
     where
         T: Clone,
     {
@@ -232,7 +208,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
 
     /// Sets whether this app router uses strict mode for route parsing or not. Strict mode considers
     /// `/a` to be distinct from `/a/`.
-    pub fn set_strict_mode(&mut self, strict_mode: bool) -> &mut App<R, T, S>
+    pub fn set_strict_mode(mut self, strict_mode: bool) -> Self
     where
         T: Clone,
     {

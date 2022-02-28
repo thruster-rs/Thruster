@@ -58,14 +58,14 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<HyperRequest, Ctx, ServerConfig>::create(
+    let app = App::<HyperRequest, Ctx, ServerConfig>::create(
         generate_context,
         ServerConfig {
             val: Arc::new(RwLock::new("original".to_string())),
         },
-    );
-    app.get("/set-value/:val", async_middleware!(Ctx, [state_setter]));
-    app.get("/get-value", async_middleware!(Ctx, [state_getter]));
+    )
+    .get("/set-value/:val", async_middleware!(Ctx, [state_setter]))
+    .get("/get-value", async_middleware!(Ctx, [state_getter]));
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);

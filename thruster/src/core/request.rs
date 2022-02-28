@@ -113,7 +113,6 @@ impl Request {
                 }
                 None => {
                     header_map.insert(k, vec![v]);
-                    
                 }
             };
         }

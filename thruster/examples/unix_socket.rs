@@ -19,8 +19,8 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<HyperRequest, Ctx, ()>::create(generate_context, ());
-    app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
+    let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
+        .get("/plaintext", async_middleware!(Ctx, [plaintext]));
 
     UnixHyperServer::new(app).start("/tmp/thruster.sock", 0);
 }

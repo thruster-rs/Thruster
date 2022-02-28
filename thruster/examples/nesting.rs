@@ -26,13 +26,12 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<HyperRequest, Ctx, ()>::create(generate_context, ());
-    app.get("/plaintext", m![plaintext]);
+    let nested_app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
+        .get("/plaintext", m![nested_plaintext]);
 
-    let mut nested_app = App::<HyperRequest, Ctx, ()>::create(generate_context, ());
-    nested_app.get("/plaintext", m![nested_plaintext]);
-
-    app.use_sub_app("/nested", nested_app);
+    let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
+        .get("/plaintext", m![plaintext])
+        .use_sub_app("/nested", nested_app);
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);

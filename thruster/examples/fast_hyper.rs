@@ -20,8 +20,8 @@ async fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<HyperRequest, Ctx, ()>::create(generate_context, ());
-    app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
+    let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
+        .get("/plaintext", async_middleware!(Ctx, [plaintext]));
 
     let server = HyperServer::new(app);
     server.build("0.0.0.0", 4321).await;

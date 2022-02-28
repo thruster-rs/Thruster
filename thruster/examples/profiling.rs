@@ -38,11 +38,9 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<Request, Ctx, ()>::new_basic();
-
-    // app.use_middleware("/", async_middleware!(Ctx, [profiling]));
-    app.get("/plaintext", m![profiling, plaintext]);
-    app.set404(m![test_fn_404]);
+    let app = App::<Request, Ctx, ()>::new_basic()
+        .get("/plaintext", m![profiling, plaintext])
+        .set404(m![test_fn_404]);
 
     let server = Server::new(app);
 

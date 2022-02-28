@@ -14,9 +14,7 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<Request, Ctx, ()>::new_basic();
-
-    app.get("/plaintext", m![plaintext]);
+    let app = App::<Request, Ctx, ()>::new_basic().get("/plaintext", m![plaintext]);
 
     let server = Server::new(app);
     server.start("0.0.0.0", 4321);
