@@ -13,7 +13,6 @@ use crate::core::context::Context;
 use crate::middleware::cookies::{Cookie, CookieOptions, HasCookies, SameSite};
 use crate::middleware::query_params::HasQueryParams;
 
-#[derive(Default)]
 pub struct TypedHyperContext<S: 'static + Send> {
     pub body: Body,
     pub query_params: HashMap<String, String>,
@@ -26,6 +25,24 @@ pub struct TypedHyperContext<S: 'static + Send> {
     http_version: hyper::Version,
     request_body: Option<Body>,
     request_parts: Option<Parts>,
+}
+
+impl<S: 'static + Send + Default> Default for TypedHyperContext<S> {
+    fn default() -> Self {
+        Self {
+            body: Default::default(),
+            query_params: Default::default(),
+            status: 200,
+            headers: Default::default(),
+            params: Default::default(),
+            hyper_request: Default::default(),
+            extra: S::default(),
+            cookies: Default::default(),
+            http_version: Default::default(),
+            request_body: Default::default(),
+            request_parts: Default::default(),
+        }
+    }
 }
 
 impl<S: 'static + Send> Clone for TypedHyperContext<S> {

@@ -25,10 +25,9 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<HyperRequest, Ctx, ()>::create(generate_context, ());
-
-    app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
-    app.set404(async_middleware!(Ctx, [test_fn_404]));
+    let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
+        .get("/plaintext", async_middleware!(Ctx, [plaintext]))
+        .set404(async_middleware!(Ctx, [test_fn_404]));
 
     let mut server = SSLHyperServer::new(app);
     server.cert(include_bytes!("./cert.pem").to_vec());

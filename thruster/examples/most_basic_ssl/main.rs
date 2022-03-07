@@ -22,10 +22,9 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<Request, Ctx, ()>::new_basic();
-
-    app.get("/plaintext", async_middleware!(Ctx, [plaintext]));
-    app.set404(async_middleware!(Ctx, [test_fn_404]));
+    let app = App::<Request, Ctx, ()>::new_basic()
+        .get("/plaintext", async_middleware!(Ctx, [plaintext]))
+        .set404(async_middleware!(Ctx, [test_fn_404]));
 
     let mut server = SSLServer::new(app);
     server.cert(include_bytes!("identity.p12").to_vec());

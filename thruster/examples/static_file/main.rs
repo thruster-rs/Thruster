@@ -13,7 +13,7 @@
 use hyper::Body;
 use log::info;
 use thruster::context::basic_hyper_context::{
-    generate_context, to_owned_request, BasicHyperContext as Ctx, HyperRequest,
+    generate_context, BasicHyperContext as Ctx, HyperRequest,
 };
 use thruster::hyper_server::HyperServer;
 use thruster::middleware::file::{file, get_file};
@@ -32,9 +32,10 @@ fn main() {
     env_logger::init();
     info!("Starting server...");
 
-    let mut app = App::<HyperRequest, Ctx, ()>::create(generate_context, ());
-    app.get("/", async_middleware!(Ctx, [index]));
-    app.get("/*", async_middleware!(Ctx, [to_owned_request, file]));
+    let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
+        .get("/", async_middleware!(Ctx, [index]))
+        .get("/*", async_middleware!(Ctx, [file]));
+
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);
 }
