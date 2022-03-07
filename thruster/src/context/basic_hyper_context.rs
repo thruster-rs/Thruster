@@ -47,7 +47,6 @@ impl CookieOptions {
     }
 }
 
-#[derive(Default)]
 pub struct BasicHyperContext {
     pub body: Body,
     pub query_params: HashMap<String, String>,
@@ -58,6 +57,22 @@ pub struct BasicHyperContext {
     request_parts: Option<Parts>,
     http_version: hyper::Version,
     headers: HeaderMap,
+}
+
+impl Default for BasicHyperContext {
+    fn default() -> Self {
+        Self {
+            body: Default::default(),
+            query_params: Default::default(),
+            status: 200,
+            params: Default::default(),
+            hyper_request: Default::default(),
+            request_body: Default::default(),
+            request_parts: Default::default(),
+            http_version: Default::default(),
+            headers: Default::default(),
+        }
+    }
 }
 
 impl Clone for BasicHyperContext {
@@ -251,7 +266,7 @@ impl Context for BasicHyperContext {
     fn get_response(self) -> Self::Response {
         let mut response = Response::new(self.body);
 
-        *response.status_mut() = StatusCode::from_u16(self.status).unwrap();
+        *response.status_mut() = StatusCode::from_u16(self.status).unwrap_or_default();
         *response.headers_mut() = self.headers;
         *response.version_mut() = self.http_version;
 
