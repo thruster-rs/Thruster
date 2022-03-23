@@ -22,7 +22,11 @@ impl ThrusterRequest for HyperRequest {
     }
 
     fn path(&self) -> String {
-        self.request.uri().to_string()
+        self.request
+            .uri()
+            .path_and_query()
+            .map(ToString::to_string)
+            .unwrap_or_default()
     }
 }
 
