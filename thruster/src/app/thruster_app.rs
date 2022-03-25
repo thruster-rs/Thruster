@@ -1,4 +1,4 @@
-use crate::ReusableBoxFuture;
+use crate::{RequestWithParams, ReusableBoxFuture};
 use futures::FutureExt;
 
 use std::io;
@@ -254,7 +254,10 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
     pub fn match_and_resolve<'m>(
         &'m self,
         request: R,
-    ) -> ReusableBoxFuture<Result<T::Response, io::Error>> {
+    ) -> ReusableBoxFuture<Result<T::Response, io::Error>>
+    where
+        R: RequestWithParams,
+    {
         let method = request.method();
         let path = request.path();
 

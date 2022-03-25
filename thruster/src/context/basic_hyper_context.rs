@@ -51,7 +51,6 @@ pub struct BasicHyperContext {
     pub body: Body,
     pub query_params: HashMap<String, String>,
     pub status: u16,
-    pub params: Option<HashMap<String, String>>,
     pub hyper_request: Option<HyperRequest>,
     request_body: Option<Body>,
     request_parts: Option<Parts>,
@@ -65,7 +64,6 @@ impl Default for BasicHyperContext {
             body: Default::default(),
             query_params: Default::default(),
             status: 200,
-            params: Default::default(),
             hyper_request: Default::default(),
             request_body: Default::default(),
             request_parts: Default::default(),
@@ -85,7 +83,6 @@ impl Clone for BasicHyperContext {
 const SERVER_HEADER_NAME: HeaderName = SERVER;
 impl BasicHyperContext {
     pub fn new(req: HyperRequest) -> BasicHyperContext {
-        let params = req.params.clone();
         let mut headers = HeaderMap::new();
         headers.insert(SERVER_HEADER_NAME, HeaderValue::from_static("thruster"));
 
@@ -93,7 +90,6 @@ impl BasicHyperContext {
             body: Body::empty(),
             query_params: HashMap::new(),
             status: 200,
-            params,
             hyper_request: Some(req),
             request_body: None,
             request_parts: None,
@@ -132,7 +128,6 @@ impl BasicHyperContext {
                 body: ctx.body,
                 query_params: ctx.query_params,
                 status: ctx.status,
-                params: ctx.params,
                 hyper_request: ctx.hyper_request,
                 request_body: Some(Body::empty()),
                 request_parts: ctx.request_parts,
@@ -158,7 +153,6 @@ impl BasicHyperContext {
             body: self.body,
             query_params: self.query_params,
             status: self.status,
-            params: hyper_request.params,
             hyper_request: None,
             request_body: Some(body),
             request_parts: Some(parts),

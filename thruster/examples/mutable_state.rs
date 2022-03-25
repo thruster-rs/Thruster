@@ -35,12 +35,14 @@ async fn state_setter(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Middlewar
     let mut latest_value = latest_value.write().unwrap();
     context.body = Body::from(format!("last value: {}", latest_value));
     *latest_value = context
-        .params
+        .hyper_request
         .as_ref()
         .unwrap()
+        .params
         .get("val")
         .unwrap()
-        .to_string();
+        .param
+        .clone();
 
     Ok(context)
 }

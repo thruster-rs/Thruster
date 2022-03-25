@@ -6,6 +6,7 @@ use std::{fmt, io, str};
 
 pub trait RequestWithParams {
     fn set_params(&mut self, _: Params);
+    fn get_params<'a>(&'a self) -> &'a Params;
 }
 
 pub trait ThrusterRequest {
