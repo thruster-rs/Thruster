@@ -253,7 +253,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
     // pub async fn match_and_resolve<'m>(&'m self, request: R) -> Result<T::Response, io::Error> {
     pub fn match_and_resolve<'m>(
         &'m self,
-        request: R,
+        mut request: R,
     ) -> ReusableBoxFuture<Result<T::Response, io::Error>>
     where
         R: RequestWithParams,
@@ -271,6 +271,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
             _ => self.get_root.get_value_at_path(path),
         };
 
+        request.set_params(node.params);
         let context = (self.context_generator)(request, &self.state, &node.path);
 
         ReusableBoxFuture::new((node.value)(context).map(|ctx| {
