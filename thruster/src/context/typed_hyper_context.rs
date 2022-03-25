@@ -18,7 +18,6 @@ pub struct TypedHyperContext<S: 'static + Send> {
     pub query_params: HashMap<String, String>,
     pub status: u16,
     pub headers: HeaderMap,
-    pub params: Option<HashMap<String, String>>,
     pub hyper_request: Option<HyperRequest>,
     pub extra: S,
     pub cookies: HashMap<String, Cookie>,
@@ -34,7 +33,6 @@ impl<S: 'static + Send + Default> Default for TypedHyperContext<S> {
             query_params: Default::default(),
             status: 200,
             headers: Default::default(),
-            params: Default::default(),
             hyper_request: Default::default(),
             extra: S::default(),
             cookies: Default::default(),
@@ -53,13 +51,11 @@ impl<S: 'static + Send> Clone for TypedHyperContext<S> {
 
 impl<S: 'static + Send> TypedHyperContext<S> {
     pub fn new(req: HyperRequest, extra: S) -> TypedHyperContext<S> {
-        let params = req.params.clone();
         let mut ctx = TypedHyperContext {
             body: Body::empty(),
             query_params: HashMap::new(),
             headers: HeaderMap::new(),
             status: 200,
-            params,
             hyper_request: Some(req),
             request_body: None,
             request_parts: None,
@@ -74,13 +70,11 @@ impl<S: 'static + Send> TypedHyperContext<S> {
     }
 
     pub fn new_without_request(extra: S) -> TypedHyperContext<S> {
-        let params = None;
         let mut ctx = TypedHyperContext {
             body: Body::empty(),
             query_params: HashMap::new(),
             headers: HeaderMap::new(),
             status: 200,
-            params,
             hyper_request: None,
             request_body: None,
             request_parts: None,
@@ -125,7 +119,6 @@ impl<S: 'static + Send> TypedHyperContext<S> {
                 query_params: ctx.query_params,
                 headers: ctx.headers,
                 status: ctx.status,
-                params: ctx.params,
                 hyper_request: ctx.hyper_request,
                 request_body: Some(Body::empty()),
                 request_parts: ctx.request_parts,
@@ -152,7 +145,6 @@ impl<S: 'static + Send> TypedHyperContext<S> {
                     query_params: self.query_params,
                     headers: self.headers,
                     status: self.status,
-                    params: hyper_request.params,
                     hyper_request: None,
                     request_body: Some(body),
                     request_parts: Some(parts),

@@ -2,17 +2,18 @@ use actix_web::http::HeaderMap;
 use actix_web::web::{BytesMut, Payload};
 use actix_web::HttpRequest;
 use futures::StreamExt;
-use std::collections::HashMap;
 use std::net::IpAddr;
 
 use crate::core::request::ThrusterRequest;
+use crate::parser::tree::Params;
+use crate::RequestWithParams;
 
 pub struct ActixRequest {
     pub path: String,
     pub method: String,
     pub headers: HeaderMap,
     pub payload: Vec<u8>,
-    pub params: Option<HashMap<String, String>>,
+    pub params: Params,
     pub ip: Option<IpAddr>,
 }
 
@@ -32,7 +33,7 @@ impl ActixRequest {
             method,
             payload: bytes.to_vec(),
             headers,
-            params: None,
+            params: Params::default(),
             ip: None,
         }
     }
@@ -45,5 +46,15 @@ impl ThrusterRequest for ActixRequest {
 
     fn path(&self) -> String {
         self.path.to_string()
+    }
+}
+
+impl RequestWithParams for ActixRequest {
+    fn set_params(&mut self, params: Params) {
+        self.params = params;
+    }
+
+    fn get_params<'a>(&'a self) -> &'a Params {
+        &self.params
     }
 }

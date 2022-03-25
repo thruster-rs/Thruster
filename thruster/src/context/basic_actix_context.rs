@@ -50,7 +50,6 @@ impl CookieOptions {
 pub struct BasicActixContext {
     pub query_params: HashMap<String, String>,
     pub status: u16,
-    pub params: Option<HashMap<String, String>>,
     pub actix_request: Option<ActixRequest>,
     response_body: Bytes,
     headers: HeaderMap,
@@ -61,7 +60,6 @@ impl Default for BasicActixContext {
         BasicActixContext {
             query_params: HashMap::default(),
             status: 0,
-            params: None,
             actix_request: None,
             response_body: Bytes::new(),
             headers: HeaderMap::new(),
@@ -79,14 +77,12 @@ impl Clone for BasicActixContext {
 const SERVER_HEADER_NAME: HeaderName = SERVER;
 impl BasicActixContext {
     pub fn new(req: ActixRequest) -> BasicActixContext {
-        let params = req.params.clone();
         let mut headers = HeaderMap::new();
         headers.insert(SERVER_HEADER_NAME, HeaderValue::from_static("thruster"));
 
         BasicActixContext {
             query_params: HashMap::new(),
             status: 200,
-            params,
             actix_request: Some(req),
             response_body: Bytes::new(),
             headers,
@@ -113,7 +109,6 @@ impl BasicActixContext {
             BasicActixContext {
                 query_params: self.query_params,
                 status: self.status,
-                params: self.params,
                 actix_request: None,
                 response_body: Bytes::new(),
                 headers: self.headers,

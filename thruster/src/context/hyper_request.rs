@@ -1,7 +1,9 @@
 use http::request::Parts;
 use hyper::{Body, Request};
-use std::collections::HashMap;
 use std::net::IpAddr;
+
+use crate::parser::tree::Params;
+use crate::RequestWithParams;
 
 // use crate::core::request::RequestWithParams;
 // use crate::parser::tree::Params;
@@ -10,7 +12,7 @@ pub struct HyperRequest {
     pub request: Request<Body>,
     pub parts: Option<Parts>,
     pub body: Option<Body>,
-    pub params: Option<HashMap<String, String>>,
+    pub params: Params,
     pub ip: Option<IpAddr>,
 }
 
@@ -20,7 +22,7 @@ impl HyperRequest {
             request,
             parts: None,
             body: None,
-            params: None,
+            params: Params::default(),
             ip: None,
         }
     }
@@ -29,5 +31,15 @@ impl HyperRequest {
 impl Default for HyperRequest {
     fn default() -> Self {
         HyperRequest::new(Request::default())
+    }
+}
+
+impl RequestWithParams for HyperRequest {
+    fn set_params(&mut self, params: Params) {
+        self.params = params;
+    }
+
+    fn get_params<'a>(&'a self) -> &'a Params {
+        &self.params
     }
 }
