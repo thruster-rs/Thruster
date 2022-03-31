@@ -32,6 +32,10 @@ name = "hyper_most_basic"
 required-features = ["hyper_server"]
 
 [[example]]
+name = "middleware"
+required-features = ["hyper_server"]
+
+[[example]]
 name = "actix_most_basic"
 required-features = ["actix_server"]
 
@@ -52,6 +56,10 @@ required-features = ["hyper_server", "tls"]
 
 [[example]]
 name = "multiple_services"
+required-features = []
+
+[[example]]
+name = "custom_cors"
 required-features = []
 
 [[example]]
