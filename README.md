@@ -265,7 +265,7 @@ You might find that you want to allow for more specific data stored on the conte
 
 Thruster is capable of just providing the routing layer on top of a server of some sort, for example, in the Hyper snippet above. This can be applied broadly to any backend, as long as the server implements `ThrusterServer`.
 
-```rs
+```rust
 use async_trait::async_trait;
 
 #[async_trait]
