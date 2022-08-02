@@ -351,7 +351,6 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
         mut path: Split<char>,
     ) -> NodeOutput<'m, T> {
         let path_piece = path.next();
-        println!("piece: {:#?}", path_piece);
 
         match path_piece {
             None => NodeOutput {
