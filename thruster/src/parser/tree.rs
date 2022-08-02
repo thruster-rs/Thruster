@@ -165,7 +165,8 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
             };
         }
 
-        let mut split = path.split('/');
+        // Trim the query parameters -- we can let a middleware handle that later.
+        let mut split = path.split('?').next().unwrap_or("").split('/');
         let _ = split.next();
 
         self.get_value_at_split_path(split)
@@ -350,6 +351,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
         mut path: Split<char>,
     ) -> NodeOutput<'m, T> {
         let path_piece = path.next();
+        println!("piece: {:#?}", path_piece);
 
         match path_piece {
             None => NodeOutput {
@@ -785,6 +787,27 @@ pub mod test {
                 let committed = root.commit();
 
                 let node = committed.get_value_at_path("/a/b/c".to_owned());
+
+                let value = node.value;
+                assert!((value)(0_i32).await.unwrap() == 1);
+            });
+    }
+
+    #[test]
+    fn it_should_return_the_value_at_a_path_with_query_params() {
+        async fn f1(a: i32, _b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
+            Ok(a + 1)
+        }
+
+        let _ = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async move {
+                let mut root: Node<i32> = Node::default();
+
+                root.add_value_at_path("/a", MiddlewareTuple::A(pinbox!(i32, f1)));
+                let committed = root.commit();
+
+                let node = committed.get_value_at_path("/a?q=2".to_owned());
 
                 let value = node.value;
                 assert!((value)(0_i32).await.unwrap() == 1);

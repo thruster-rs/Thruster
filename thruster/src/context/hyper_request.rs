@@ -5,9 +5,6 @@ use std::net::IpAddr;
 use crate::parser::tree::Params;
 use crate::RequestWithParams;
 
-// use crate::core::request::RequestWithParams;
-// use crate::parser::tree::Params;
-
 pub struct HyperRequest {
     pub request: Request<Body>,
     pub parts: Option<Parts>,
