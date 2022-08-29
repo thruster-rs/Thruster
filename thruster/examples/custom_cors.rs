@@ -51,7 +51,28 @@ async fn time(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<
 
 #[middleware_fn]
 pub async fn cors(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let origin = std::env::var("CORS_ORIGIN").unwrap_or_else(|_| "*".to_string());
+    let origin_env = std::env::var("CORS_ORIGIN").unwrap_or_else(|_| "*".to_string());
+
+    // If the env var is a comma separated list, then we grab the origin header, and parse the env var
+    // into a vec. If the origin matches any of the vec, then we set that as the CORS header.
+    //
+    // If the env var is a single value, then we simply use that as the header.
+    let origin = if origin_env.contains(',') {
+        // Only one origin header is allowed
+        let header = context
+            .request
+            .headers()
+            .get("Origin")
+            .and_then(|header_values| header_values.first())
+            .map(Clone::clone)
+            .unwrap_or_else(|| "*".to_string());
+        origin_env
+            .split(',')
+            .find(|v| v == &&header)
+            .unwrap_or_else(|| "*")
+    } else {
+        &origin_env
+    };
 
     context.set("Access-Control-Allow-Origin", &origin);
     context.set("Access-Control-Allow-Headers", "*");
