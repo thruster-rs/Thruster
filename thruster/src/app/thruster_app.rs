@@ -107,11 +107,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
 
     /// Add method-agnostic middleware for a route. This is useful for applying headers, logging, and
     /// anything else that might not be sensitive to the HTTP method for the endpoint.
-    pub fn use_middleware(
-        mut self,
-        path: &str,
-        middlewares: MiddlewareTuple<ReturnValue<T>>,
-    ) -> Self
+    pub fn middleware(mut self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self
     where
         T: Clone,
     {
@@ -131,10 +127,20 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
         self
     }
 
+    #[deprecated(
+        note = "`use_middleware` is deprecated. Please migrate to use `middleware` in the future."
+    )]
+    pub fn use_middleware(self, path: &str, middlewares: MiddlewareTuple<ReturnValue<T>>) -> Self
+    where
+        T: Clone,
+    {
+        self.middleware(path, middlewares)
+    }
+
     /// Add an app as a predetermined set of routes and middleware. Will prefix whatever string is passed
     /// in to all of the routes. This is a main feature of Thruster, as it allows projects to be extermely
     /// modular and composeable in nature.
-    pub fn use_sub_app(mut self, prefix: &str, app: App<R, T, S>) -> Self {
+    pub fn router(mut self, prefix: &str, app: App<R, T, S>) -> Self {
         self.get_root.add_node_at_path(prefix, app.get_root);
         self.options_root.add_node_at_path(prefix, app.options_root);
         self.post_root.add_node_at_path(prefix, app.post_root);
@@ -143,6 +149,13 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
         self.patch_root.add_node_at_path(prefix, app.patch_root);
 
         self
+    }
+
+    #[deprecated(
+        note = "`use_sub_app` is deprecated. Please migrate to use `router` in the future."
+    )]
+    pub fn use_sub_app(self, prefix: &str, app: App<R, T, S>) -> Self {
+        self.router(prefix, app)
     }
 
     /// Add a route that responds to `GET`s to a given path
