@@ -36,6 +36,7 @@ pub fn m(items: TokenStream) -> TokenStream {
     gen.into()
 }
 
+#[deprecated(note = "Will be removed in future versions in favor of the simpler m macro")]
 #[proc_macro]
 pub fn async_middleware(items: TokenStream) -> TokenStream {
     let items = proc_macro2::TokenStream::from(items);

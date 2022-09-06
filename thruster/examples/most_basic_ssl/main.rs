@@ -1,7 +1,7 @@
 use log::info;
 use thruster::ssl_server::SSLServer;
 use thruster::ThrusterServer;
-use thruster::{async_middleware, middleware_fn};
+use thruster::{m, middleware_fn};
 use thruster::{App, BasicContext as Ctx, Request};
 use thruster::{MiddlewareNext, MiddlewareResult};
 
@@ -23,8 +23,8 @@ fn main() {
     info!("Starting server...");
 
     let app = App::<Request, Ctx, ()>::new_basic()
-        .get("/plaintext", async_middleware!(Ctx, [plaintext]))
-        .set404(async_middleware!(Ctx, [test_fn_404]));
+        .get("/plaintext", m!(Ctx, [plaintext]))
+        .set404(m!(Ctx, [test_fn_404]));
 
     let mut server = SSLServer::new(app);
     server.cert(include_bytes!("identity.p12").to_vec());

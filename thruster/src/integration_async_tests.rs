@@ -4,7 +4,7 @@
 // use thruster::testing;
 // use thruster::BasicContext;
 // use thruster::{
-//     async_middleware, middleware_fn, App, BasicContext as Ctx, MiddlewareNext, MiddlewareResult,
+//     m, middleware_fn, App, BasicContext as Ctx, MiddlewareNext, MiddlewareResult,
 //     Request,
 // };
 // use tokio::runtime::Runtime;
@@ -29,8 +29,8 @@
 // fn it_should_correctly_404_if_no_param_is_given() {
 //     let mut app = App::<Request, Ctx, ()>::new_basic();
 
-//     app.get("/test/:id", async_middleware!(Ctx, [test_fn_1]));
-//     app.set404(async_middleware!(Ctx, [test_fn_404]));
+//     app.get("/test/:id", m!(Ctx, [test_fn_1]));
+//     app.set404(m!(Ctx, [test_fn_404]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/test").await;
@@ -54,9 +54,9 @@
 
 //     app.use_middleware(
 //         "/",
-//         async_middleware!(BasicContext, [query_params::query_params]),
+//         m!(BasicContext, [query_params::query_params]),
 //     );
-//     app.get("/test", async_middleware!(BasicContext, [test_fn_1]));
+//     app.get("/test", m!(BasicContext, [test_fn_1]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/test").await;
@@ -93,8 +93,8 @@
 //         Ok(context)
 //     };
 
-//     app.get("/test", async_middleware!(BasicContext, [test_fn_1]));
-//     app.use_middleware("/", async_middleware!(BasicContext, [test_fn_middleware]));
+//     app.get("/test", m!(BasicContext, [test_fn_1]));
+//     app.use_middleware("/", m!(BasicContext, [test_fn_middleware]));
 
 //     // println!("app: {}", app._route_parser.route_tree.root_node.tree_string(""));
 //     // for (route, middleware, is_terminal) in app._route_parser.route_tree.root_node.get_route_list() {
@@ -134,9 +134,9 @@
 
 //     app.use_middleware(
 //         "/test",
-//         async_middleware!(BasicContext, [test_middleware_1]),
+//         m!(BasicContext, [test_middleware_1]),
 //     );
-//     app.get("/test/:key", async_middleware!(BasicContext, [test_fn_1]));
+//     app.get("/test/:key", m!(BasicContext, [test_fn_1]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/test/a").await;
@@ -168,8 +168,8 @@
 //         Ok(context)
 //     };
 
-//     app.get("/", async_middleware!(BasicContext, [test_fn_1]));
-//     app.get("/*", async_middleware!(BasicContext, [test_fn_404]));
+//     app.get("/", m!(BasicContext, [test_fn_1]));
+//     app.get("/*", m!(BasicContext, [test_fn_404]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/").await;
@@ -201,9 +201,9 @@
 
 //     app.use_middleware(
 //         "/",
-//         async_middleware!(BasicContext, [query_params::query_params]),
+//         m!(BasicContext, [query_params::query_params]),
 //     );
-//     app.get("/test", async_middleware!(BasicContext, [test_fn_1]));
+//     app.get("/test", m!(BasicContext, [test_fn_1]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/test?hello=world").await;
@@ -227,7 +227,7 @@
 //         Ok(context)
 //     };
 
-//     app.get("/test/:id", async_middleware!(BasicContext, [test_fn_1]));
+//     app.get("/test/:id", m!(BasicContext, [test_fn_1]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/test/123").await;
@@ -251,7 +251,7 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
+//     app1.get("/:id", m!(BasicContext, [test_fn_1]));
 
 //     let mut app2 = App::<Request, BasicContext, ()>::new_basic();
 //     app2.use_sub_app("/test", app1);
@@ -278,7 +278,7 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
+//     app1.get("/:id", m!(BasicContext, [test_fn_1]));
 
 //     let mut app2 = App::<Request, BasicContext, ()>::new_basic();
 //     app2.use_sub_app("/test", app1);
@@ -314,8 +314,8 @@
 //         Ok(context)
 //     }
 
-//     app1.get("/", async_middleware!(BasicContext, [test_fn_2]));
-//     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
+//     app1.get("/", m!(BasicContext, [test_fn_2]));
+//     app1.get("/:id", m!(BasicContext, [test_fn_1]));
 
 //     let mut app2 = App::<Request, BasicContext, ()>::new_basic();
 //     app2.use_sub_app("/test", app1);
@@ -351,11 +351,11 @@
 //         Ok(context)
 //     }
 
-//     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
+//     app1.get("/:id", m!(BasicContext, [test_fn_1]));
 
 //     let mut app2 = App::<Request, BasicContext, ()>::new_basic();
 //     app2.use_sub_app("/test", app1);
-//     app2.set404(async_middleware!(BasicContext, [test_fn_2]));
+//     app2.set404(m!(BasicContext, [test_fn_2]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app2, "/test/").await;
@@ -379,7 +379,7 @@
 //         Ok(context)
 //     };
 
-//     app.get("/test/:id", async_middleware!(BasicContext, [test_fn_1]));
+//     app.get("/test/:id", m!(BasicContext, [test_fn_1]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/test/1/").await;
@@ -414,8 +414,8 @@
 //         Ok(context)
 //     };
 
-//     app.get("/test", async_middleware!(BasicContext, [test_fn_1]));
-//     app.post("/test", async_middleware!(BasicContext, [test_fn_2]));
+//     app.get("/test", m!(BasicContext, [test_fn_1]));
+//     app.post("/test", m!(BasicContext, [test_fn_2]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/test").await;
@@ -457,7 +457,7 @@
 
 //     app.get(
 //         "/test",
-//         async_middleware!(BasicContext, [test_fn_2, test_fn_1]),
+//         m!(BasicContext, [test_fn_2, test_fn_1]),
 //     );
 
 //     let _ = Runtime::new().unwrap().block_on(async {
@@ -480,7 +480,7 @@
 //         Ok(context)
 //     };
 
-//     app.get("/test", async_middleware!(BasicContext, [test_fn_1]));
+//     app.get("/test", m!(BasicContext, [test_fn_1]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/test").await;
@@ -515,8 +515,8 @@
 //         Ok(context)
 //     };
 
-//     app.use_middleware("/", async_middleware!(BasicContext, [method_agnostic]));
-//     app.get("/test", async_middleware!(BasicContext, [test_fn_1]));
+//     app.use_middleware("/", m!(BasicContext, [method_agnostic]));
+//     app.get("/test", m!(BasicContext, [test_fn_1]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/test").await;
@@ -538,7 +538,7 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/test", async_middleware!(BasicContext, [test_fn_1]));
+//     app1.get("/test", m!(BasicContext, [test_fn_1]));
 
 //     let mut app2 = App::<Request, BasicContext, ()>::new_basic();
 //     app2.use_sub_app("/", app1);
@@ -563,7 +563,7 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/*", async_middleware!(BasicContext, [test_fn_1]));
+//     app1.get("/*", m!(BasicContext, [test_fn_1]));
 
 //     let mut app2 = App::<Request, BasicContext, ()>::new_basic();
 //     app2.use_sub_app("/", app1);
@@ -588,7 +588,7 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/test", async_middleware!(BasicContext, [test_fn_1]));
+//     app1.get("/test", m!(BasicContext, [test_fn_1]));
 
 //     let mut app2 = App::<Request, BasicContext, ()>::new_basic();
 //     app2.use_sub_app("/sub", app1);
@@ -613,7 +613,7 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/", async_middleware!(BasicContext, [test_fn_1]));
+//     app1.get("/", m!(BasicContext, [test_fn_1]));
 
 //     let mut app2 = App::<Request, BasicContext, ()>::new_basic();
 //     app2.use_sub_app("/sub", app1);
@@ -647,8 +647,8 @@
 //         Ok(context)
 //     };
 
-//     app.get("/", async_middleware!(BasicContext, [test_fn_1]));
-//     app.set404(async_middleware!(BasicContext, [test_404]));
+//     app.get("/", m!(BasicContext, [test_fn_1]));
+//     app.set404(m!(BasicContext, [test_404]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/not_found").await;
@@ -679,8 +679,8 @@
 //         Ok(context)
 //     };
 
-//     app.get("/a", async_middleware!(BasicContext, [test_fn_1]));
-//     app.set404(async_middleware!(BasicContext, [test_404]));
+//     app.get("/a", m!(BasicContext, [test_fn_1]));
+//     app.set404(m!(BasicContext, [test_404]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/").await;
@@ -711,8 +711,8 @@
 //         Ok(context)
 //     };
 
-//     app.get("/a/b", async_middleware!(BasicContext, [test_fn_1]));
-//     app.set404(async_middleware!(BasicContext, [test_404]));
+//     app.get("/a/b", m!(BasicContext, [test_fn_1]));
+//     app.set404(m!(BasicContext, [test_404]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/a/not_found/").await;
@@ -743,8 +743,8 @@
 //         Ok(context)
 //     };
 
-//     app.get("/a/:b/c", async_middleware!(BasicContext, [test_fn_1]));
-//     app.set404(async_middleware!(BasicContext, [test_404]));
+//     app.get("/a/:b/c", m!(BasicContext, [test_fn_1]));
+//     app.set404(m!(BasicContext, [test_404]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/a/1/d").await;
@@ -776,8 +776,8 @@
 //         Ok(context)
 //     };
 
-//     app.get("/a/:b/c", async_middleware!(BasicContext, [test_fn_1]));
-//     app.set404(async_middleware!(BasicContext, [test_404]));
+//     app.get("/a/:b/c", m!(BasicContext, [test_fn_1]));
+//     app.set404(m!(BasicContext, [test_404]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/a/1/d/e/f/g").await;
@@ -810,8 +810,8 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/", async_middleware!(BasicContext, [test_fn_1]));
-//     app2.get("*", async_middleware!(BasicContext, [test_404]));
+//     app1.get("/", m!(BasicContext, [test_fn_1]));
+//     app2.get("*", m!(BasicContext, [test_404]));
 //     app3.use_sub_app("/", app2);
 //     app3.use_sub_app("/a", app1);
 
@@ -835,7 +835,7 @@
 //         Ok(context)
 //     };
 
-//     app.get("*", async_middleware!(BasicContext, [test_fn_1]));
+//     app.get("*", m!(BasicContext, [test_fn_1]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/a/1/d/e/f/g").await;
@@ -858,7 +858,7 @@
 //         Ok(context)
 //     };
 
-//     app1.get("*", async_middleware!(BasicContext, [test_fn_1]));
+//     app1.get("*", m!(BasicContext, [test_fn_1]));
 //     app2.use_sub_app("/", app1);
 
 //     let _ = Runtime::new().unwrap().block_on(async {
@@ -892,8 +892,8 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/*", async_middleware!(BasicContext, [test_fn_1]));
-//     app2.get("/*", async_middleware!(BasicContext, [test_fn_2]));
+//     app1.get("/*", m!(BasicContext, [test_fn_1]));
+//     app2.get("/*", m!(BasicContext, [test_fn_2]));
 //     app3.use_sub_app("/", app1);
 //     app3.use_sub_app("/a/b", app2);
 
@@ -926,8 +926,8 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
-//     app1.get("/order", async_middleware!(BasicContext, [test_fn_2]));
+//     app1.get("/:id", m!(BasicContext, [test_fn_1]));
+//     app1.get("/order", m!(BasicContext, [test_fn_2]));
 
 //     let mut app2 = App::<Request, BasicContext, ()>::new_basic();
 //     app2.use_sub_app("/b", app1);
@@ -961,8 +961,8 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/:id/d", async_middleware!(BasicContext, [test_fn_2]));
-//     app1.get("/:id", async_middleware!(BasicContext, [test_fn_1]));
+//     app1.get("/:id/d", m!(BasicContext, [test_fn_2]));
+//     app1.get("/:id", m!(BasicContext, [test_fn_1]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app1, "/b/d").await;
@@ -994,8 +994,8 @@
 //         Ok(context)
 //     };
 
-//     app1.get("/a/:id", async_middleware!(BasicContext, [test_fn_1]));
-//     app1.get("/a/:id/d", async_middleware!(BasicContext, [test_fn_2]));
+//     app1.get("/a/:id", m!(BasicContext, [test_fn_1]));
+//     app1.get("/a/:id/d", m!(BasicContext, [test_fn_2]));
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app1, "/a/b").await;

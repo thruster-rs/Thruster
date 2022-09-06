@@ -6,7 +6,7 @@ use bytes::{BufMut, BytesMut};
 use criterion::Criterion;
 use thruster::middleware::query_params::query_params;
 use thruster::{
-    async_middleware, decode, middleware_fn, App, BasicContext, MiddlewareNext, MiddlewareResult,
+    m, decode, middleware_fn, App, BasicContext, MiddlewareNext, MiddlewareResult,
     Request,
 };
 
@@ -23,7 +23,7 @@ fn bench_route_match(c: &mut Criterion) {
     c.bench_function("Route match", |bench| {
         let mut app = App::<Request, BasicContext, ()>::new_basic();
 
-        app.get("/test/hello", async_middleware!(BasicContext, [test_fn_1]));
+        app.get("/test/hello", m!(BasicContext, [test_fn_1]));
 
         let rt = tokio::runtime::Runtime::new().unwrap();
         bench.iter(|| {
@@ -43,7 +43,7 @@ fn optimized_bench_route_match(c: &mut Criterion) {
     c.bench_function("Optimized route match", |bench| {
         let mut app = App::<Request, BasicContext, ()>::new_basic();
 
-        app.get("/test/hello", async_middleware!(BasicContext, [test_fn_1]));
+        app.get("/test/hello", m!(BasicContext, [test_fn_1]));
 
         let rt = tokio::runtime::Runtime::new().unwrap();
         bench.iter(|| {
@@ -81,7 +81,7 @@ fn bench_route_match_with_param(c: &mut Criterion) {
 
         app.get(
             "/test/:hello",
-            async_middleware!(BasicContext, [test_params_1]),
+            m!(BasicContext, [test_params_1]),
         );
 
         let rt = tokio::runtime::Runtime::new().unwrap();
@@ -117,10 +117,10 @@ fn bench_route_match_with_query_param(c: &mut Criterion) {
     c.bench_function("Route match with query params", |bench| {
         let mut app = App::<Request, BasicContext, ()>::new_basic();
 
-        app.use_middleware("/", async_middleware!(BasicContext, [query_params]));
+        app.use_middleware("/", m!(BasicContext, [query_params]));
         app.get(
             "/test",
-            async_middleware!(BasicContext, [test_query_params_1]),
+            m!(BasicContext, [test_query_params_1]),
         );
 
         let rt = tokio::runtime::Runtime::new().unwrap();

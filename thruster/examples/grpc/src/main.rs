@@ -7,7 +7,7 @@
 // use thruster::context::typed_hyper_context::TypedHyperContext;
 // use thruster::hyper_server::HyperServer;
 // use thruster::Context;
-// use thruster::{async_middleware, middleware_fn};
+// use thruster::{m, middleware_fn};
 // use thruster::{App, ThrusterServer};
 // use thruster::{MiddlewareNext, MiddlewareResult};
 
@@ -74,7 +74,7 @@
 //         App::<HyperRequest, Ctx, MyGreeter>::create(generate_context, MyGreeter::default());
 //     app.post(
 //         "/helloworld.Greeter/SayHello",
-//         async_middleware!(Ctx, [rpc]),
+//         m!(Ctx, [rpc]),
 //     );
 
 //     let server = HyperServer::new(app);

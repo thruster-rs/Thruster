@@ -3,7 +3,7 @@ use log::info;
 use thruster::context::hyper_request::HyperRequest;
 use thruster::context::typed_hyper_context::TypedHyperContext;
 use thruster::hyper_server::HyperServer;
-use thruster::{async_middleware, middleware_fn};
+use thruster::{m, middleware_fn};
 use thruster::{App, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
 
@@ -47,8 +47,8 @@ fn main() {
             server_id: "some-test-id".to_string(),
         },
     )
-    .get("/a/:key1", async_middleware!(Ctx, [state_printer]))
-    .get("/b/:key2", async_middleware!(Ctx, [state_printer]));
+    .get("/a/:key1", m!(Ctx, [state_printer]))
+    .get("/b/:key2", m!(Ctx, [state_printer]));
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);

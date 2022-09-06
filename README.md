@@ -56,7 +56,7 @@ For example, `cargo run --example hello_world` and open [http://localhost:4321/]
 
 ### Middleware Based
 
-The core parts that make the new async await code work is designating middleware functions with the `#[middleware_fn]` attribute (which marks the middleware so that it's compatible with the stable futures version that Thruster is built on,) and then the `async_middleware!` macro in the actual routes.
+The core parts that make the new async await code work is designating middleware functions with the `#[middleware_fn]` attribute (which marks the middleware so that it's compatible with the stable futures version that Thruster is built on,) and then the `m!` macro in the actual routes.
 
 A simple example for using async await is:
 
@@ -122,7 +122,7 @@ This ends up looking like:
 
 ```rust
 use thruster::errors::ThrusterError as Error;
-use thruster::proc::{async_middleware, middleware_fn};
+use thruster::proc::{m, middleware_fn};
 use thruster::{map_try, App, BasicContext as Ctx, Request};
 use thruster::{MiddlewareNext, MiddlewareResult, MiddlewareReturnValue, Server, ThrusterServer};
 

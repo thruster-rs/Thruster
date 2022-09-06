@@ -2,7 +2,7 @@ use snafu::{ResultExt, Snafu};
 
 use log::info;
 use thruster::errors::ThrusterError;
-use thruster::{async_middleware, middleware_fn};
+use thruster::{m, middleware_fn};
 use thruster::{map_try, App, BasicContext as Ctx, Request, Server, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
 
@@ -98,9 +98,9 @@ fn main() {
     info!("Starting server...");
 
     let app = App::<Request, Ctx, ()>::new_basic()
-        .use_middleware("/", async_middleware!(Ctx, [json_error_handler]))
-        .get("/error", async_middleware!(Ctx, [error]))
-        .set404(async_middleware!(Ctx, [four_oh_four]));
+        .use_middleware("/", m!(Ctx, [json_error_handler]))
+        .get("/error", m!(Ctx, [error]))
+        .set404(m!(Ctx, [four_oh_four]));
 
     let server = Server::new(app);
     server.start("0.0.0.0", 4321);

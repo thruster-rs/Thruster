@@ -3,7 +3,7 @@ use log::info;
 use thruster::context::hyper_request::HyperRequest;
 use thruster::context::typed_hyper_context::TypedHyperContext;
 use thruster::hyper_server::HyperServer;
-use thruster::{async_middleware, middleware_fn};
+use thruster::{m, middleware_fn};
 use thruster::{App, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
 
@@ -66,8 +66,8 @@ fn main() {
             val: Arc::new(RwLock::new("original".to_string())),
         },
     )
-    .get("/set-value/:val", async_middleware!(Ctx, [state_setter]))
-    .get("/get-value", async_middleware!(Ctx, [state_getter]));
+    .get("/set-value/:val", m!(Ctx, [state_setter]))
+    .get("/get-value", m!(Ctx, [state_getter]));
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);
