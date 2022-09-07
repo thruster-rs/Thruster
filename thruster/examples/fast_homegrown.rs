@@ -1,5 +1,5 @@
 use log::info;
-use thruster::{async_middleware, middleware_fn};
+use thruster::{m, middleware_fn};
 use thruster::{App, BasicContext as Ctx, Request, Server, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
 
@@ -15,7 +15,7 @@ fn main() {
     info!("Starting server...");
 
     let app =
-        App::<Request, Ctx, ()>::new_basic().get("/plaintext", async_middleware!(Ctx, [plaintext]));
+        App::<Request, Ctx, ()>::new_basic().get("/plaintext", m!(Ctx, [plaintext]));
 
     let server = Server::new(app);
     server.start_small_load_optimized("0.0.0.0", 4321);

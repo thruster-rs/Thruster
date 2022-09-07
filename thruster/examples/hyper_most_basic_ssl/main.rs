@@ -5,7 +5,7 @@ use thruster::context::basic_hyper_context::{
 use thruster::ssl_hyper_server::SSLHyperServer;
 use thruster::App;
 use thruster::ThrusterServer;
-use thruster::{async_middleware, middleware_fn};
+use thruster::{m, middleware_fn};
 use thruster::{MiddlewareNext, MiddlewareResult};
 
 #[middleware_fn]
@@ -26,8 +26,8 @@ fn main() {
     info!("Starting server...");
 
     let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
-        .get("/plaintext", async_middleware!(Ctx, [plaintext]))
-        .set404(async_middleware!(Ctx, [test_fn_404]));
+        .get("/plaintext", m!(Ctx, [plaintext]))
+        .set404(m!(Ctx, [test_fn_404]));
 
     let mut server = SSLHyperServer::new(app);
     server.cert(include_bytes!("./cert.pem").to_vec());

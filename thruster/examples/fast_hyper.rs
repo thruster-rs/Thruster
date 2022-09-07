@@ -4,7 +4,7 @@ use thruster::context::fast_hyper_context::{
     generate_context, FastHyperContext as Ctx, HyperRequest,
 };
 use thruster::hyper_server::HyperServer;
-use thruster::{async_middleware, middleware_fn};
+use thruster::{m, middleware_fn};
 use thruster::{App, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
 
@@ -21,7 +21,7 @@ async fn main() {
     info!("Starting server...");
 
     let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
-        .get("/plaintext", async_middleware!(Ctx, [plaintext]));
+        .get("/plaintext", m!(Ctx, [plaintext]));
 
     let server = HyperServer::new(app);
     server.build("0.0.0.0", 4321).await;

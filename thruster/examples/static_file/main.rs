@@ -17,7 +17,7 @@ use thruster::context::basic_hyper_context::{
 };
 use thruster::hyper_server::HyperServer;
 use thruster::middleware::file::{file, get_file};
-use thruster::{async_middleware, middleware_fn};
+use thruster::{m, middleware_fn};
 use thruster::{App, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
 
@@ -33,8 +33,8 @@ fn main() {
     info!("Starting server...");
 
     let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
-        .get("/", async_middleware!(Ctx, [index]))
-        .get("/*", async_middleware!(Ctx, [file]));
+        .get("/", m!(Ctx, [index]))
+        .get("/*", m!(Ctx, [file]));
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);
