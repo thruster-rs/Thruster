@@ -20,7 +20,7 @@ pub use crate::core::context::Context;
 pub use crate::core::errors;
 pub use crate::core::http::Http;
 pub use crate::core::middleware::MiddlewareResult;
-pub use crate::core::request::{decode, Request, RequestWithParams};
+pub use crate::core::request::{decode, Request, RequestWithParams, ThrusterRequest};
 pub use crate::core::response::{encode, Response};
 pub use crate::core::{MiddlewareFn, MiddlewareNext, MiddlewareReturnValue};
 pub use app::testing_async as testing;
