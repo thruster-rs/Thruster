@@ -15,7 +15,7 @@ async fn echo_header(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Middleware
     context.body = Body::from(format!(
         "Hello, {}",
         context
-            .get_req_header("Custom-Header")
+            .req_header("Custom-Header")
             .unwrap_or("No 'Custom-Header' present")
     ));
 

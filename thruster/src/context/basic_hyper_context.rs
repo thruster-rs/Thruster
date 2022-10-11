@@ -110,7 +110,7 @@ impl BasicHyperContext {
     ///
     /// Get the body as a string
     ///
-    pub async fn get_body(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn body_string(&mut self) -> Result<String, Box<dyn std::error::Error>> {
         let body = self.request_body.take().unwrap_or_else(|| {
             self.into_owned_request();
             self.request_body.take().unwrap()
@@ -278,7 +278,7 @@ impl HasQueryParams for BasicHyperContext {
 
 #[async_trait]
 impl ContextExt for BasicHyperContext {
-    fn get_params(&self) -> &Params {
+    fn params(&self) -> &Params {
         self.hyper_request.as_ref().unwrap().get_params()
     }
 
@@ -299,7 +299,7 @@ impl ContextExt for BasicHyperContext {
             .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
     }
 
-    fn get_req_header<'a>(&'a self, header: &str) -> Option<&'a str> {
+    fn req_header<'a>(&'a self, header: &str) -> Option<&'a str> {
         self.parts()
             .headers
             .get(header)

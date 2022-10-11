@@ -16,7 +16,7 @@ async fn echo_route_params(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> Midd
     context.body = Body::from(format!(
         "Hello, {}",
         context
-            .get_params()
+            .params()
             .get("name")
             .ok_or(ThrusterError::generic_error(Ctx::default()))?
             .param

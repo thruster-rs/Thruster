@@ -98,7 +98,7 @@ impl BasicActixContext {
     ///
     /// Get the request body as a string
     ///
-    pub async fn get_body(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn body_string(&mut self) -> Result<String, Box<dyn std::error::Error>> {
         let request = self.actix_request.as_ref().unwrap();
 
         let results = String::from_utf8(request.payload.clone()).unwrap();

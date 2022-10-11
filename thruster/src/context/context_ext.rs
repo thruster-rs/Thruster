@@ -6,7 +6,7 @@ use crate::parser::tree::Params;
 #[async_trait]
 pub trait ContextExt {
     /// Get route params, e.g. /users/:id
-    fn get_params<'a>(&'a self) -> &'a Params;
+    fn params<'a>(&'a self) -> &'a Params;
 
     /// Set the response as JSON.
     ///
@@ -16,5 +16,6 @@ pub trait ContextExt {
     /// Gets the request body as JSON.
     async fn get_json<T: DeserializeOwned>(&mut self) -> Result<T, Box<dyn std::error::Error>>;
 
-    fn get_req_header<'a>(&'a self, header: &str) -> Option<&'a str>;
+    /// Retrieves a header from the incoming request object.
+    fn req_header<'a>(&'a self, header: &str) -> Option<&'a str>;
 }

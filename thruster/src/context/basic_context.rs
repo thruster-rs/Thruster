@@ -78,7 +78,7 @@ impl BasicContext {
         self
     }
 
-    pub fn get_body(&self) -> String {
+    pub fn body_string(&self) -> String {
         str::from_utf8(&self.response.response)
             .unwrap_or("")
             .to_owned()
