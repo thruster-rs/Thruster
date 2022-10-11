@@ -29,8 +29,8 @@
 // fn it_should_correctly_404_if_no_param_is_given() {
 //     let mut app = App::<Request, Ctx, ()>::new_basic();
 
-//     app.get("/test/:id", m!(Ctx, [test_fn_1]));
-//     app.set404(m!(Ctx, [test_fn_404]));
+//     app.get("/test/:id", m![test_fn_1]);
+//     app.set404(m![test_fn_404]);
 
 //     let _ = Runtime::new().unwrap().block_on(async {
 //         let response = testing::get(&app, "/test").await;

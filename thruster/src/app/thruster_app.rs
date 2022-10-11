@@ -263,7 +263,6 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
         }
     }
 
-    // pub async fn match_and_resolve<'m>(&'m self, request: R) -> Result<T::Response, io::Error> {
     pub fn match_and_resolve<'m>(
         &'m self,
         mut request: R,

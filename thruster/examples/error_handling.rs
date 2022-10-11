@@ -2,7 +2,7 @@ use snafu::{ResultExt, Snafu};
 
 use log::info;
 use thruster::errors::ThrusterError;
-use thruster::{m, middleware_fn};
+use thruster::{m, middleware_fn, Context};
 use thruster::{map_try, App, BasicContext as Ctx, Request, Server, ThrusterServer};
 use thruster::{MiddlewareNext, MiddlewareResult};
 
@@ -26,11 +26,12 @@ trait ErrorExt {
 }
 
 impl<E: Into<Error>> ErrorExt for E {
-    fn context(self, context: Ctx) -> ThrusterError<Ctx> {
+    fn context(self, mut context: Ctx) -> ThrusterError<Ctx> {
+        context.status(500);
+
         ThrusterError {
             context,
             message: "Failed to handle error".to_string(),
-            status: 500,
             cause: Some(Box::new(self.into())),
         }
     }
@@ -56,7 +57,6 @@ async fn json_error_handler(context: Ctx, next: MiddlewareNext<Ctx>) -> Middlewa
                 "{{\"message\": \"{}\",\"success\":false}}",
                 err.message
             ));
-            context.status(err.status);
 
             return Ok(context);
         }
@@ -64,12 +64,11 @@ async fn json_error_handler(context: Ctx, next: MiddlewareNext<Ctx>) -> Middlewa
 
     // Handle the Error variants
     let mut context = err.context;
-    let status = match *e {
+    context.status(match *e {
         Error::InvalidId { .. } => 400,
         Error::FileNotFound { .. } => 404,
-    };
+    });
 
-    context.status(status);
     context.body(&format!("{{\"message\": \"{}\",\"success\":false}}", e));
 
     Ok(context)
@@ -98,9 +97,9 @@ fn main() {
     info!("Starting server...");
 
     let app = App::<Request, Ctx, ()>::new_basic()
-        .use_middleware("/", m!(Ctx, [json_error_handler]))
-        .get("/error", m!(Ctx, [error]))
-        .set404(m!(Ctx, [four_oh_four]));
+        .middleware("/", m![json_error_handler])
+        .get("/error", m![error])
+        .set404(m![four_oh_four]);
 
     let server = Server::new(app);
     server.start("0.0.0.0", 4321);

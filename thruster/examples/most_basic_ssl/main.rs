@@ -23,8 +23,8 @@ fn main() {
     info!("Starting server...");
 
     let app = App::<Request, Ctx, ()>::new_basic()
-        .get("/plaintext", m!(Ctx, [plaintext]))
-        .set404(m!(Ctx, [test_fn_404]));
+        .get("/plaintext", m![plaintext])
+        .set404(m![test_fn_404]);
 
     let mut server = SSLServer::new(app);
     server.cert(include_bytes!("identity.p12").to_vec());

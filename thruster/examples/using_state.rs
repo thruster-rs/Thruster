@@ -47,8 +47,8 @@ fn main() {
             server_id: "some-test-id".to_string(),
         },
     )
-    .get("/a/:key1", m!(Ctx, [state_printer]))
-    .get("/b/:key2", m!(Ctx, [state_printer]));
+    .get("/a/:key1", m![state_printer])
+    .get("/b/:key2", m![state_printer]);
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);

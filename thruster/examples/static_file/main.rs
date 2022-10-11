@@ -33,8 +33,8 @@ fn main() {
     info!("Starting server...");
 
     let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
-        .get("/", m!(Ctx, [index]))
-        .get("/*", m!(Ctx, [file]));
+        .get("/", m![index])
+        .get("/*", m![file]);
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);

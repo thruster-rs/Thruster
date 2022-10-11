@@ -1,16 +1,18 @@
+use async_trait::async_trait;
 use bytes::Bytes;
-use futures::stream::StreamExt;
 use http::header::{HeaderMap, HeaderName, HeaderValue, SERVER};
 use http::request::Parts;
-use hyper::{Body, Error, Response, StatusCode};
+use hyper::{Body, Response, StatusCode};
+use serde::de::DeserializeOwned;
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::str;
 
-pub use crate::context::hyper_request::HyperRequest;
+pub use crate::context::{context_ext::ContextExt, hyper_request::HyperRequest};
 use crate::core::context::Context;
+use crate::RequestWithParams;
 
 use crate::middleware::query_params::HasQueryParams;
+use crate::parser::tree::Params;
 
 pub fn generate_context<S>(request: HyperRequest, _state: &S, _path: &str) -> BasicHyperContext {
     BasicHyperContext::new(request)
@@ -108,33 +110,15 @@ impl BasicHyperContext {
     ///
     /// Get the body as a string
     ///
-    pub async fn get_body(self) -> Result<(String, BasicHyperContext), Error> {
-        let ctx = match self.request_body {
-            Some(_) => self,
-            None => self.into_owned_request(),
-        };
+    pub async fn get_body(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+        let body = self.request_body.take().unwrap_or_else(|| {
+            self.into_owned_request();
+            self.request_body.take().unwrap()
+        });
 
-        let mut results = "".to_string();
-        let mut unwrapped_body = ctx.request_body.unwrap();
-        while let Some(chunk) = unwrapped_body.next().await {
-            // TODO(trezm): Dollars to donuts this is pretty slow -- could make it faster with a
-            // mutable byte buffer.
-            results = format!("{}{}", results, String::from_utf8_lossy(chunk?.as_ref()));
-        }
-
-        Ok((
-            results,
-            BasicHyperContext {
-                body: ctx.body,
-                query_params: ctx.query_params,
-                status: ctx.status,
-                hyper_request: ctx.hyper_request,
-                request_body: Some(Body::empty()),
-                request_parts: ctx.request_parts,
-                http_version: ctx.http_version,
-                headers: ctx.headers,
-            },
-        ))
+        Ok(String::from_utf8(
+            hyper::body::to_bytes(body).await?.to_vec(),
+        )?)
     }
 
     pub fn parts(&self) -> &Parts {
@@ -143,29 +127,15 @@ impl BasicHyperContext {
             .expect("Must call `to_owned_request` prior to getting parts")
     }
 
-    pub fn into_owned_request(self) -> BasicHyperContext {
-        let hyper_request = self.hyper_request.expect(
+    pub fn into_owned_request(&mut self) {
+        let hyper_request = self.hyper_request.take().expect(
             "`hyper_request` is None! That means `to_owned_request` has already been called",
         );
         let (parts, body) = hyper_request.request.into_parts();
 
-        BasicHyperContext {
-            body: self.body,
-            query_params: self.query_params,
-            status: self.status,
-            hyper_request: None,
-            request_body: Some(body),
-            request_parts: Some(parts),
-            http_version: self.http_version,
-            headers: self.headers,
-        }
-    }
-
-    ///
-    /// Set the response status code
-    ///
-    pub fn status(&mut self, code: u32) {
-        self.status = code.try_into().unwrap();
+        self.hyper_request = None;
+        self.request_body = Some(body);
+        self.request_parts = Some(parts);
     }
 
     ///
@@ -294,10 +264,45 @@ impl Context for BasicHyperContext {
     fn remove(&mut self, key: &str) {
         self.headers.remove(key);
     }
+
+    fn status(&mut self, code: u16) {
+        self.status = code;
+    }
 }
 
 impl HasQueryParams for BasicHyperContext {
     fn set_query_params(&mut self, query_params: HashMap<String, String>) {
         self.query_params = query_params;
+    }
+}
+
+#[async_trait]
+impl ContextExt for BasicHyperContext {
+    fn get_params(&self) -> &Params {
+        self.hyper_request.as_ref().unwrap().get_params()
+    }
+
+    fn json<T: serde::Serialize>(&mut self, body: &T) -> Result<(), Box<dyn std::error::Error>> {
+        self.set("Content-Type", "application/json");
+        self.body = Body::from(serde_json::to_vec::<T>(body)?);
+
+        Ok(())
+    }
+
+    async fn get_json<T: DeserializeOwned>(&mut self) -> Result<T, Box<dyn std::error::Error>> {
+        let body = self.request_body.take().unwrap_or_else(|| {
+            self.into_owned_request();
+            self.request_body.take().unwrap()
+        });
+
+        serde_json::from_slice::<T>(&hyper::body::to_bytes(body).await?)
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+    }
+
+    fn get_req_header<'a>(&'a self, header: &str) -> Option<&'a str> {
+        self.parts()
+            .headers
+            .get(header)
+            .and_then(|v| v.to_str().ok())
     }
 }

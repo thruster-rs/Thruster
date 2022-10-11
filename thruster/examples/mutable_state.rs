@@ -66,8 +66,8 @@ fn main() {
             val: Arc::new(RwLock::new("original".to_string())),
         },
     )
-    .get("/set-value/:val", m!(Ctx, [state_setter]))
-    .get("/get-value", m!(Ctx, [state_getter]));
+    .get("/set-value/:val", m![state_setter])
+    .get("/get-value", m![state_getter]);
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);

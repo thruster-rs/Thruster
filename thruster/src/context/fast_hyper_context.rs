@@ -103,4 +103,8 @@ impl Context for FastHyperContext {
             .headers_mut()
             .remove(key);
     }
+
+    fn status(&mut self, code: u16) {
+        self.status = code;
+    }
 }

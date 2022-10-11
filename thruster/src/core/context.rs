@@ -29,4 +29,9 @@ pub trait Context {
 
     /// remove is used to remove a header on the outgoing response.
     fn remove(&mut self, key: &str);
+
+    /// sets the status on the response.
+    fn status(&mut self, _status: u16) {
+        // Do nothing to not break compat
+    }
 }

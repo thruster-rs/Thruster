@@ -26,8 +26,8 @@ fn main() {
     info!("Starting server...");
 
     let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
-        .get("/plaintext", m!(Ctx, [plaintext]))
-        .set404(m!(Ctx, [test_fn_404]));
+        .get("/plaintext", m![plaintext])
+        .set404(m![test_fn_404]);
 
     let mut server = SSLHyperServer::new(app);
     server.cert(include_bytes!("./cert.pem").to_vec());

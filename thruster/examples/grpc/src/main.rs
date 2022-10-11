@@ -74,7 +74,7 @@
 //         App::<HyperRequest, Ctx, MyGreeter>::create(generate_context, MyGreeter::default());
 //     app.post(
 //         "/helloworld.Greeter/SayHello",
-//         m!(Ctx, [rpc]),
+//         m![rpc],
 //     );
 
 //     let server = HyperServer::new(app);
