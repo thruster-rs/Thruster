@@ -3,7 +3,6 @@ use actix_web::http::{HeaderMap, HeaderName};
 use http::header::SERVER;
 use http::HeaderValue;
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::str;
 
 use crate::core::context::Context;
@@ -99,28 +98,12 @@ impl BasicActixContext {
     ///
     /// Get the request body as a string
     ///
-    pub async fn get_body(self) -> Result<(String, BasicActixContext), Box<dyn std::error::Error>> {
-        let request = self.actix_request.unwrap();
+    pub async fn body_string(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+        let request = self.actix_request.as_ref().unwrap();
 
-        let results = String::from_utf8(request.payload).unwrap();
+        let results = String::from_utf8(request.payload.clone()).unwrap();
 
-        Ok((
-            results,
-            BasicActixContext {
-                query_params: self.query_params,
-                status: self.status,
-                actix_request: None,
-                response_body: Bytes::new(),
-                headers: self.headers,
-            },
-        ))
-    }
-
-    ///
-    /// Set the response status code
-    ///
-    pub fn status(&mut self, code: u32) {
-        self.status = code.try_into().unwrap();
+        Ok(results)
     }
 
     ///
@@ -245,6 +228,10 @@ impl Context for BasicActixContext {
 
     fn remove(&mut self, key: &str) {
         self.headers.remove(key);
+    }
+
+    fn status(&mut self, code: u16) {
+        self.status = code;
     }
 }
 

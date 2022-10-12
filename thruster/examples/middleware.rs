@@ -21,7 +21,7 @@ fn main() {
     info!("Starting server...");
 
     let mut app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
-        .use_middleware("/", m![cors])
+        .middleware("/", m![cors])
         .get("/plaintext", m![plaintext]);
 
     app.connection_timeout = 5000;

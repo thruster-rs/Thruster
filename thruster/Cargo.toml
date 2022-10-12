@@ -1,6 +1,6 @@
 [package]
 name = "thruster"
-version = "1.2.6"
+version = "1.3.0"
 authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
 description = "A middleware based http async web server."
 readme = "../README.md"
@@ -12,12 +12,28 @@ repository = "https://github.com/trezm/thruster"
 edition = "2018"
 
 [[example]]
+name = "custom_middleware_with_auth"
+required-features = ["hyper_server"]
+
+[[example]]
 name = "hello_world"
 required-features = []
 
 [[example]]
+name = "headers"
+required-features = ["hyper_server"]
+
+[[example]]
 name = "profiling"
 required-features = []
+
+[[example]]
+name = "query_params"
+required-features = ["hyper_server"]
+
+[[example]]
+name = "route_params"
+required-features = ["hyper_server"]
 
 [[example]]
 name = "most_basic_ssl"
@@ -29,6 +45,10 @@ required-features = []
 
 [[example]]
 name = "hyper_most_basic"
+required-features = ["hyper_server"]
+
+[[example]]
+name = "json"
 required-features = ["hyper_server"]
 
 [[example]]

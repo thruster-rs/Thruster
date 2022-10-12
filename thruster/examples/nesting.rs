@@ -31,7 +31,7 @@ fn main() {
 
     let app = App::<HyperRequest, Ctx, ()>::create(generate_context, ())
         .get("/plaintext", m![plaintext])
-        .use_sub_app("/nested", nested_app);
+        .router("/nested", nested_app);
 
     let server = HyperServer::new(app);
     server.start("0.0.0.0", 4321);

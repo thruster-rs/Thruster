@@ -4,7 +4,6 @@ use std::error::Error as StdError;
 pub struct ThrusterError<C> {
     pub context: C,
     pub message: String,
-    pub status: u32,
     pub cause: Option<Box<dyn StdError>>,
 }
 
@@ -19,45 +18,69 @@ impl<C: Context> Error<C> for ThrusterError<C> {
 }
 
 pub trait ErrorSet<C> {
+    /// Error specifically caused by parsing the incoming requests.
     fn parsing_error(context: C, error: &str) -> ThrusterError<C>;
+
+    /// Generic error for generalized or obfuscated bad requests.
     fn generic_error(context: C) -> ThrusterError<C>;
+
+    /// Error used for unauthorized access.
     fn unauthorized_error(context: C) -> ThrusterError<C>;
+
+    /// Error when a resource is not found.
     fn not_found_error(context: C) -> ThrusterError<C>;
+
+    /// An error denoting a failure on the server side.
+    fn server_error(context: C) -> ThrusterError<C>;
 }
 
 impl<C: Context> ErrorSet<C> for ThrusterError<C> {
-    fn parsing_error(context: C, error: &str) -> ThrusterError<C> {
+    fn parsing_error(mut context: C, error: &str) -> ThrusterError<C> {
+        context.status(400);
+
         ThrusterError {
             context,
             message: format!("Failed to parse '{}'", error),
-            status: 400,
             cause: None,
         }
     }
 
-    fn generic_error(context: C) -> ThrusterError<C> {
+    fn generic_error(mut context: C) -> ThrusterError<C> {
+        context.status(400);
+
         ThrusterError {
             context,
             message: "Something didn't work!".to_string(),
-            status: 400,
             cause: None,
         }
     }
 
-    fn unauthorized_error(context: C) -> ThrusterError<C> {
+    fn unauthorized_error(mut context: C) -> ThrusterError<C> {
+        context.status(401);
+
         ThrusterError {
             context,
             message: "Unauthorized".to_string(),
-            status: 401,
             cause: None,
         }
     }
 
-    fn not_found_error(context: C) -> ThrusterError<C> {
+    fn not_found_error(mut context: C) -> ThrusterError<C> {
+        context.status(404);
+
         ThrusterError {
             context,
             message: "Not found".to_string(),
-            status: 404,
+            cause: None,
+        }
+    }
+
+    fn server_error(mut context: C) -> ThrusterError<C> {
+        context.status(500);
+
+        ThrusterError {
+            context,
+            message: "Server error".to_string(),
             cause: None,
         }
     }
@@ -67,7 +90,6 @@ impl<C> std::fmt::Debug for ThrusterError<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ThrusterError")
             .field("message", &self.message)
-            .field("status", &self.status)
             .finish()
     }
 }
@@ -77,8 +99,17 @@ impl<C: Clone> Clone for ThrusterError<C> {
         ThrusterError {
             context: self.context.clone(),
             message: self.message.clone(),
-            status: self.status,
             cause: None,
+        }
+    }
+}
+
+impl<C: Clone + Default> From<Box<dyn std::error::Error>> for ThrusterError<C> {
+    fn from(e: Box<dyn std::error::Error>) -> Self {
+        ThrusterError {
+            context: C::default(),
+            message: e.to_string(),
+            cause: Some(e),
         }
     }
 }

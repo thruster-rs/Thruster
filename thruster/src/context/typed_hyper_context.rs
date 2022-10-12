@@ -1,17 +1,19 @@
+use async_trait::async_trait;
 use bytes::Bytes;
-use futures::stream::StreamExt;
 use http::header::{HeaderMap, HeaderName, HeaderValue};
 use http::request::Parts;
-use hyper::{Body, Error, Response, StatusCode};
+use hyper::{Body, Response, StatusCode};
+use serde::de::DeserializeOwned;
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::str;
 
-use crate::context::hyper_request::HyperRequest;
+use crate::context::{context_ext::ContextExt, hyper_request::HyperRequest};
 use crate::core::context::Context;
+use crate::RequestWithParams;
 
 use crate::middleware::cookies::{Cookie, CookieOptions, HasCookies, SameSite};
 use crate::middleware::query_params::HasQueryParams;
+use crate::parser::tree::Params;
 
 pub struct TypedHyperContext<S: 'static + Send> {
     pub body: Body,
@@ -98,35 +100,15 @@ impl<S: 'static + Send> TypedHyperContext<S> {
     ///
     /// Get the body as a string
     ///
-    pub async fn get_body(self) -> Result<(String, TypedHyperContext<S>), Error> {
-        let ctx = match self.request_body {
-            Some(_) => self,
-            None => self.into_owned_request(),
-        };
+    pub async fn body_string(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+        let body = self.request_body.take().unwrap_or_else(|| {
+            self.into_owned_request();
+            self.request_body.take().unwrap()
+        });
 
-        let mut results = "".to_string();
-        let mut unwrapped_body = ctx.request_body.unwrap();
-        while let Some(chunk) = unwrapped_body.next().await {
-            // TODO(trezm): Dollars to donuts this is pretty slow -- could make it faster with a
-            // mutable byte buffer.
-            results = format!("{}{}", results, String::from_utf8_lossy(chunk?.as_ref()));
-        }
-
-        Ok((
-            results,
-            TypedHyperContext {
-                body: ctx.body,
-                query_params: ctx.query_params,
-                headers: ctx.headers,
-                status: ctx.status,
-                hyper_request: ctx.hyper_request,
-                request_body: Some(Body::empty()),
-                request_parts: ctx.request_parts,
-                extra: ctx.extra,
-                http_version: ctx.http_version,
-                cookies: ctx.cookies,
-            },
-        ))
+        Ok(String::from_utf8(
+            hyper::body::to_bytes(body).await?.to_vec(),
+        )?)
     }
 
     pub fn parts(&self) -> &Parts {
@@ -135,33 +117,15 @@ impl<S: 'static + Send> TypedHyperContext<S> {
             .expect("Must call `to_owned_request` prior to getting parts")
     }
 
-    pub fn into_owned_request(self) -> TypedHyperContext<S> {
-        match self.hyper_request {
-            Some(hyper_request) => {
-                let (parts, body) = hyper_request.request.into_parts();
+    pub fn into_owned_request(&mut self) {
+        let hyper_request = self.hyper_request.take().expect(
+            "`hyper_request` is None! That means `to_owned_request` has already been called",
+        );
+        let (parts, body) = hyper_request.request.into_parts();
 
-                TypedHyperContext {
-                    body: self.body,
-                    query_params: self.query_params,
-                    headers: self.headers,
-                    status: self.status,
-                    hyper_request: None,
-                    request_body: Some(body),
-                    request_parts: Some(parts),
-                    extra: self.extra,
-                    http_version: self.http_version,
-                    cookies: self.cookies,
-                }
-            }
-            None => self,
-        }
-    }
-
-    ///
-    /// Set the response status code
-    ///
-    pub fn status(&mut self, code: u32) {
-        self.status = code.try_into().unwrap();
+        self.hyper_request = None;
+        self.request_body = Some(body);
+        self.request_parts = Some(parts);
     }
 
     ///
@@ -291,6 +255,10 @@ impl<S: 'static + Send> Context for TypedHyperContext<S> {
     fn remove(&mut self, key: &str) {
         self.headers.remove(key);
     }
+
+    fn status(&mut self, code: u16) {
+        self.status = code;
+    }
 }
 
 impl<S: 'static + Send> HasQueryParams for TypedHyperContext<S> {
@@ -328,5 +296,36 @@ impl<S: 'static + Send> HasCookies for TypedHyperContext<S> {
             .iter()
             .map(|v| v.to_str().unwrap_or("").to_string())
             .collect()
+    }
+}
+
+#[async_trait]
+impl<S: 'static + Send> ContextExt for TypedHyperContext<S> {
+    fn params(&self) -> &Params {
+        self.hyper_request.as_ref().unwrap().get_params()
+    }
+
+    fn json<T: serde::Serialize>(&mut self, body: &T) -> Result<(), Box<dyn std::error::Error>> {
+        self.set("Content-Type", "application/json");
+        self.body = Body::from(serde_json::to_vec::<T>(body)?);
+
+        Ok(())
+    }
+
+    async fn get_json<T: DeserializeOwned>(&mut self) -> Result<T, Box<dyn std::error::Error>> {
+        let body = self.request_body.take().unwrap_or_else(|| {
+            self.into_owned_request();
+            self.request_body.take().unwrap()
+        });
+
+        serde_json::from_slice::<T>(&hyper::body::to_bytes(body).await?)
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+    }
+
+    fn req_header<'a>(&'a self, header: &str) -> Option<&'a str> {
+        self.parts()
+            .headers
+            .get(header)
+            .and_then(|v| v.to_str().ok())
     }
 }

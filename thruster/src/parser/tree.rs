@@ -121,12 +121,13 @@ impl<T: 'static + Context + Clone + Send> Default for Node<T> {
             path_piece: ROOT_ROUTE_ID.to_string(),
             param_name: None,
             children: vec![],
-            committed_middleware: Box::new(|c| {
+            committed_middleware: Box::new(|mut c| {
                 ReusableBoxFuture::new(async move {
+                    c.status(404);
+
                     Err(ThrusterError {
                         context: c,
                         message: "Not found".to_string(),
-                        status: 1,
                         cause: None,
                     })
                 })

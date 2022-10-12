@@ -74,21 +74,14 @@ impl BasicContext {
     /// Set the response status code
     ///
     pub fn set_status(&mut self, code: u32) -> &mut BasicContext {
-        self.status(code);
+        self.status = code;
         self
     }
 
-    pub fn get_body(&self) -> String {
+    pub fn body_string(&self) -> String {
         str::from_utf8(&self.response.response)
             .unwrap_or("")
             .to_owned()
-    }
-
-    ///
-    /// Set the response status code
-    ///
-    pub fn status(&mut self, code: u32) {
-        self.status = code;
     }
 
     ///
@@ -194,6 +187,10 @@ impl Context for BasicContext {
 
     fn remove(&mut self, key: &str) {
         self.headers.remove(key);
+    }
+
+    fn status(&mut self, code: u16) {
+        self.set_status(code as u32);
     }
 }
 
