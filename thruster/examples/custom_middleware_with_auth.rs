@@ -21,12 +21,12 @@ struct User {
 
 #[derive(Default)]
 struct ServerConfig {
-    pool: Arc<Mutex<HashMap<String, User>>>,
+    fake_db: Arc<Mutex<HashMap<String, User>>>,
 }
 
 #[derive(Default)]
 struct RequestConfig {
-    pool: Arc<Mutex<HashMap<String, User>>>,
+    fake_db: Arc<Mutex<HashMap<String, User>>>,
     user: Option<User>,
 }
 
@@ -34,7 +34,7 @@ fn generate_context(request: HyperRequest, state: &ServerConfig, _path: &str) ->
     Ctx::new(
         request,
         RequestConfig {
-            pool: state.pool.clone(),
+            fake_db: state.fake_db.clone(),
             user: None,
         },
     )
@@ -51,7 +51,7 @@ async fn hello(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult
 
 #[middleware_fn]
 async fn authenticate(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let db = context.extra.pool.clone();
+    let db = context.extra.fake_db.clone();
 
     let session_header = context
         .get_header("Session-Token")
@@ -76,7 +76,7 @@ fn main() {
     let app = App::<HyperRequest, Ctx, ServerConfig>::create(
         generate_context,
         ServerConfig {
-            pool: Arc::new(Mutex::new(HashMap::from([
+            fake_db: Arc::new(Mutex::new(HashMap::from([
                 (
                     "lukes-secret-session-token".to_string(),
                     User {

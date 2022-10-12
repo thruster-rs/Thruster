@@ -18,10 +18,20 @@ impl<C: Context> Error<C> for ThrusterError<C> {
 }
 
 pub trait ErrorSet<C> {
+    /// Error specifically caused by parsing the incoming requests.
     fn parsing_error(context: C, error: &str) -> ThrusterError<C>;
+
+    /// Generic error for generalized or obfuscated bad requests.
     fn generic_error(context: C) -> ThrusterError<C>;
+
+    /// Error used for unauthorized access.
     fn unauthorized_error(context: C) -> ThrusterError<C>;
+
+    /// Error when a resource is not found.
     fn not_found_error(context: C) -> ThrusterError<C>;
+
+    /// An error denoting a failure on the server side.
+    fn server_error(context: C) -> ThrusterError<C>;
 }
 
 impl<C: Context> ErrorSet<C> for ThrusterError<C> {
@@ -61,6 +71,16 @@ impl<C: Context> ErrorSet<C> for ThrusterError<C> {
         ThrusterError {
             context,
             message: "Not found".to_string(),
+            cause: None,
+        }
+    }
+
+    fn server_error(mut context: C) -> ThrusterError<C> {
+        context.status(500);
+
+        ThrusterError {
+            context,
+            message: "Server error".to_string(),
             cause: None,
         }
     }
