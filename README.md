@@ -6,6 +6,8 @@
 [crates.io]: https://crates.io/crates/thruster
 [discord]: https://discord.gg/m9JrPRds
 
+[Get started with examples and walkthroughs on our website!](https://mertz.gitbook.io/thruster/)
+
 ## A fast and intuitive rust web framework
 
 Don't have time to read the docs? Check out
