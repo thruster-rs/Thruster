@@ -69,7 +69,8 @@ async fn authenticate(mut context: Ctx, next: MiddlewareNext<Ctx>) -> Middleware
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     env_logger::init();
     info!("Starting server...");
 
@@ -97,5 +98,5 @@ fn main() {
     .get("/hello", m![authenticate, hello]);
 
     let server = HyperServer::new(app);
-    server.start("0.0.0.0", 4321);
+    server.build("0.0.0.0", 4321).await;
 }
