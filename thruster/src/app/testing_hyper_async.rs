@@ -37,7 +37,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         route: &str,
         headers: Vec<(String, String)>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
-        let mut req = Request::builder().uri(route);
+        let mut req = Request::builder().uri(route).method("GET");
 
         for header in headers {
             req = req.header(&header.0, &header.1);
@@ -47,12 +47,12 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 
         Ok(response)
     }
-    async fn option(
+    async fn options(
         &self,
         route: &str,
         headers: Vec<(String, String)>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
-        let mut req = Request::builder().uri(route);
+        let mut req = Request::builder().uri(route).method("OPTIONS");
 
         for header in headers {
             req = req.header(&header.0, &header.1);
@@ -66,7 +66,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         headers: Vec<(String, String)>,
         body: Body,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
-        let mut req = Request::builder().uri(route);
+        let mut req = Request::builder().uri(route).method("POST");
 
         for header in headers {
             req = req.header(&header.0, &header.1);
@@ -81,7 +81,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         headers: Vec<(String, String)>,
         body: Body,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
-        let mut req = Request::builder().uri(route);
+        let mut req = Request::builder().uri(route).method("PUT");
 
         for header in headers {
             req = req.header(&header.0, &header.1);
@@ -95,7 +95,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         route: &str,
         headers: Vec<(String, String)>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
-        let mut req = Request::builder().uri(route);
+        let mut req = Request::builder().uri(route).method("DELETE");
 
         for header in headers {
             req = req.header(&header.0, &header.1);
@@ -110,7 +110,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         headers: Vec<(String, String)>,
         body: Body,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
-        let mut req = Request::builder().uri(route);
+        let mut req = Request::builder().uri(route).method("PATCH");
 
         for header in headers {
             req = req.header(&header.0, &header.1);

@@ -25,7 +25,7 @@ pub trait Testable {
         route: &str,
         headers: Vec<(String, String)>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>>;
-    async fn option(
+    async fn options(
         &self,
         route: &str,
         headers: Vec<(String, String)>,
