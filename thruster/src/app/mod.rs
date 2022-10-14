@@ -11,4 +11,46 @@ pub mod testing_async {
     pub use super::testing_hyper_async::*;
 }
 
+use async_trait::async_trait;
+pub use httparse::Header;
+use hyper::Body;
 pub use thruster_app::*;
+
+use self::testing_async::TestResponse;
+
+#[async_trait]
+pub trait Testable {
+    async fn get(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>>;
+    async fn option(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>>;
+    async fn post(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+        body: Body,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>>;
+    async fn put(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+        body: Body,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>>;
+    async fn delete(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>>;
+    async fn patch(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+        body: Body,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>>;
+}

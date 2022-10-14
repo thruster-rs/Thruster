@@ -4,8 +4,11 @@ use crate::app::App;
 
 use crate::context::hyper_request::HyperRequest;
 use crate::core::context::Context;
+use async_trait::async_trait;
 use hyper::body::HttpBody;
 use hyper::{body, Body, Request, Response};
+
+use super::Testable;
 
 pub async fn request<
     B: HttpBody + Send + std::marker::Unpin,
@@ -25,10 +28,102 @@ pub async fn request<
     TestResponse::new(response).await
 }
 
+#[async_trait]
+impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + Send + Sync> Testable
+    for App<HyperRequest, T, S>
+{
+    async fn get(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>> {
+        let mut req = Request::builder().uri(route);
+
+        for header in headers {
+            req = req.header(&header.0, &header.1);
+        }
+
+        let response = request(self, req.body(Body::default())?).await;
+
+        Ok(response)
+    }
+    async fn option(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>> {
+        let mut req = Request::builder().uri(route);
+
+        for header in headers {
+            req = req.header(&header.0, &header.1);
+        }
+
+        Ok(request(self, req.body(Body::default())?).await)
+    }
+    async fn post(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+        body: Body,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>> {
+        let mut req = Request::builder().uri(route);
+
+        for header in headers {
+            req = req.header(&header.0, &header.1);
+        }
+
+        Ok(request(self, req.body(body)?).await)
+    }
+
+    async fn put(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+        body: Body,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>> {
+        let mut req = Request::builder().uri(route);
+
+        for header in headers {
+            req = req.header(&header.0, &header.1);
+        }
+
+        Ok(request(self, req.body(body)?).await)
+    }
+
+    async fn delete(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>> {
+        let mut req = Request::builder().uri(route);
+
+        for header in headers {
+            req = req.header(&header.0, &header.1);
+        }
+
+        Ok(request(self, req.body(Body::default())?).await)
+    }
+
+    async fn patch(
+        &self,
+        route: String,
+        headers: Vec<(String, String)>,
+        body: Body,
+    ) -> Result<TestResponse, Box<dyn std::error::Error>> {
+        let mut req = Request::builder().uri(route);
+
+        for header in headers {
+            req = req.header(&header.0, &header.1);
+        }
+
+        Ok(request(self, req.body(body)?).await)
+    }
+}
+
 #[derive(Debug)]
 pub struct TestResponse {
     pub body: Vec<u8>,
-    pub headers: HashMap<String, String>,
+    pub headers: Vec<(String, String)>,
     pub trailers: Option<HashMap<String, String>>,
     pub status: u16,
 }
@@ -37,10 +132,10 @@ impl TestResponse {
     async fn new<B: HttpBody + Send + std::marker::Unpin>(
         mut response: Response<B>,
     ) -> TestResponse {
-        let mut headers = HashMap::new();
+        let mut headers = vec![];
 
         for (key, value) in response.headers().iter() {
-            headers.insert(key.as_str().to_owned(), value.to_str().unwrap().to_owned());
+            headers.push((key.as_str().to_owned(), value.to_str().unwrap().to_owned()));
         }
 
         let status = response.status().as_u16();
