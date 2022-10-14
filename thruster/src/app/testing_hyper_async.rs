@@ -34,7 +34,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 {
     async fn get(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
         let mut req = Request::builder().uri(route);
@@ -49,7 +49,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
     }
     async fn option(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
         let mut req = Request::builder().uri(route);
@@ -62,7 +62,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
     }
     async fn post(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
         body: Body,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
@@ -77,7 +77,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 
     async fn put(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
         body: Body,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
@@ -92,7 +92,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 
     async fn delete(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
         let mut req = Request::builder().uri(route);
@@ -106,7 +106,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
 
     async fn patch(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
         body: Body,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
