@@ -22,34 +22,34 @@ use self::testing_async::TestResponse;
 pub trait Testable {
     async fn get(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>>;
     async fn option(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>>;
     async fn post(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
         body: Body,
     ) -> Result<TestResponse, Box<dyn std::error::Error>>;
     async fn put(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
         body: Body,
     ) -> Result<TestResponse, Box<dyn std::error::Error>>;
     async fn delete(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>>;
     async fn patch(
         &self,
-        route: String,
+        route: &str,
         headers: Vec<(String, String)>,
         body: Body,
     ) -> Result<TestResponse, Box<dyn std::error::Error>>;
