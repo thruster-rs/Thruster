@@ -25,6 +25,7 @@ pub use crate::core::response::{encode, Response};
 pub use crate::core::{MiddlewareFn, MiddlewareNext, MiddlewareReturnValue};
 pub use app::testing_async as testing;
 pub use app::App;
+pub use app::Testable;
 
 // Reexport tokio_util::sync::ReusableBoxFuture;
 pub use tokio_util::sync::ReusableBoxFuture;
