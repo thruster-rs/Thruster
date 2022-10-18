@@ -18,14 +18,12 @@ pub async fn request<
     app: &App<HyperRequest, T, S>,
     request: Request<Body>,
 ) -> TestResponse {
-    let uri = request.uri().to_string();
-    let matched_route = app.resolve_from_method_and_path(request.method().as_str(), uri);
-    let response = app
-        .resolve(HyperRequest::new(request), matched_route)
-        .await
-        .unwrap();
-
-    TestResponse::new(response).await
+    TestResponse::new(
+        app.match_and_resolve(HyperRequest::new(request))
+            .await
+            .unwrap(),
+    )
+    .await
 }
 
 #[async_trait]
@@ -174,5 +172,11 @@ impl TestResponse {
 
     pub fn body_string(&self) -> String {
         std::str::from_utf8(&self.body).unwrap().to_string()
+    }
+
+    pub fn expect_status(self, status: u16, message: &str) -> Self {
+        assert_eq!(self.status, status, "{}", message);
+
+        self
     }
 }
