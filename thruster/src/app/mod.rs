@@ -13,8 +13,6 @@ pub mod testing_async {
 
 use async_trait::async_trait;
 pub use httparse::Header;
-#[cfg(feature = "hyper_server")]
-use hyper::Body;
 pub use thruster_app::*;
 
 use self::testing_async::TestResponse;
@@ -35,13 +33,13 @@ pub trait Testable {
         &self,
         route: &str,
         headers: Vec<(String, String)>,
-        body: Body,
+        body: Vec<u8>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>>;
     async fn put(
         &self,
         route: &str,
         headers: Vec<(String, String)>,
-        body: Body,
+        body: Vec<u8>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>>;
     async fn delete(
         &self,
@@ -52,6 +50,6 @@ pub trait Testable {
         &self,
         route: &str,
         headers: Vec<(String, String)>,
-        body: Body,
+        body: Vec<u8>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>>;
 }
