@@ -13,6 +13,7 @@ pub mod testing_async {
 
 use async_trait::async_trait;
 pub use httparse::Header;
+#[cfg(feature = "hyper_server")]
 use hyper::Body;
 pub use thruster_app::*;
 
