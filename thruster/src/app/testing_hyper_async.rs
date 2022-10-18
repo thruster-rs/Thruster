@@ -62,7 +62,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         &self,
         route: &str,
         headers: Vec<(String, String)>,
-        body: Body,
+        body: Vec<u8>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
         let mut req = Request::builder().uri(route).method("POST");
 
@@ -70,14 +70,14 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
             req = req.header(&header.0, &header.1);
         }
 
-        Ok(request(self, req.body(body)?).await)
+        Ok(request(self, req.body(Body::from(body))?).await)
     }
 
     async fn put(
         &self,
         route: &str,
         headers: Vec<(String, String)>,
-        body: Body,
+        body: Vec<u8>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
         let mut req = Request::builder().uri(route).method("PUT");
 
@@ -85,7 +85,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
             req = req.header(&header.0, &header.1);
         }
 
-        Ok(request(self, req.body(body)?).await)
+        Ok(request(self, req.body(Body::from(body))?).await)
     }
 
     async fn delete(
@@ -106,7 +106,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         &self,
         route: &str,
         headers: Vec<(String, String)>,
-        body: Body,
+        body: Vec<u8>,
     ) -> Result<TestResponse, Box<dyn std::error::Error>> {
         let mut req = Request::builder().uri(route).method("PATCH");
 
@@ -114,7 +114,7 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
             req = req.header(&header.0, &header.1);
         }
 
-        Ok(request(self, req.body(body)?).await)
+        Ok(request(self, req.body(Body::from(body))?).await)
     }
 }
 
