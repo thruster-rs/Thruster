@@ -118,14 +118,13 @@ impl<S: 'static + Send> TypedHyperContext<S> {
     }
 
     pub fn into_owned_request(&mut self) {
-        let hyper_request = self.hyper_request.take().expect(
-            "`hyper_request` is None! That means `to_owned_request` has already been called",
-        );
-        let (parts, body) = hyper_request.request.into_parts();
+        if let Some(hyper_request) = self.hyper_request.take() {
+            let (parts, body) = hyper_request.request.into_parts();
 
-        self.hyper_request = None;
-        self.request_body = Some(body);
-        self.request_parts = Some(parts);
+            self.hyper_request = None;
+            self.request_body = Some(body);
+            self.request_parts = Some(parts);
+        }
     }
 
     ///
@@ -323,9 +322,17 @@ impl<S: 'static + Send> ContextExt for TypedHyperContext<S> {
     }
 
     fn req_header<'a>(&'a self, header: &str) -> Option<&'a str> {
-        self.parts()
-            .headers
-            .get(header)
-            .and_then(|v| v.to_str().ok())
+        match &self.hyper_request {
+            Some(hyper_request) => hyper_request
+                .request
+                .headers()
+                .get(header)
+                .and_then(|v| v.to_str().ok()),
+            None => self
+                .parts()
+                .headers
+                .get(header)
+                .and_then(|v| v.to_str().ok()),
+        }
     }
 }
