@@ -367,6 +367,6 @@ A bit more direct is nice!
 - It's got few maintainers (pretty much just one.)
 - There are other projects that have been _far_ more battle tested. Thruster is in use in production, but nowhere that you'd know or that matters.
 - It hasn't been optimized by wicked smarties. @trezm tries his best, but keeps getting distracted by his dog.
-- Serously, this framework could be great, but it definitely hasn't been poked and proded like others. Your help could go a long way to making it more secure and robust, but we might now be there just yet.
+- Serously, this framework could be great, but it definitely hasn't been poked and proded like others. Your help could go a long way to making it more secure and robust, but we might not be there just yet.
 
 If you got this far, thanks for reading! Always feel free to reach out.
