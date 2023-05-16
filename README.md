@@ -118,9 +118,7 @@ fn main() {
 
 ### Error handling
 
-It's recommended to use the `map_try!` macro from the main package. This has the same function as `try!`, but with the ability to properly map the error in a way that the compiler knows that execution ends (so there's no movement issues with `context`.)
-
-This ends up looking like:
+Here's a nice example
 
 ```rust
 use thruster::errors::ThrusterError as Error;
@@ -137,92 +135,36 @@ async fn plaintext(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareRe
 
 #[middleware_fn]
 async fn error(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let res = "Hello, world".parse::<u32>();
-    let non_existent_param = map_try!(res, Err(_) => {
-        Error {
-          context,
-          message: "Parsing failure!".to_string(),
-          status: 400
-        }
-      }
-    );
+    let res = "Hello, world".parse::<u32>()
+        .map_err(|_| {
+            let mut context = Ctx::default();
+            
+            context.status(400);
+
+            ThrusterError {
+                context,
+                message: "Custom error message".to_string(),
+                cause: None,
+            }
+        }?;
 
     context.body(&format!("{}", non_existent_param));
 
     Ok(context)
 }
 
-#[middleware_fn]
-async fn json_error_handler(context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let res = next(context).await;
-
-    let ctx = match res {
-        Ok(val) => val,
-        Err(e) => {
-            let mut context = e.context;
-            context.body(&format!(
-                "{{\"message\": \"{}\",\"success\":false}}",
-                e.message
-            ));
-            context.status(e.status);
-            context
-        }
-    };
-
-    Ok(ctx)
-}
-
 #[tokio::main]
 fn main() {
     println!("Starting server...");
 
-    let mut app = App::<Request, Ctx, ()>::new_basic();
-
-    app.use_middleware("/", m![json_error_handler]);
-
-    app.get("/plaintext", m![plaintext]);
-    app.get("/error", m![error]);
+    let app = App::<Request, Ctx, ()>::new_basic()
+        .get("/plaintext", m![plaintext])
+        .get("/error", m![error]);
 
     let server = Server::new(app);
     server.build("0.0.0.0", 4321).await;
 }
 ```
-
-### Quick setup without a DB
-
-The easiest way to get started is to just clone the [starter kit](https://github.com/trezm/thruster-starter-kit)
-
-```bash
-> git clone git@github.com:trezm/thruster-starter-kit.git
-> cd thruster-starter-kit
-> cargo run
-```
-
-The example provides a simple plaintext route, a route with JSON serialization, and the preferred way to organize sub routes using sub apps.
-
-### Quick setup with Postgres
-
-The easiest way to get started with Postgres is to install thruster-cli,
-
-```bash
-> cargo install thruster-cli
-```
-
-And then to run
-
-```bash
-> thruster-cli init MyAwesomeProject
-> thruster-cli component Users
-> thruster-cli migrate
-```
-
-Which will generate everything you need to get started! Note that this requires a running Postgres connection and assumes the following connection string is valid:
-
-```
-postgres://postgres@localhost/<Your Project Name>
-```
-
-This is all configurable and none of it is hidden from the developer. It's like seeing the magic trick and learning how it's done! Check out the docs for [thruster-cli here](https://github.com/trezm/thruster-cli).
 
 ## Testing
 Thruster provides an easy test suite to test your endpoints, simply include the `testing` module as below:
@@ -290,16 +232,6 @@ Within the `build` function, the server implementation should:
 - Call `let matched = app.resolve_from_method_and_path(<some method>, <some path>);` (This is providing the actual routing.)
 - Call `app.resolve(<incoming request>, matched)` (This runs the chained middleware.)
 
-## Using cargo generate
-
-_Note: This hasn't yet been updated for the latest version of Thruster_
-
-If you have `cargo generate` installed, you can simply run the [cargo generator](https://github.com/ami44/thruster-basic-template)
-
-```
-cargo generate --git https://github.com/ami44/thruster-basic-template.git --name myproject
-```
-
 ## Why you should use Thruster
 - Change your backends at will. Out of the box, Thruster now can be used over: [actix-web](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/actix_most_basic.rs), [hyper](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/hyper_most_basic.rs), or [a custom backend](https://github.com/thruster-rs/Thruster/blob/master/thruster/examples/hello_world.rs)
 - Thruster supports [testing](#testing) from the framework level
@@ -366,7 +298,7 @@ A bit more direct is nice!
 ## Why you shouldn't use Thruster
 - It's got few maintainers (pretty much just one.)
 - There are other projects that have been _far_ more battle tested. Thruster is in use in production, but nowhere that you'd know or that matters.
-- It hasn't been optimized by wicked smarties. @trezm tries his best, but keeps getting distracted by his dog.
-- Serously, this framework could be great, but it definitely hasn't been poked and proded like others. Your help could go a long way to making it more secure and robust, but we might not be there just yet.
+- It hasn't been optimized by wicked smarties. @trezm tries his best, but keeps getting distracted by his dog(s).
+- Serously, this framework ~could be~ _is_ great, but it definitely hasn't been poked and proded like others. Your help could go a long way to making it more secure and robust, but we might not be there just yet.
 
 If you got this far, thanks for reading! Always feel free to reach out.
