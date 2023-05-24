@@ -773,6 +773,35 @@ pub mod test {
     }
 
     #[test]
+    fn it_should_return_the_value_ending_with_a_wildcard_path() {
+        async fn f1(a: i32, _b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
+            Ok(a + 1)
+        }
+
+        async fn f2(a: i32, _b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
+            Ok(a - 1)
+        }
+
+        let _ = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async move {
+                let mut root: Node<i32> = Node::default();
+
+                root.add_value_at_path("/a/b", MiddlewareTuple::A(pinbox!(i32, f1)));
+                root.add_value_at_path("/*", MiddlewareTuple::A(pinbox!(i32, f2)));
+                let committed = root.commit();
+
+                let node = committed.get_value_at_path("/a/b/c".to_owned());
+                let value = node.value;
+                assert_eq!((value)(0_i32).await.unwrap(), -1);
+
+                let node = committed.get_value_at_path("/a/b".to_owned());
+                let value = node.value;
+                assert_eq!((value)(0_i32).await.unwrap(), 1);
+            });
+    }
+
+    #[test]
     fn it_should_return_the_value_at_a_paramaterized_path() {
         async fn f1(a: i32, _b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
             Ok(a + 1)

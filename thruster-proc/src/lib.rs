@@ -86,16 +86,16 @@ pub fn middleware(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn middleware_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let syn::Item::Fn(mut function_item) = syn::parse(item.clone()).unwrap() {
-        let name = function_item.ident.clone();
+        let name = function_item.sig.ident.clone();
         let new_name = Ident::new(&format!("__async_{}", name), Span2::call_site());
-        function_item.ident = new_name.clone();
+        function_item.sig.ident = new_name.clone();
 
         let visibility = function_item.vis.clone();
-        let arguments = function_item.decl.inputs.clone();
-        let generics = function_item.decl.generics.clone();
+        let arguments = function_item.sig.inputs.clone();
+        let generics = function_item.sig.generics.clone();
 
         let context_type = match &arguments[0] {
-            syn::FnArg::Captured(cap) => &cap.ty,
+            syn::FnArg::Typed(cap) => &cap.ty,
             _ => panic!("Expected the first argument to be a context type"),
         };
         let new_return_type = Ident::new(
@@ -130,6 +130,97 @@ pub fn middleware_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
     } else {
         item
     }
+}
+
+#[proc_macro]
+pub fn context_state(items: TokenStream) -> TokenStream {
+    let mut items = proc_macro2::TokenStream::from(items).into_iter();
+
+    let name = if let Some(TokenTree2::Ident(i)) = items.next() {
+        i
+    } else {
+        panic!("First token must be an identifier, like `State` or `Config`.");
+    };
+
+    'fat_arrow: {
+        if let (Some(TokenTree2::Punct(p1)), Some(TokenTree2::Punct(p2))) =
+            (items.next(), items.next())
+        {
+            if p1.as_char() == '=' && p2.as_char() == '>' {
+                break 'fat_arrow;
+            }
+        }
+
+        panic!("Second token must be =>");
+    };
+
+    let mut groups = vec![];
+    let mut current_group = vec![];
+
+    if let Some(TokenTree2::Group(items)) = items.next() {
+        for token in items.stream().into_iter() {
+            if let TokenTree2::Punct(p) = &token {
+                if p.as_char() == ',' {
+                    groups.push(current_group);
+                    current_group = vec![];
+                } else {
+                    current_group.push(token);
+                }
+            } else {
+                current_group.push(token);
+            }
+        }
+    } else {
+        panic!("Third argument must be a group in the form of [], (), or braces.");
+    }
+
+    if !current_group.is_empty() {
+        groups.push(current_group);
+    }
+
+    let groups = groups
+        .into_iter()
+        .map(|v| {
+            let mut stream = TokenStream2::new();
+            stream.extend(v);
+            stream
+        })
+        .collect::<Vec<TokenStream2>>();
+
+    let mut impls = vec![];
+    let trait_name = Ident::new(&format!("{}GetField", name), Span2::call_site());
+
+    let mut i = 0;
+    for group in groups.iter() {
+        let i_token = proc_macro2::Literal::usize_unsuffixed(i);
+        impls.push(quote! {
+            impl #trait_name<#group> for #name {
+                fn get(&self) -> &#group {
+                    &self.#i_token
+                }
+
+                fn get_mut(&mut self) -> &mut #group {
+                    &mut self.#i_token
+                }
+            }
+        });
+        i += 1;
+    }
+
+    let gen = quote! {
+        pub type #name = (#(#groups),*);
+
+        pub trait #trait_name<T> {
+            fn get(&self) -> &T;
+            fn get_mut(&mut self) -> &mut T;
+        }
+
+        #(
+            #impls
+        )*
+    };
+
+    gen.into()
 }
 
 #[proc_macro]

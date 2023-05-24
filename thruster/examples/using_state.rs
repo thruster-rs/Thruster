@@ -12,7 +12,6 @@ type Ctx = TypedHyperContext<RequestConfig>;
 struct ServerConfig {
     server_id: String,
 }
-
 struct RequestConfig {
     server_id: String,
     path: String,
