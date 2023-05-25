@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use log::info;
 use thruster::{
     context::typed_hyper_context::TypedHyperContext,
@@ -10,63 +11,31 @@ use thruster::{
     middleware::cookies::HasCookies,
     middleware_fn, App, HyperRequest, MiddlewareNext, MiddlewareResult, ThrusterServer,
 };
+use thruster_jab::{fetch, provide, JabDI};
+use thruster_proc::context_state;
 use tokio::sync::Mutex;
 
-type Ctx = TypedHyperContext<RequestConfig>;
+type Ctx = TypedHyperContext<State>;
 
-struct User {
-    first: String,
-    last: String,
-}
+context_state!(State => [Arc<JabDI>, Option<User>]);
 
 #[derive(Default)]
 struct ServerConfig {
-    fake_db: Arc<Mutex<HashMap<String, User>>>,
-}
-
-#[derive(Default)]
-struct RequestConfig {
-    fake_db: Arc<Mutex<HashMap<String, User>>>,
-    user: Option<User>,
+    di: Arc<JabDI>,
 }
 
 fn generate_context(request: HyperRequest, state: &ServerConfig, _path: &str) -> Ctx {
-    Ctx::new(
-        request,
-        RequestConfig {
-            fake_db: state.fake_db.clone(),
-            user: None,
-        },
-    )
+    Ctx::new(request, (state.di.clone(), None))
 }
 
 #[middleware_fn]
 async fn hello(mut context: Ctx, _next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let user = context.extra.user.as_ref().unwrap();
+    let user: &Option<User> = context.extra.get();
+    let user = user.as_ref().unwrap();
 
     context.body(&format!("Hello, {} {}", user.first, user.last));
 
     Ok(context)
-}
-
-#[middleware_fn]
-async fn authenticate(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
-    let db = context.extra.fake_db.clone();
-
-    let session_header = context
-        .get_header("Session-Token")
-        .pop()
-        .unwrap_or_default();
-
-    let user = db.lock().await.remove(&session_header);
-
-    match user {
-        Some(user) => {
-            context.extra.user = Some(user);
-            next(context).await
-        }
-        None => Err(ThrusterError::unauthorized_error(context)),
-    }
 }
 
 #[tokio::main]
@@ -74,10 +43,38 @@ async fn main() {
     env_logger::init();
     info!("Starting server...");
 
+    let mut jab = JabDI::default();
+    provide!(jab, dyn AuthProvider, FakeAuthenticator::default());
+
     let app = App::<HyperRequest, Ctx, ServerConfig>::create(
         generate_context,
-        ServerConfig {
-            fake_db: Arc::new(Mutex::new(HashMap::from([
+        ServerConfig { di: Arc::new(jab) },
+    )
+    .get("/hello", m![authenticate, hello]);
+
+    let server = HyperServer::new(app);
+    server.build("0.0.0.0", 4321).await;
+}
+
+// This stection starts the custom middleawre
+pub struct User {
+    first: String,
+    last: String,
+}
+
+#[async_trait]
+trait AuthProvider {
+    async fn authenticate(&self, session_token: &str) -> Result<User, ()>;
+}
+
+struct FakeAuthenticator {
+    fake_db: Mutex<HashMap<String, User>>,
+}
+
+impl Default for FakeAuthenticator {
+    fn default() -> Self {
+        Self {
+            fake_db: Mutex::new(HashMap::from([
                 (
                     "lukes-secret-session-token".to_string(),
                     User {
@@ -92,11 +89,34 @@ async fn main() {
                         last: "Skywalker".to_string(),
                     },
                 ),
-            ]))),
-        },
-    )
-    .get("/hello", m![authenticate, hello]);
+            ])),
+        }
+    }
+}
 
-    let server = HyperServer::new(app);
-    server.build("0.0.0.0", 4321).await;
+#[async_trait]
+impl AuthProvider for FakeAuthenticator {
+    async fn authenticate(&self, session_token: &str) -> Result<User, ()> {
+        self.fake_db.lock().await.remove(session_token).ok_or(())
+    }
+}
+
+#[middleware_fn]
+async fn authenticate(mut context: Ctx, next: MiddlewareNext<Ctx>) -> MiddlewareResult<Ctx> {
+    let di: &Arc<JabDI> = context.extra.get();
+    let auth = fetch!(di, dyn AuthProvider);
+
+    let session_header = context
+        .get_header("Session-Token")
+        .pop()
+        .unwrap_or_default();
+
+    let user = auth
+        .authenticate(&session_header)
+        .await
+        .map_err(|_| ThrusterError::unauthorized_error(Ctx::default()))?;
+
+    *context.extra.get_mut() = Some(user);
+
+    next(context).await
 }
