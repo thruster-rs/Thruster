@@ -132,26 +132,25 @@ pub fn middleware_fn(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 }
 
-#[proc_macro]
-pub fn context_state(items: TokenStream) -> TokenStream {
-    let mut items = proc_macro2::TokenStream::from(items).into_iter();
+#[proc_macro_attribute]
+pub fn context_state(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let item = proc_macro2::TokenStream::from(item);
+    let mut items = item.clone().into_iter();
+
+    loop {
+        if let Some(TokenTree2::Ident(i)) = items.next() {
+            if &i.to_string() == "struct" {
+                break;
+            }
+        } else {
+            panic!("First token must be an identifier, like `State` or `Config`.");
+        }
+    }
 
     let name = if let Some(TokenTree2::Ident(i)) = items.next() {
         i
     } else {
         panic!("First token must be an identifier, like `State` or `Config`.");
-    };
-
-    'fat_arrow: {
-        if let (Some(TokenTree2::Punct(p1)), Some(TokenTree2::Punct(p2))) =
-            (items.next(), items.next())
-        {
-            if p1.as_char() == '=' && p2.as_char() == '>' {
-                break 'fat_arrow;
-            }
-        }
-
-        panic!("Second token must be =>");
     };
 
     let mut groups = vec![];
@@ -187,14 +186,14 @@ pub fn context_state(items: TokenStream) -> TokenStream {
         })
         .collect::<Vec<TokenStream2>>();
 
+
     let mut impls = vec![];
-    let trait_name = Ident::new(&format!("{}GetField", name), Span2::call_site());
 
     let mut i = 0;
     for group in groups.iter() {
         let i_token = proc_macro2::Literal::usize_unsuffixed(i);
         impls.push(quote! {
-            impl #trait_name<#group> for #name {
+            impl ContextState<#group> for #name {
                 fn get(&self) -> &#group {
                     &self.#i_token
                 }
@@ -208,12 +207,9 @@ pub fn context_state(items: TokenStream) -> TokenStream {
     }
 
     let gen = quote! {
-        pub type #name = (#(#groups),*);
+        #item
 
-        pub trait #trait_name<T> {
-            fn get(&self) -> &T;
-            fn get_mut(&mut self) -> &mut T;
-        }
+        use thruster::ContextState;
 
         #(
             #impls
