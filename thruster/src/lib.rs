@@ -23,6 +23,7 @@ pub use crate::core::middleware::MiddlewareResult;
 pub use crate::core::request::{decode, Request, RequestWithParams, ThrusterRequest};
 pub use crate::core::response::{encode, Response};
 pub use crate::core::{MiddlewareFn, MiddlewareNext, MiddlewareReturnValue};
+pub use crate::core::context_state::ContextState;
 pub use app::testing_async as testing;
 pub use app::App;
 pub use app::Testable;
