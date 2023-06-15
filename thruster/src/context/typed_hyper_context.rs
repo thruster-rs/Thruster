@@ -317,8 +317,12 @@ impl<S: 'static + Send> ContextExt for TypedHyperContext<S> {
             self.request_body.take().unwrap()
         });
 
-        serde_json::from_slice::<T>(&hyper::body::to_bytes(body).await?)
-            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+        let bytes = hyper::body::to_bytes(body).await?;
+        let deserialized = serde_json::from_slice::<T>(&bytes)
+            .map_err(|e| Box::new(e) as Box<dyn std::error::Error>);
+        self.request_body = Some(hyper::body::Body::from(bytes));
+
+        deserialized
     }
 
     fn req_header<'a>(&'a self, header: &str) -> Option<&'a str> {
