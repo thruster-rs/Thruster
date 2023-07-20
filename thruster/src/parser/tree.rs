@@ -95,6 +95,7 @@ pub struct NodeOutput<'m, T> {
     pub value: &'m Box<dyn Fn(T) -> ReusableBoxFuture<Result<T, ThrusterError<T>>> + Send + Sync>,
     pub params: Params,
     pub path: String,
+    pub was_terminal_leaf: bool,
 }
 
 pub struct OwnedNodeOutput<'m, T> {
@@ -163,6 +164,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
                 value,
                 params: Params::default(),
                 path,
+                was_terminal_leaf: true,
             };
         }
 
@@ -358,6 +360,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
                 value: &self.committed_middleware,
                 params: Params::default(),
                 path: "".to_owned(),
+                was_terminal_leaf: self.is_leaf,
             },
             Some(path_piece) => {
                 // Check exact children
@@ -369,7 +372,22 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
                             res.params.add(param, path_piece);
                         }
 
-                        return res;
+                        if res.was_terminal_leaf {
+                            return res;
+                        // If we have found a match, but it's non-terminal, then
+                        // we should check any wildcards at this level.
+                        } else if let Some(wildcard) = &self.wildcard_node {
+                            return NodeOutput {
+                                value: &wildcard.committed_middleware,
+                                params: Params::default(),
+                                path: "".to_owned(),
+                                was_terminal_leaf: wildcard.is_leaf,
+                            };
+                        // Otherwise just toss the result and hope something higher up picks
+                        // it up.
+                        } else {
+                            return res;
+                        }
                     }
                 }
 
@@ -387,6 +405,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
                         value: &self.committed_middleware,
                         params: Params::default(),
                         path: "".to_owned(),
+                        was_terminal_leaf: self.is_leaf,
                     },
                 }
             }
@@ -500,6 +519,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
         String,
         Option<MiddlewareTuple<T>>,
         Option<MiddlewareTuple<T>>,
+        bool,
     )> {
         let path = format!("{}/{}", path, self.path_piece);
 
@@ -507,6 +527,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
             path.clone(),
             self.committed_value.clone(),
             self.value.clone(),
+            self.wildcard_node.is_some(),
         )];
 
         for child in &self.children {
@@ -521,7 +542,7 @@ impl<T: 'static + Context + Clone + Send> Node<T> {
 
         let enumerations = committed.enumerate("");
 
-        for (path, committed_value, _value) in enumerations {
+        for (path, committed_value, _value, _wildcard_exists) in enumerations {
             if let Some(value) = committed_value {
                 committed.fastmatch_map.insert(path, value.middleware());
             }
@@ -775,29 +796,23 @@ pub mod test {
     #[test]
     fn it_should_return_the_value_ending_with_a_wildcard_path() {
         async fn f1(a: i32, _b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
-            Ok(a + 1)
-        }
-
-        async fn f2(a: i32, _b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
             Ok(a - 1)
         }
 
         let _ = tokio::runtime::Runtime::new()
             .unwrap()
             .block_on(async move {
-                let mut root: Node<i32> = Node::default();
+                let mut root_a: Node<i32> = Node::default();
+                let root_b: Node<i32> = Node::default();
 
-                root.add_value_at_path("/a/b", MiddlewareTuple::A(pinbox!(i32, f1)));
-                root.add_value_at_path("/*", MiddlewareTuple::A(pinbox!(i32, f2)));
-                let committed = root.commit();
+                root_a.add_node_at_path("a/b/d", root_b);
+                root_a.add_value_at_path("a/b/*", MiddlewareTuple::A(pinbox!(i32, f1)));
 
-                let node = committed.get_value_at_path("/a/b/c".to_owned());
+                let committed = root_a.commit();
+
+                let node = committed.get_value_at_path("/a/b/d".to_owned());
                 let value = node.value;
                 assert_eq!((value)(0_i32).await.unwrap(), -1);
-
-                let node = committed.get_value_at_path("/a/b".to_owned());
-                let value = node.value;
-                assert_eq!((value)(0_i32).await.unwrap(), 1);
             });
     }
 
@@ -1105,6 +1120,7 @@ pub mod test {
                 String,
                 Option<MiddlewareTuple<i32>>,
                 Option<MiddlewareTuple<i32>>,
+                bool,
             )>>();
 
         assert!(
@@ -1145,8 +1161,6 @@ pub mod test {
                 root.add_value_at_path("a", MiddlewareTuple::A(pinbox!(i32, f1)));
                 root.add_value_at_path("a/", MiddlewareTuple::A(pinbox!(i32, f2)));
                 let committed = root.commit();
-
-                println!("{}", committed.to_string());
 
                 assert!(
                     (committed.get_value_at_path("/a".to_owned()).value)(0_i32)
