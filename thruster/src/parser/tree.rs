@@ -815,6 +815,33 @@ pub mod test {
                 assert_eq!((value)(0_i32).await.unwrap(), -1);
             });
     }
+    #[test]
+    fn it_should_apply_middlewares_up_the_chain() {
+        async fn f1(a: i32, _b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
+            Ok(a - 1)
+        }
+
+        async fn f2(a: i32, b: NextFn<i32>) -> Result<i32, ThrusterError<i32>> {
+            (b)(a - 2).await
+        }
+
+        let _ = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async move {
+                let mut root_a: Node<i32> = Node::default();
+                let mut root_b: Node<i32> = Node::default();
+
+		root_b.add_value_at_path("/", MiddlewareTuple::A(pinbox!(i32, f1)));
+                root_a.add_non_leaf_value_at_path("/", MiddlewareTuple::A(pinbox!(i32, f2)));
+                root_a.add_node_at_path("a/b/d", root_b);
+
+                let committed = root_a.commit();
+
+                let node = committed.get_value_at_path("/a/b/d".to_owned());
+                let value = node.value;
+                assert_eq!((value)(0_i32).await.unwrap(), -3);
+            });
+    }
 
     #[test]
     fn it_should_return_the_value_at_a_paramaterized_path() {
