@@ -339,7 +339,10 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
 
         let ctx = match ctx {
             Ok(val) => val,
-            Err(e) => e.context,
+            Err(mut e) => {
+                e.context.set_body(e.message.into_bytes());
+                e.context
+            }
         };
 
         Ok(ctx.get_response())
