@@ -291,10 +291,7 @@ impl<R: 'static + ThrusterRequest, T: Context + Clone + Send + Sync, S: 'static 
         ReusableBoxFuture::new((node.value)(context).map(|ctx| {
             let ctx = match ctx {
                 Ok(val) => val,
-                Err(mut e) => {
-                    e.context.set_body(e.message.into_bytes());
-                    e.context
-                }
+                Err(e) => e.context,
             };
 
             Ok(ctx.get_response())
