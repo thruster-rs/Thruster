@@ -5,6 +5,32 @@ type Next<T, TO> = Box<dyn Fn(T) -> TO>;
 
 #[tokio::main]
 async fn main() {
+    struct Person {
+        first: String,
+        last: String,
+    }
+
+    let f: ChainableFn<_, _, _> = (
+        // Parse as csv
+        |a: String, next: AsyncNext<Person, _>| async move { 
+            let mut split = a.split(",");
+
+            let val: Person = (next)(Person {
+                first: split.next().unwrap().to_string(),
+                last: split.next().unwrap().to_string(),
+            }).await;
+
+            format!("{},{}", val.first, val.last)
+        }, 
+        |mut val: Person, _next: AsyncNext<Person, _>| async move {
+            val.last = "<Redacted>".to_string();
+
+            val
+        }, 
+    ).into();
+
+    println!("test: {}", (f.f)("Anakin,Skywalker".to_string()).await);
+
     // Sync triplet
     let f: ChainableFn<_, _, _> = (
         _a, _b, _c,
