@@ -1,0 +1,8 @@
+[package]
+name = "chainable-functions-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chainable-functions = { path = "../chainable-functions" }
+tokio = { version = "1.6.1", features = ["full"] }

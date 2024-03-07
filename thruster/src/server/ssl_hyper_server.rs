@@ -1,21 +1,21 @@
+use async_trait::async_trait;
 use futures::future;
 use futures::stream::StreamExt;
 use futures::FutureExt;
-use std::io::{self, BufReader};
-use std::net::ToSocketAddrs;
-use tokio::time::{timeout, Duration};
-use tokio_stream::wrappers::TcpListenerStream;
-use tokio_util::sync::ReusableBoxFuture;
-
-use async_trait::async_trait;
 use hyper::server::conn::Http;
 use hyper::{Body, Response};
 use log::error;
+use pki_types::{PrivateKeyDer, PrivatePkcs8KeyDer};
 use rustls_pemfile::{certs, pkcs8_private_keys};
+use std::io::{self, BufReader};
+use std::net::ToSocketAddrs;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio_rustls::rustls::{Certificate, PrivateKey, ServerConfig};
+use tokio::time::{timeout, Duration};
+use tokio_rustls::rustls::ServerConfig;
 use tokio_rustls::TlsAcceptor;
+use tokio_stream::wrappers::TcpListenerStream;
+use tokio_util::sync::ReusableBoxFuture;
 
 use crate::app::App;
 use crate::context::basic_hyper_context::HyperRequest;
@@ -77,17 +77,20 @@ impl<T: Context<Response = Response<Body>> + Clone + Send + Sync, S: 'static + S
         let cert_u8: &[u8] = &self.cert.unwrap();
         let key_u8: &[u8] = &self.key.unwrap();
         let certs = certs(&mut BufReader::new(cert_u8))
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid cert"))
-            .map(|mut certs| certs.drain(..).map(Certificate).collect())
-            .expect("Could not form certs passed in");
-        let mut keys: Vec<PrivateKey> = pkcs8_private_keys(&mut BufReader::new(key_u8))
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid key"))
-            .map(|mut keys| keys.drain(..).map(PrivateKey).collect())
+            .expect("Could not read certs passed in")
+            .into_iter()
+            .map(Into::into)
+            .collect();
+        let mut key: PrivateKeyDer<'static> = pkcs8_private_keys(&mut BufReader::new(key_u8))
+            .expect("Could not read private keys passed in")
+            .into_iter()
+            .next()
+            .map(PrivatePkcs8KeyDer::from)
+            .map(Into::into)
             .expect("Could not form private keys passed in");
         let config = ServerConfig::builder()
-            .with_safe_defaults()
             .with_no_client_auth()
-            .with_single_cert(certs, keys.remove(0))
+            .with_single_cert(certs, key)
             .expect("Bad certificates");
 
         self.tls_acceptor = Some(Arc::new(TlsAcceptor::from(Arc::new(config))));
