@@ -1,6 +1,8 @@
 [workspace]
 
 members = [
+    "chainable-functions", 
+    "chainable-functions-test",
     "thruster",
     "thruster-proc",
     "thruster/examples/grpc"

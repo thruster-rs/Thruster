@@ -1,9 +1,6 @@
 mod homegrown_server;
 pub use homegrown_server::Server;
 
-#[cfg(feature = "tls")]
-pub mod ssl_server;
-
 #[cfg(feature = "hyper_server")]
 pub mod hyper_server;
 
@@ -19,9 +16,6 @@ pub mod actix_server;
 mod thruster_server;
 
 pub use thruster_server::ThrusterServer;
-
-#[cfg(feature = "tls")]
-pub use crate::ssl_server::SSLServer;
 
 #[cfg(feature = "hyper_server")]
 pub use crate::hyper_server::HyperServer;

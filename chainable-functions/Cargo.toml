@@ -1,0 +1,23 @@
+[package]
+name = "chainable-functions"
+version = "0.1.0"
+authors = ["Pete Mertz <peter.s.mertz@gmail.com>"]
+description = "Procedural macros to dynamically chain functions together"
+readme = "README.md"
+license = "MIT"
+keywords = ["chain", "function", "functional", "dynamic"]
+documentation = "https://docs.rs/thruster"
+homepage = "https://thruster.pete.pm"
+repository = "https://github.com/trezm/thruster"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.58"
+syn = { version = "2.0.16", features = ["full"] }
+quote = "1.0.27"
+lazy_static = "1.3.0"
+uuid = { version = "0.7.4", features = ["v4"] }
+rust-format = { version = "0.3.4", features = ["post_process", "token_stream"] }

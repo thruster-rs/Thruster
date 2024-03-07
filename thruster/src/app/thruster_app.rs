@@ -23,7 +23,7 @@ pub trait Middleware<CIn: Send, COut: Send, CErr: Send>:
 }
 
 // type ReturnValue<T> = Result<T, ThrusterError<T>>;
-type ReturnValue<T> = T;
+pub type ReturnValue<T> = T;
 
 /// App, the main component of Thruster. The App is the entry point for your application
 /// and handles all incomming requests. Apps are also composeable, that is, via the `subapp`

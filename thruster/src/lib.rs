@@ -14,16 +14,17 @@ mod server;
 
 pub mod context;
 pub mod middleware;
+pub mod open_api;
 pub mod parser;
 
 pub use crate::core::context::Context;
+pub use crate::core::context_state::ContextState;
 pub use crate::core::errors;
 pub use crate::core::http::Http;
 pub use crate::core::middleware::MiddlewareResult;
 pub use crate::core::request::{decode, Request, RequestWithParams, ThrusterRequest};
 pub use crate::core::response::{encode, Response};
 pub use crate::core::{MiddlewareFn, MiddlewareNext, MiddlewareReturnValue};
-pub use crate::core::context_state::ContextState;
 pub use app::testing_async as testing;
 pub use app::App;
 pub use app::Testable;
@@ -41,9 +42,6 @@ pub use server::unix_hyper_server;
 
 #[cfg(all(feature = "hyper_server", feature = "tls"))]
 pub use server::ssl_hyper_server;
-
-#[cfg(feature = "tls")]
-pub use server::ssl_server;
 
 pub use context::basic_context::BasicContext;
 pub use server::ThrusterServer;
