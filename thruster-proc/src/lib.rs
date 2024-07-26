@@ -1,9 +1,16 @@
-// #![feature(proc_macro_diagnostic)]
+#![feature(proc_macro_diagnostic)]
 // extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span as Span2, TokenStream as TokenStream2, TokenTree as TokenTree2};
 use quote::quote;
+
+mod json;
+
+#[proc_macro_attribute]
+pub fn json_request(attr: TokenStream, item: TokenStream) -> TokenStream {
+    json::json_request(attr, item)
+}
 
 #[proc_macro]
 pub fn m(items: TokenStream) -> TokenStream {
@@ -185,7 +192,6 @@ pub fn context_state(_attr: TokenStream, item: TokenStream) -> TokenStream {
             stream
         })
         .collect::<Vec<TokenStream2>>();
-
 
     let mut impls = vec![];
 

@@ -14,7 +14,6 @@ mod server;
 
 pub mod context;
 pub mod middleware;
-pub mod open_api;
 pub mod parser;
 
 pub use crate::core::context::Context;
