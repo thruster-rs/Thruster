@@ -12,6 +12,10 @@ const ROOT_ROUTE_ID: &str = "__root__";
 const WILDCARD_ROUTE_ID: char = '*';
 const PARAM_ROUTE_LEADING_CHAR: char = ':';
 
+// For potential future use
+// use std::future::Future;
+// chainable_functions::chainable_functions!(A, B, C, D, E, F, G);
+
 /// A single node in the route parse tree.
 pub struct Node<T: Clone + Send> {
     /// The value of the node. Not every node has a value, for example in the path /a/b, two nodes are created;

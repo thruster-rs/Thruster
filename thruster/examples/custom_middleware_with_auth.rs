@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use authentication_module::{authenticate, User, AuthProvider, FakeAuthenticator};
+use authentication_module::{authenticate, AuthProvider, FakeAuthenticator, User};
 use log::info;
 use thruster::{
-    context::typed_hyper_context::TypedHyperContext,
-    hyper_server::HyperServer,
-    m,
-    middleware_fn, App, HyperRequest, MiddlewareNext, MiddlewareResult, ThrusterServer,
+    context::typed_hyper_context::TypedHyperContext, hyper_server::HyperServer, m, middleware_fn,
+    App, HyperRequest, MiddlewareNext, MiddlewareResult, ThrusterServer,
 };
 use thruster_jab::{provide, JabDI};
 use thruster_proc::context_state;
@@ -59,12 +57,12 @@ mod authentication_module {
     use async_trait::async_trait;
     use std::collections::HashMap;
     use std::sync::Arc;
-    
+
     use thruster::{
         context::typed_hyper_context::TypedHyperContext,
         errors::{ErrorSet, ThrusterError},
         middleware::cookies::HasCookies,
-        middleware_fn, MiddlewareNext, MiddlewareResult, ContextState,
+        middleware_fn, ContextState, MiddlewareNext, MiddlewareResult,
     };
     use thruster_jab::{fetch, JabDI};
     use tokio::sync::Mutex;
@@ -74,16 +72,16 @@ mod authentication_module {
         pub first: String,
         pub last: String,
     }
-    
+
     #[async_trait]
     pub trait AuthProvider {
         async fn authenticate(&self, session_token: &str) -> Result<User, ()>;
     }
-    
+
     pub struct FakeAuthenticator {
         fake_db: Mutex<HashMap<String, User>>,
     }
-    
+
     impl Default for FakeAuthenticator {
         fn default() -> Self {
             Self {
@@ -106,31 +104,36 @@ mod authentication_module {
             }
         }
     }
-    
+
     #[async_trait]
     impl AuthProvider for FakeAuthenticator {
         async fn authenticate(&self, session_token: &str) -> Result<User, ()> {
             self.fake_db.lock().await.remove(session_token).ok_or(())
         }
     }
-    
+
     #[middleware_fn]
-    pub async fn authenticate<S: Send + Sync + Default + ContextState<Option<Arc<JabDI>>> + ContextState<Option<User>>>(mut context: TypedHyperContext<S>, next: MiddlewareNext<TypedHyperContext<S>>) -> MiddlewareResult<TypedHyperContext<S>> {
+    pub async fn authenticate<
+        S: Send + Sync + Default + ContextState<Option<Arc<JabDI>>> + ContextState<Option<User>>,
+    >(
+        mut context: TypedHyperContext<S>,
+        next: MiddlewareNext<TypedHyperContext<S>>,
+    ) -> MiddlewareResult<TypedHyperContext<S>> {
         let di: &Option<Arc<JabDI>> = context.extra.get();
         let auth = fetch!(di.as_ref().unwrap(), dyn AuthProvider);
-    
+
         let session_header = context
             .get_header("Session-Token")
             .pop()
             .unwrap_or_default();
-    
+
         let user = auth
             .authenticate(&session_header)
             .await
             .map_err(|_| ThrusterError::unauthorized_error(TypedHyperContext::default()))?;
-    
+
         *context.extra.get_mut() = Some(user);
-    
+
         next(context).await
-    }    
+    }
 }
