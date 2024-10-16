@@ -64,6 +64,7 @@ pub fn json_request(args: TokenStream, item: TokenStream) -> TokenStream {
         }
     });
 
+    let fn_vis = input.vis;
     let mut fn_sig = input.sig;
 
     let mut context_and_next = Punctuated::new();
@@ -76,7 +77,7 @@ pub fn json_request(args: TokenStream, item: TokenStream) -> TokenStream {
 
     let gen = quote! {
         #[thruster::middleware_fn]
-        #fn_sig {
+        #fn_vis #fn_sig {
             use thruster::context::context_ext::ContextExt;
 
             #(#json)*
